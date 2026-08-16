@@ -62,6 +62,22 @@ flowchart TD
 
 ---
 
+## 2.1 Prerequisite Knowledge
+
+บทนี้ไม่ต้องการให้มีประสบการณ์ดูแล Hadoop cluster มาก่อน แต่ควรเข้าใจพื้นฐานต่อไปนี้
+
+1. **File และ directory:** แยก local file system ออกจาก distributed file system และเข้าใจ path, permission และ command line เบื้องต้น
+2. **Database:** รู้จัก table, row, column, schema และความแตกต่างระหว่าง transaction database กับงานวิเคราะห์
+3. **Programming:** เข้าใจ function, input/output, loop และ key/value pair เพื่ออ่าน pseudo-code ของ MapReduce
+4. **Network:** รู้ว่าการส่งข้อมูลระหว่างเครื่องมีต้นทุนและช้ากว่าการอ่านข้อมูลภายใน node จึงเกิดแนวคิด data locality
+5. **Parallel processing:** แยกการแบ่งงานให้หลาย task ทำพร้อมกันออกจากการทำงานตามลำดับบนเครื่องเดียว
+
+### แบบจำลองทางความคิดก่อนเริ่ม
+
+ให้นึกถึงการนับคำในหนังสือ 1,000 เล่ม หากมีคนเดียวทำทั้งหมดจะช้า เราจึงแบ่งหนังสือให้หลายคน (**Map**) แล้วนำกระดาษสรุปของคำเดียวกันมารวมกอง (**Shuffle/Sort**) ก่อนให้คนอีกกลุ่มบวกยอดสุดท้าย (**Reduce**) Hadoop เพิ่มระบบจัดเก็บ กระจายงาน ตรวจความล้มเหลว และรันงานใหม่ให้กระบวนการนี้ทำงานกับเครื่องจำนวนมากได้
+
+---
+
 ## 3. ประเภทของข้อมูล
 
 ### 3.1 เนื้อหาจากเอกสาร
@@ -787,6 +803,82 @@ with DAG(
 
 ---
 
+## 22.1 Common Misconceptions
+
+| ความเข้าใจที่คลาดเคลื่อน | เหตุใดจึงไม่ถูกต้อง | ความเข้าใจที่ถูกต้อง |
+|---|---|---|
+| Big Data หมายถึงข้อมูลหลาย TB เท่านั้น | ขนาดอย่างเดียวไม่ได้สะท้อน velocity, variety หรือข้อจำกัดของระบบ | Big Data เป็นข้อมูลที่คุณลักษณะและข้อกำหนดเกินความสามารถของแนวทางเดิมในบริบทนั้น |
+| Hadoop ถูกพัฒนาโดย Google | Google เผยแพร่แนวคิด GFS และ MapReduce แต่ไม่ได้สร้าง Apache Hadoop | Hadoop เริ่มโดย Doug Cutting และ Mike Cafarella โดยได้รับแรงบันดาลใจจากงานของ Google |
+| NameNode เก็บไฟล์จริงทั้งหมด | ถ้าเป็นเช่นนั้น NameNode จะเป็น data bottleneck | NameNode เก็บ namespace และ block metadata ส่วน DataNode เก็บ block จริง |
+| Secondary NameNode คือเครื่องสำรอง | มันไม่ได้รับคำขอแทนทันทีเมื่อ NameNode ล้ม | หน้าที่หลักคือ checkpoint โดยรวม `fsimage` กับ `editlogs`; HA ใช้ Active/Standby NameNode |
+| HDFS block 128 MB ทำให้ไฟล์ 1 MB ใช้พื้นที่จริง 128 MB | block เป็นหน่วยจัดการเชิงตรรกะ | block สุดท้ายเก็บเท่าข้อมูลจริงโดยไม่ต้องเติมศูนย์ให้เต็ม block |
+| Hadoop 3 เลิก replication แล้วใช้ Erasure Coding ทั้งหมด | Hadoop 3 ยังรองรับ replication | Erasure Coding เป็นอีก storage policy ที่เลือกใช้ตาม workload |
+| MapReduce คือมีแค่ Map และ Reduce | ขั้นกลางมีต้นทุนสำคัญและเป็นหัวใจของการจัดกลุ่ม | กระบวนการจริงต้องเข้าใจ split, map, partition, shuffle, sort และ reduce |
+| หนึ่ง HDFS block เท่ากับหนึ่ง mapper เสมอ | InputFormat สามารถกำหนด input split ต่างจาก physical block | จำนวน mapperสัมพันธ์กับ input splits ไม่ใช่กฎตายตัวจากจำนวน block |
+| Combiner เป็น mini-reducer ที่จะทำงานทุกครั้ง | Framework ไม่รับประกันจำนวนครั้งที่เรียก | ผลลัพธ์ต้องถูกต้องแม้ combiner ไม่ทำงาน และ operation ต้องรวมซ้ำได้อย่างปลอดภัย |
+| HashPartitioner ทำให้ reducer ทุกตัวรับงานเท่ากัน | จำนวน key อาจใกล้กันแต่ values ต่อ key ต่างกันมาก | ต้องพิจารณา distribution และ data skew ไม่ใช่เพียงจำนวน key |
+| Airflow ประมวลผล Big Data แทน Spark/MapReduce | Airflow ไม่ใช่ distributed processing engine | Airflow จัด schedule, dependency, retry และส่งงานให้ระบบประมวลผล |
+| Data Lake คือการโยนไฟล์รวมกัน | ขาด metadata และ governance แล้วข้อมูลใช้งานไม่ได้ | Data Lake ต้องมี catalog, ownership, quality, security และ lifecycle management |
+
+---
+
+## 22.2 Likely Exam Focus
+
+ส่วนนี้เป็นการอนุมานจากหัวข้อที่เอกสารเน้น ตัวอย่างหลายหน้า และคำศัพท์ที่ต้องแยกบทบาท ไม่ใช่ข้อมูลข้อสอบจริง
+
+### Definitions to remember
+
+- 5Vs: Volume, Variety, Velocity, Veracity และ Value
+- HDFS, YARN, MapReduce, Data Lake, Data Product และ Lambda Architecture
+- NameNode, Secondary NameNode, DataNode, ResourceManager, ApplicationMaster และ NodeManager
+- Map, Shuffle/Sort, Reduce, Combiner และ Partitioner
+- DAG, orchestration, data locality, fault tolerance และ speculative execution
+
+### Processes to explain step by step
+
+1. Big Data Workflow: Ingestion → Staging → Computation → Workflow Management
+2. HDFS read/write ในระดับแนวคิด
+3. การ submit application ผ่าน YARN
+4. Word Count: Input Split → Map → Shuffle/Sort → Reduce
+5. Hadoop Streaming ผ่าน `stdin`/`stdout`
+6. Job chaining และการจัด dependency ด้วย DAG
+
+### Comparisons likely to be tested
+
+- Structured vs semi-structured vs unstructured data
+- Data Lake vs Data Warehouse
+- Batch Layer vs Speed Layer vs Serving Layer
+- HDFS vs YARN vs MapReduce
+- NameNode vs DataNode
+- ResourceManager vs ApplicationMaster vs NodeManager
+- Combiner vs Reducer
+- Oozie vs Airflow
+- Processing engine vs workflow orchestrator
+
+### Code and calculations to perform
+
+- เขียนหรืออ่าน pseudo-code ของ Word Count
+- ไล่ intermediate key/value หลัง mapper และหลัง shuffle
+- คำนวณผล reduce จาก grouped values
+- อธิบายเหตุผลที่ average combiner ต้องส่ง `(sum, count)`
+- อ่านคำสั่ง HDFS เช่น `-put`, `-get`, `-mkdir`, `-ls` และ `-chmod`
+- อ่าน cron expression พื้นฐาน เช่น `0 0 * * *`
+
+### Scenario-based decisions
+
+- เลือก HDFS สำหรับไฟล์ใหญ่แบบ batch แต่ไม่เลือกสำหรับ OLTP random updates
+- วินิจฉัย NameNode/DataNode/NodeManager failure จากอาการ
+- เลือก combiner เมื่อ operation ทำ local aggregation ได้อย่างปลอดภัย
+- แก้ reducer ช้าจาก hot key หรือ data skew
+- เลือก batch, speed หรือทั้งสองเส้นทางตาม latency requirement
+- แยกว่าปัญหาใดต้องแก้ด้วย storage, resource manager, processing engine หรือ orchestrator
+
+### กรอบตอบข้อสอบอธิบาย
+
+ตอบให้ครบสี่ส่วน: **นิยาม → กลไก → เหตุผล/ประโยชน์ → ข้อจำกัดหรือตัวอย่าง** เช่น หากถาม data locality ไม่ควรตอบเพียง “ประมวลผลใกล้ข้อมูล” แต่ควรอธิบายว่า scheduler พยายามวาง task บน node/rack ที่มี block เพื่อลด network traffic และอาจทำไม่ได้เมื่อ resource ไม่พอ
+
+---
+
 ## 23. Key Takeaways
 
 1. Big Data ประกอบด้วยปริมาณ ความหลากหลาย ความเร็ว ความน่าเชื่อถือ และคุณค่า ไม่ใช่แค่ไฟล์ใหญ่
@@ -854,41 +946,176 @@ with DAG(
 
 ## 25. คำถามทบทวนความเข้าใจ
 
-### คำถาม
+คำถามแบ่งตามระดับความคิดเพื่อฝึกทั้งการจำ อธิบาย เปรียบเทียบ ประยุกต์ และวิเคราะห์ ควรลองตอบก่อนเปิดดูเฉลย
 
-1. Structured, semi-structured และ unstructured data ต่างกันอย่างไร?
-2. เหตุใด Value จึงสำคัญกว่าการมี Volume จำนวนมาก?
-3. Big Data Workflow สี่ phase มีอะไรบ้าง?
-4. Batch Layer และ Speed Layer ใน Lambda Architectureแก้ปัญหาต่างกันอย่างไร?
-5. HDFS, YARN และ MapReduce รับผิดชอบอะไร?
-6. NameNode เก็บเนื้อหาไฟล์ทั้งหมดหรือไม่? Client อ่านข้อมูลจริงจากที่ใด?
-7. เหตุใด Secondary NameNode จึงไม่ใช่ backup NameNode?
-8. ResourceManager, ApplicationMaster และ NodeManager ต่างกันอย่างไร?
-9. Data locality ลดต้นทุนของ distributed processing อย่างไร?
-10. เหตุใด HDFS ไม่เหมาะกับ OLTP ที่แก้ไขทีละ record บ่อย ๆ?
-11. ใน Word Count ข้อมูลเปลี่ยนอย่างไรใน Map, Shuffle/Sort และ Reduce?
-12. Combiner มีประโยชน์อะไร และเหตุใดจึงใช้ average ตรง ๆ ไม่ได้?
-13. Partitioner มีหน้าที่อะไร และ data skew เกิดขึ้นได้อย่างไร?
-14. Hadoop Streaming ทำให้ Python ทำงานกับ MapReduce ได้อย่างไร?
-15. Airflow ต่างจาก Spark/MapReduce อย่างไร?
+### ระดับ 1: Recall — Multiple Choice
 
-### เฉลย
+**1. Component ใดเก็บ HDFS namespace และ block locations?**
 
-1. Structured มี schema ตารางชัดเจน; semi-structured มี key/tag แต่ schema ยืดหยุ่น; unstructured ไม่เหมาะกับแถว-คอลัมน์ตายตัว
-2. เพราะข้อมูลจะสร้างผลลัพธ์ทางธุรกิจได้ก็ต่อเมื่อนำไปปรับการตัดสินใจหรือกระบวนการ ปริมาณมากโดยไม่มี use case เป็นเพียงต้นทุน
-3. Ingestion, Staging, Computation และ Workflow Management
-4. Batch Layer คำนวณข้อมูลทั้งหมดอย่างครบถ้วนแต่มี latency; Speed Layer ประมวลผลข้อมูลล่าสุดอย่างรวดเร็วเพื่อชดเชยช่วงที่ batch ยังไม่ทัน
-5. HDFS เก็บข้อมูล, YARN จัดสรร resource, MapReduce ประมวลผลแบบกระจาย
-6. ไม่เก็บเนื้อหาไฟล์ทั้งหมด NameNode เก็บ metadata และ block locations ส่วน client อ่าน block จาก DataNode โดยตรง
-7. Secondary NameNode ทำ checkpoint โดย merge fsimage/editlogs แต่ไม่ได้รักษาสถานะพร้อม failover แบบ Standby NameNode
-8. ResourceManager ดู resource ทั้ง cluster; ApplicationMaster ประสานหนึ่ง application; NodeManager รัน/ดูแล container บน node ของตน
-9. ส่งโปรแกรมขนาดเล็กไปยัง node ที่มี block แทนส่งข้อมูลขนาดใหญ่ผ่าน network
-10. HDFS ออกแบบเพื่อไฟล์ใหญ่ การอ่านต่อเนื่อง และ write-once/read-many ไม่ใช่ random row update latency ต่ำ
-11. Map สร้าง `(word,1)`; Shuffle/Sort จัดกลุ่ม values ของคำเดียวกัน; Reduce รวม values เป็นจำนวนครั้ง
-12. ลด intermediate data และ network traffic; average ของกลุ่มย่อยที่ขนาดต่างกันนำมาเฉลี่ยตรง ๆ แล้วอาจผิด จึงต้องส่ง sum และ count
-13. กำหนด reducer ของแต่ละ key; skew เกิดเมื่อ key บางตัวมี records มากจน reducer หนึ่งรับงานหนักกว่าตัวอื่น
-14. Hadoop pipe ข้อมูลเข้า script ทาง stdin และรับ key/value จาก stdout ก่อน shuffle/reduce
-15. Airflow เป็น orchestrator ที่ schedule และจัด dependency ส่วน Spark/MapReduce เป็น processing engine ที่คำนวณข้อมูล
+A. DataNode
+B. NameNode
+C. NodeManager
+D. ApplicationMaster
+
+**2. ลำดับหลักของ MapReduce ข้อใดถูกต้องที่สุด?**
+
+A. Reduce → Map → Shuffle
+B. Map → Reduce → Partition
+C. Map → Shuffle/Sort → Reduce
+D. Shuffle → Map → Reduce
+
+**3. Service ใดถูกสร้างขึ้นเพื่อประสานงาน application หนึ่งรายการบน YARN?**
+
+A. ResourceManager
+B. ApplicationMaster
+C. Secondary NameNode
+D. DataNode
+
+**4. ข้อใดอธิบาย Secondary NameNode ได้ถูกต้อง?**
+
+A. เก็บ replica ของทุก block
+B. รับงานแทน NameNode ทันทีเมื่อ NameNode ล้ม
+C. ทำ checkpoint โดยรวม fsimage กับ editlogs
+D. จัดสรร CPU และ memory ให้ task
+
+**5. เครื่องมือใดเป็น workflow orchestrator ไม่ใช่ processing engine?**
+
+A. MapReduce
+B. Spark
+C. Airflow
+D. HDFS
+
+### ระดับ 2: Explain — Short Answer
+
+**6. อธิบาย 5Vs และยกตัวอย่างผลต่อการออกแบบระบบอย่างน้อยสามข้อ**
+
+**7. เหตุใด data locality จึงสำคัญ และระบบอาจยอมรัน task แบบ rack-local แทน node-local เมื่อใด?**
+
+**8. อธิบายว่าเหตุใด HDFS จึงเหมาะกับไฟล์ใหญ่และ batch analytics แต่ไม่เหมาะกับ OLTP**
+
+**9. อธิบายความสัมพันธ์ของ `fsimage`, `editlogs` และ checkpoint**
+
+### ระดับ 3: Compare
+
+**10. เปรียบเทียบ HDFS, YARN และ MapReduce โดยตอบว่าแต่ละระบบจัดการ “อะไร” และประสานกันอย่างไร**
+
+**11. เปรียบเทียบ Combiner กับ Reducer อย่างน้อยสามประเด็น**
+
+**12. เปรียบเทียบ Batch, Speed และ Serving Layer ของ Lambda Architecture พร้อมข้อดีและข้อจำกัด**
+
+### ระดับ 4: Apply — Worked Problems
+
+**13. Word Count**
+
+ให้ input สองบรรทัด โดยสมมติ mapper แปลงเป็น lowercase และตัด punctuation แล้ว
+
+```text
+Data moves fast.
+Big data moves.
+```
+
+จงแสดง
+
+1. Mapper output
+2. Output หลัง Shuffle/Sort
+3. Reducer output
+
+**14. Average with Combiner**
+
+Mapper 1 อ่านค่า `10, 20` และ Mapper 2 อ่านค่า `30, 60, 90` ถ้าแต่ละ mapper ส่ง local average แล้ว reducer นำ average สองค่ามาเฉลี่ย ผลจะผิดอย่างไร และควรส่งค่าใดแทน?
+
+**15. HDFS Command**
+
+เขียนคำสั่งเพื่อ
+
+1. สร้าง `/user/student/week01`
+2. อัปโหลด `input.txt` ไปเป็น `/user/student/week01/input.txt`
+3. แสดงรายการไฟล์ใน directory
+4. ดาวน์โหลด output directory กลับเครื่อง
+
+### ระดับ 5: Analyze — Scenario Based
+
+**16. Data Skew Scenario**
+
+Job สรุปยอดตามจังหวัดมี reducers 10 ตัว แต่ reducer หนึ่งใช้เวลา 50 นาที ขณะที่ตัวอื่นเสร็จภายใน 5 นาที ตรวจพบว่า key `Bangkok` มีข้อมูล 70% ของทั้งหมด จงวิเคราะห์สาเหตุและเสนอแนวทางแก้อย่างน้อยสองแนวทาง พร้อมข้อควรระวัง
+
+**17. Failure Scenario**
+
+DataNode หนึ่งหยุดส่ง heartbeat แต่ NameNode ยังทำงาน และ block ทุกก้อนมี replication factor 3 อธิบายผลกระทบระยะสั้นและสิ่งที่ HDFS ควรทำต่อ
+
+**18. Architecture Decision**
+
+บริษัทต้องการเก็บ transaction จำนวนมาก โดย Dashboard ยอมรับข้อมูลช้าได้หนึ่งวัน แต่ระบบชำระเงินต้องแก้ไขสถานะ transaction ภายในมิลลิวินาที ควรใช้ HDFS กับงานใด และไม่ควรใช้กับงานใด เพราะเหตุใด?
+
+**19. Orchestration Scenario**
+
+Pipeline ต้องรอไฟล์เข้า HDFS จากนั้นรัน MapReduce job ตรวจคุณภาพ สร้าง aggregate และส่งแจ้งเตือนเมื่อผิดพลาด อธิบายบทบาทของ Airflow โดยแยกสิ่งที่ Airflow ทำเองกับสิ่งที่ engine อื่นทำ
+
+### Model Answers with Reasoning
+
+**1. B — NameNode.** NameNode เก็บ namespace และตำแหน่ง block ส่วน DataNode เก็บ block จริง NodeManager และ ApplicationMaster อยู่ฝั่ง YARN
+
+**2. C — Map → Shuffle/Sort → Reduce.** Partitioner ทำงานในเส้นทางระหว่าง mapper กับ reducer แต่ลำดับภาพรวมที่เอกสารเน้นคือสามช่วงนี้
+
+**3. B — ApplicationMaster.** ResourceManager ดู resource ทั้ง cluster ส่วน ApplicationMaster ต่อรอง resource และติดตาม task ของ application ตนเอง
+
+**4. C — ทำ checkpoint.** Secondary NameNode ลดภาระ editlogs ด้วยการรวมเข้ากับ fsimage แต่ไม่ใช่ automatic failover node
+
+**5. C — Airflow.** Airflow จัด dependency, schedule, retry และ monitor แต่ส่ง computation ให้ engine เช่น MapReduce หรือ Spark
+
+**6.** Volume ส่งผลต่อ storage/parallelism; Variety ต้องรองรับหลาย format/schema; Velocity กำหนด batch หรือ streaming; Veracity ทำให้ต้องมี validation/quality control; Value เชื่อมผลลัพธ์กับการตัดสินใจ คำตอบที่ดีต้องไม่เพียงแปลคำศัพท์ แต่เชื่อมแต่ละ V กับ design decision
+
+**7.** Data locality ลดการส่งข้อมูลขนาดใหญ่ผ่าน network โดยวาง task ใกล้ replica หาก node ที่มี block ไม่มี CPU/memory ว่าง scheduler อาจเลือก node ใน rack เดียวกันเพื่อสมดุลระหว่าง locality กับเวลารอ resource
+
+**8.** HDFS ใช้ block ใหญ่ การอ่านแบบ sequential และแนวคิด write-once/read-many จึงมี throughput สูงสำหรับ batch scan แต่มี overhead และไม่มี random row update/transaction semantics แบบ OLTP
+
+**9.** `fsimage` คือ snapshot ของ metadata ส่วน `editlogs` เก็บการเปลี่ยนแปลงหลัง snapshot การ checkpoint คือ merge สองส่วนเป็น fsimage ใหม่ เพื่อให้ recovery ไม่ต้อง replay log ที่ยาวมาก
+
+**10.** HDFS จัด storage และ block metadata; YARN จัด resource/container; MapReduce แบ่งและรัน computation ระบบประสานกันโดย YARN พยายามจัด task ไปยัง resource ใกล้ block ที่ HDFS เก็บ
+
+**11.** Combiner ทำ local aggregation ที่ mapper, อาจไม่ถูกเรียก และใช้ลด shuffle; Reducer รับ grouped values หลัง shuffle, เป็นส่วนของผลลัพธ์ที่ job กำหนด และจำนวน reducer ถูกตั้งค่าได้ Logic ของ combiner ต้องปลอดภัยต่อการเรียกศูนย์หรือหลายครั้ง
+
+**12.** Batch เก็บ/คำนวณข้อมูลทั้งหมดจึงครบแต่ช้า; Speed ประมวลผลข้อมูลล่าสุดจึงเร็วแต่ต้องรักษา logic อีกชุด; Serving รวม/ให้บริการ views ทำให้ query เร็วแต่ต้องทำให้ผลจากสองทางสอดคล้องกัน
+
+**13.** Mapper output:
+
+```text
+(data,1) (moves,1) (fast,1)
+(big,1) (data,1) (moves,1)
+```
+
+Shuffle/Sort:
+
+```text
+(big,[1]) (data,[1,1]) (fast,[1]) (moves,[1,1])
+```
+
+Reducer output:
+
+```text
+(big,1) (data,2) (fast,1) (moves,2)
+```
+
+เหตุผลคือ shuffle รับประกันว่า values ของ key เดียวกันถูกจัดกลุ่มก่อนรวม
+
+**14.** Local averages คือ 15 และ 60 เมื่อนำมาเฉลี่ยได้ 37.5 แต่ค่าเฉลี่ยจริงคือ `(10+20+30+60+90)/5 = 42` เพราะกลุ่มมีจำนวนสมาชิกไม่เท่ากัน ควรส่ง `(sum,count)` คือ `(30,2)` และ `(180,3)` แล้ว reducer คำนวณ `210/5 = 42`
+
+**15.**
+
+```bash
+hadoop fs -mkdir -p /user/student/week01
+hadoop fs -put input.txt /user/student/week01/input.txt
+hadoop fs -ls /user/student/week01
+hadoop fs -get /user/student/week01/output ./output
+```
+
+**16.** สาเหตุคือ hot key ทำให้ HashPartitioner ส่งข้อมูล Bangkok ทั้งหมดไป reducer เดียว แนวทางแก้ เช่น salting key แล้ว aggregate สองรอบ หรือ pre-aggregate ที่ mapper/combiner หาก operation รองรับ อาจใช้ custom partitioning แต่ห้ามแยก key แล้วลืมรวมผลรอบสุดท้าย มิฉะนั้นคำตอบผิด
+
+**17.** HDFS ยังอ่าน block จาก replica อื่นได้ จึงไม่ควรสูญเสียข้อมูลทันที NameNode ตรวจการหายของ heartbeat ทำเครื่องหมาย node ว่า unavailable และสั่ง re-replication ของ under-replicated blocks ไปยัง DataNode อื่นจนกลับถึง replication factor ที่ต้องการ
+
+**18.** ใช้ HDFS เก็บประวัติ transaction เพื่อ batch analytics/รายงานรายวันได้ แต่ไม่ใช้เป็นฐานข้อมูลหลักของ payment state เพราะต้องการ low-latency random updates และ transaction guarantees ควรใช้ transactional database สำหรับระบบชำระเงินแล้วค่อยส่งสำเนาไป analytical storage
+
+**19.** Airflow ตรวจ dependency/schedule สั่ง task, retry, บันทึกสถานะ และแจ้งเตือน ส่วนการอ่านไฟล์ การตรวจคุณภาพ และ aggregate ถูกทำโดย sensor/operator หรือ processing engine ที่ Airflow เรียก Airflow ไม่ได้แทน HDFS หรือ MapReduce
 
 ---
 
