@@ -2,7 +2,7 @@
 
 > **รายวิชา:** DADS5001 Data Analytics and Data Science Tools and Programming  
 > **ผู้สอน:** Assoc. Prof. Thitirat Siriborvornratanakul, Ph.D.  
-> **เอกสารต้นทาง:** `dads5001_week1_intro_pandas1.pdf` จำนวน 24 หน้า (47 สไลด์)  
+> **เอกสารต้นทาง:** `dads5001_week1_intro_pandas1.pdf` จำนวน 24 หน้า (47 สไลด์) และ `pandas1.ipynb` จำนวน 118 cells  
 > **ขอบเขต:** Course introduction, mini-project, package installation, Exploratory Data Analysis, data preprocessing, Python List vs. NumPy vs. Pandas, Pandas 2.0, Series, DataFrame และ axis  
 > **รูปแบบบันทึก:** Deep Learning & Exam-Ready Master Notes
 
@@ -525,6 +525,475 @@ df.sort_index()
 
 ทั้งสองคำสั่งคืน object ใหม่โดย default ถ้าต้องการเก็บผลให้ assign กลับ
 
+### 13.6 การตรวจเวอร์ชันและ Rich Display ใน Notebook
+
+Notebook เริ่มจากการ import library และพิมพ์เวอร์ชันของ environment:
+
+```python
+import sys
+import pandas as pd
+import numpy as np
+import IPython
+from IPython.display import (
+    display, Markdown, Latex, HTML, IFrame, JSON,
+    Code, Image, YouTubeVideo, clear_output,
+)
+
+print(f"Python {sys.version}")
+print(f"Pandas {pd.__version__}")
+print(f"NumPy {np.__version__}")
+print(f"IPython {IPython.__version__}")
+```
+
+**ทำไมต้องตรวจเวอร์ชัน:** code เดียวกันอาจให้ผลต่างกันหรือ error เมื่อเปลี่ยนเวอร์ชัน เช่น การบังคับข้อมูลทศนิยมเป็น integer และ default string dtype ใน Pandas รุ่นใหม่ การบันทึกเวอร์ชันจึงทำให้ผลการทดลอง reproducible และช่วยวิเคราะห์สาเหตุเมื่อ code ใช้ไม่ได้
+
+#### `print()` กับ `display()` ต่างกันอย่างไร
+
+- `print()` แปลง object เป็นข้อความธรรมดาแล้วส่งออกทาง standard output
+- `display()` ขอ rich representation จาก object เช่น ตาราง HTML ของ DataFrame, รูป, Markdown หรือสมการ
+- การพิมพ์ชื่อตัวแปรเป็นบรรทัดสุดท้ายของ cell เป็นพฤติกรรมของ IPython/Jupyter ไม่ใช่ Python script ปกติ
+
+```python
+print(df)     # plain-text representation
+display(df)   # rich HTML table ใน Notebook
+```
+
+Notebook แสดงว่า `display()` รองรับหลายชนิด:
+
+```python
+display(Markdown("# Heading\n- item"))
+display(Latex(r"x^n + y^n = z^n"))
+display(Code("print('Hello')"))
+display(HTML("<strong>Hello</strong>"))
+display(IFrame("https://as.nida.ac.th/", width=700, height=600))
+```
+
+**ข้อควรระวัง:** `HTML()` และ `IFrame()` สามารถ render เนื้อหาภายนอกได้ จึงไม่ควรแสดง HTML ที่ไม่เชื่อถือใน environment ที่มีข้อมูลสำคัญ ส่วน magic command `%%html` เป็นคำสั่งเฉพาะ IPython/Jupyter และใช้ใน Python script ปกติไม่ได้
+
+#### `clear_output()`
+
+ตัวอย่างใน Notebook พิมพ์เลข 1-25 และถามทุก 5 รอบว่าต้องการล้าง output หรือไม่:
+
+```python
+for i in range(1, 26):
+    print(f"{i=} Hello")
+    if i % 5 == 0:
+        if input("Clear current display (y/n)? ").strip() in ["y", "Y"]:
+            clear_output()
+            print("Previous outputs were cleared.")
+```
+
+`i % 5 == 0` ตรวจว่า `i` หาร 5 ลงตัว ส่วน `clear_output()` ล้างเฉพาะ output ที่แสดงของ cell ไม่ได้ล้างตัวแปรหรือหยุด kernel เหมาะกับ progress display หรือ animation แบบง่าย
+
+### 13.7 การสร้าง Series: dtype inference และ dtype ที่กำหนดเอง
+
+```python
+sr = pd.Series([10, 20.5, 30.6, 100, 1000])
+
+print(type(sr))   # pandas.Series
+print(sr.shape)   # (5,)
+print(sr.dtype)   # dtype ที่ Pandas infer
+```
+
+เพราะมีค่าทศนิยมอยู่ในชุดเดียวกัน Pandas ต้องเลือก dtype หนึ่งชนิดที่เก็บทุกค่าได้ จึงมัก infer เป็น floating-point ไม่ได้เก็บ integer และ float แยก dtype กันภายใน Series เดียว
+
+สามารถกำหนด dtype เองได้:
+
+```python
+sr = pd.Series([10, 20.5, 30.6, 100, 1000], dtype=np.float32)
+```
+
+`float32` ใช้หน่วยความจำน้อยกว่า `float64` แต่มี precision ต่ำกว่า จึงไม่ควรเลือกเพียงเพราะไฟล์เล็กลง ต้องพิจารณาช่วงค่าและความละเอียดที่ต้องการ
+
+#### เหตุใดการ cast float เป็น integer จึง error
+
+Notebook ตั้งใจให้ตัวอย่างต่อไปนี้เกิด `ValueError` ใน Pandas รุ่นใหม่:
+
+```python
+pd.Series([10, 20.5, 30.6, 100, 1000], dtype=np.int32)
+```
+
+สาเหตุคือ `20.5` และ `30.6` ไม่สามารถแปลงเป็น integer แบบ lossless ได้ หากยอมรับการตัดทศนิยมจริง ต้องระบุกระบวนการให้ชัด เช่น round/floor/ceil ก่อน cast:
+
+```python
+sr = pd.Series([10, 20.5, 30.6, 100, 1000])
+sr_int = sr.round().astype("int32")
+```
+
+แต่การ `round()` เป็น business rule ไม่ใช่วิธีแก้เชิงเทคนิคที่ใช้ได้ทุกกรณี
+
+#### NumPy-backed กับ Arrow-backed dtype
+
+```python
+sr_numpy = pd.Series([10, 20.5], dtype="float64")
+sr_arrow = pd.Series([10, 20.5], dtype="float64[pyarrow]")
+```
+
+ค่าที่เห็นอาจเหมือนกัน แต่ storage backend และ missing-value behavior ต่างกัน การเติม `[pyarrow]` ต้องมี package `pyarrow` ใน environment
+
+### 13.8 String, `object` และ mixed types
+
+Notebook เปรียบเทียบสามรูปแบบ:
+
+```python
+sr_object = pd.Series(["hello", "good", "morning"])
+sr_string = pd.Series(["hello", "good", "morning"], dtype="string")
+sr_arrow = pd.Series(["hello", "good", "morning"], dtype="string[pyarrow]")
+```
+
+- `object` เป็นกล่องเก็บ Python objects จึงอาจมีทั้ง string และชนิดอื่นปนกัน
+- `string` เป็น Pandas extension dtype ที่สื่อเจตนาว่าคอลัมน์นี้เป็นข้อความ
+- `string[pyarrow]` ใช้ Arrow-backed storage
+
+```python
+mixed = pd.Series(["hello", 1, 2, 10.0, True])
+```
+
+แม้สร้างได้ แต่ mixed-type Series มักทำให้ operation ช้าและตีความยากกว่า ควรตรวจว่าข้อมูลปนชนิดเพราะธรรมชาติของข้อมูลหรือเพราะ data-quality problem
+
+**หมายเหตุเวอร์ชัน:** ข้อความใน Notebook ที่ว่า string ถูก infer เป็น `object` สอดคล้องกับ Pandas รุ่นที่ใช้สร้างบทเรียน แต่ Pandas 3 เปลี่ยน default string inference บางส่วนแล้ว ดังนั้นให้ตรวจ `pd.__version__` และ `sr.dtype` จาก environment จริงแทนการจำผลลัพธ์ตายตัว
+
+### 13.9 Missing values กับการเปลี่ยน dtype
+
+```python
+pd.Series([10, 20, 30, None])
+```
+
+ใน NumPy-backed integer แบบดั้งเดิมไม่มี sentinel สำหรับ missing integer จึงอาจถูก upcast เป็น float และแทน `None` ด้วย `NaN` ทำให้ค่าที่ดูเป็นจำนวนเต็มกลายเป็น `10.0`, `20.0`, `30.0`
+
+```python
+pd.Series(["car", "ant", "zebra", None])
+```
+
+ถ้าเป็น `object` ค่า missing อาจคงเป็น Python `None` แต่เมื่อกำหนด `dtype="string"` Pandas ใช้ nullable string semantics และแสดง `<NA>`
+
+```python
+pd.Series([10, 20, 30, None], dtype="int64[pyarrow]")
+pd.Series(["car", "ant", "zebra", None], dtype="string[pyarrow]")
+```
+
+Arrow-backed dtype รองรับ missing โดยไม่ต้องเปลี่ยน integer เป็น float ประเด็นสำคัญไม่ใช่เพียงหน้าตาของ `NaN`, `None` หรือ `<NA>` แต่คือ dtype กำหนดว่า operation ใดทำได้และผลลัพธ์ propagate missing อย่างไร
+
+### 13.10 การสร้าง DataFrame และจัดการ Index
+
+#### สร้างจาก list of lists
+
+```python
+rows = [
+    ["Mary", 50000.00],
+    ["John", 35000],
+    ["George", 25333.33],
+    [np.nan, np.nan],
+    ["Jane", None],
+]
+
+df = pd.DataFrame(rows, columns=["Name", "Salary"])
+```
+
+แต่ละ inner list เป็นหนึ่งแถว ความยาวควรสอดคล้องกับจำนวนชื่อคอลัมน์ หากไม่กำหนด `columns` Pandas ใช้ `RangeIndex` คือ `0, 1, ...` เป็นชื่อคอลัมน์
+
+#### สร้างจาก dict of lists
+
+```python
+df = pd.DataFrame({
+    "Name": ["Mary", "John", "George", np.nan, "Jane"],
+    "Salary": [50000.00, 35000, 25333.33, np.nan, None],
+})
+```
+
+dictionary keys กลายเป็นชื่อคอลัมน์ วิธีนี้อ่านง่ายเมื่อคิดข้อมูลแบบ column-oriented และ list ทุกคอลัมน์ต้องมีความยาวเท่ากัน
+
+#### Custom row index และ `reset_index()`
+
+```python
+df.index = ["no1", "no2", "no3", "no4", "no5"]
+
+df.reset_index()             # เก็บ index เก่าเป็นคอลัมน์ชื่อ index
+df.reset_index(drop=True)    # ทิ้ง index เก่า
+df = df.reset_index(drop=True)
+```
+
+คำสั่งส่วนใหญ่คืน DataFrame ใหม่เพราะ `inplace=False` เป็นค่าเริ่มต้น ถ้าไม่ assign กลับ `df` เดิมจะไม่เปลี่ยน
+
+```python
+df.reset_index(drop=True, inplace=True)
+```
+
+บรรทัดนี้แก้ object เดิมและคืน `None` โดยทั่วไปการ assign ผลกลับอ่าน workflow ได้ชัดและเขียน method chaining ได้ง่ายกว่า
+
+### 13.11 Loading และ Inspecting Pokémon Dataset
+
+Notebook ใช้ Pokémon dataset เป็นกรณีศึกษาหลัก:
+
+```python
+df_pokemon = pd.read_csv(
+    "https://raw.githubusercontent.com/mdanmek/nida-dads-notes/refs/heads/main/"
+    "dads5001-data-tools/week_01/pokemon.csv"
+)
+df = df_pokemon
+```
+
+การเขียน `df = df_pokemon` ไม่ได้สร้าง deep copy โดยอัตโนมัติ ทั้งสองชื่ออาจอ้างถึง object เดียวกัน หากต้องการสำเนาอิสระให้ใช้:
+
+```python
+df = df_pokemon.copy()
+```
+
+#### การดูตัวอย่างข้อมูล
+
+```python
+df.head(3)                 # 3 แถวแรก
+df.tail(10)                # 10 แถวท้าย
+df.sample(4, random_state=42)
+```
+
+`sample()` เหมาะกับการดูแถวที่ไม่กระจุกอยู่ต้น/ท้ายไฟล์ การใส่ `random_state` ทำให้สุ่มซ้ำได้ผลเดิม
+
+#### `index`, `columns`, `info()` และ `describe()`
+
+```python
+print(df.index)
+print(df.columns)
+df.info()
+df.describe()
+df.describe(include="all")
+```
+
+`info()` ช่วยตอบว่า:
+
+- มีกี่ rows/columns
+- column names คืออะไร
+- non-null count เท่าใด
+- dtype ของแต่ละคอลัมน์คืออะไร
+- ใช้หน่วยความจำโดยประมาณเท่าใด
+
+`describe()` default สรุป numeric columns ด้วย `count`, `mean`, `std`, `min`, quartiles และ `max` ส่วน `describe(include="all")` รวมคอลัมน์ประเภทอื่น ซึ่งอาจแสดง `unique`, `top`, `freq`
+
+```python
+df.describe(include=object)
+df.describe(include=[object, np.int64])
+df.describe(exclude="float64")
+```
+
+`include` และ `exclude` เป็นการเลือกคอลัมน์ตาม dtype ไม่ใช่เลือกตามชื่อ ต้องระวังว่า dtype ที่ infer ในแต่ละเวอร์ชันหรือ backend อาจต่างกัน
+
+#### การอ่านไฟล์ขนาดใหญ่แบบ chunks
+
+```python
+for chunk in pd.read_csv("large.csv", chunksize=100_000):
+    # ประมวลผลทีละ 100,000 แถว
+    process(chunk)
+```
+
+`chunksize` ไม่ได้สร้าง DataFrame ใหญ่ทั้งชุด แต่คืน iterator ของ DataFrame ย่อย อย่างไรก็ตาม algorithm ต้องออกแบบให้รวมผลทีละ chunk ได้ เช่น sum/count หาก operation ต้องเห็นทั้งชุดพร้อมกัน อาจต้องใช้ฐานข้อมูลหรือเครื่องมือ out-of-core แทน
+
+### 13.12 Indexing แบบละเอียด: Scalar, Row, Column และ Subtable
+
+Notebook เน้นความต่างระหว่าง label-based และ position-based indexing:
+
+| เป้าหมาย | Position-based | Label-based |
+|---|---|---|
+| Scalar | `df.iat[3, 0]` | `df.at[3, "abilities"]` |
+| Row เป็น Series | `df.iloc[3]` | `df.loc[3]` |
+| Row เป็น DataFrame | `df.iloc[[3]]` | `df.loc[[3]]` |
+| Subtable | `df.iloc[2:5, 29:32]` | `df.loc[[2, 5, 10], "name":]` |
+
+#### ทำไม `[3]` กับ `[[3]]` คืนชนิดต่างกัน
+
+```python
+df.iloc[3]     # ลดมิติ: Series
+df.iloc[[3]]   # คง 2 มิติ: DataFrame หนึ่งแถว
+```
+
+หลักเดียวกันใช้กับคอลัมน์:
+
+```python
+df["name"]       # Series
+df[["name"]]     # DataFrame หนึ่งคอลัมน์
+```
+
+ชนิดผลลัพธ์มีผลต่อ method ที่เรียกต่อและ shape ที่โมเดลหรือ function คาดหวัง
+
+#### List selection, slicing และ step
+
+```python
+df.iloc[[29, 0, 30]]  # เลือกตามลำดับที่ระบุ
+df.iloc[2:10]         # ตำแหน่ง 2 ถึง 9; stop ไม่รวม
+df.iloc[2:10:2]       # ตำแหน่ง 2, 4, 6, 8
+```
+
+สำหรับ label slice:
+
+```python
+df.loc[:, "hp":"pokedex_number"]
+```
+
+ปลายทางรวมอยู่ด้วยถ้า labels อยู่ใน index และสามารถ slice ได้ จึงต่างจาก Python/`.iloc` slicing ที่ไม่รวม stop
+
+#### รูปแบบที่ Notebook ตั้งใจให้ error
+
+```python
+df[2]                         # KeyError หากไม่มีคอลัมน์ label 2
+df.iloc[, 30]                 # SyntaxError เพราะเว้น row selector ไม่ได้
+df["hp":"pokedex_number"]   # ไม่ใช่วิธี slice columns
+```
+
+รูปที่ถูกต้องคือ:
+
+```python
+df.iloc[:, 30]
+df.iloc[..., 30]              # Ellipsis แทนทุกตำแหน่งในแกนก่อนหน้า
+df.loc[:, "hp":"pokedex_number"]
+```
+
+#### Dot notation
+
+```python
+df.japanese_name
+```
+
+เขียนสั้นแต่มีข้อจำกัด: ใช้ไม่ได้เมื่อชื่อคอลัมน์มี space/special character, ชื่อไม่ใช่ valid Python identifier หรือชนกับ attribute/method ของ DataFrame เช่น `size` จึงควรใช้ `df["column"]` หรือ `.loc` ใน code ที่ต้องการความชัดเจน
+
+#### เลือกทั้ง rows และ columns
+
+```python
+df.iloc[[10, 20, 30], 30:33]
+df.iloc[2:5, 29:32]
+df.loc[[2, 5, 10], "name":]
+df.loc[[2, 5, 10], "name"::2]
+```
+
+syntax ภายใน `.loc[]`/`.iloc[]` คือ `[row_selector, column_selector]` เสมอ เครื่องหมาย colon เปล่าหมายถึงเลือกทั้งหมดในแกนนั้น
+
+### 13.13 การแก้ไข DataFrame: Rename, Index, Vectorization และ Drop
+
+#### Rename และ set index
+
+```python
+df2 = df.rename(columns={
+    "abilities": "skill",
+    "pokedex_number": "pokedex_no",
+})
+
+df2 = df.set_index("name")
+```
+
+`rename()` เปลี่ยน label ไม่ได้เปลี่ยนค่าข้อมูล ส่วน `set_index("name")` ย้ายคอลัมน์ `name` ไปเป็น row index โดย default คอลัมน์เดิมจะไม่อยู่ใน columns แล้ว เหมาะเมื่อชื่อ Pokémon เป็น label ที่ต้องการใช้อ้างอิง แต่ต้องตรวจ uniqueness หาก index ถูกคาดหวังให้เป็น key
+
+#### Vectorization และ broadcasting
+
+```python
+df["dummy"] = (df["against_bug"] + df["against_dark"]) / 2
+```
+
+เกิดสามขั้น:
+
+1. เลือกสองคอลัมน์เป็น Series
+2. บวกแบบ element-wise โดยจัดแนวตาม index
+3. หารทุกค่าด้วย scalar `2` ผ่าน broadcasting แล้ว assign เป็นคอลัมน์ใหม่
+
+Vectorization มักเร็วและอ่านง่ายกว่า Python loop แต่ต้องระวัง index alignment หาก Series มาจากคนละตาราง
+
+#### เพิ่มแถวด้วย `.loc`
+
+```python
+df.loc[1000] = pd.NA
+```
+
+เมื่อ label `1000` ยังไม่มี Pandas จะเพิ่มแถวใหม่และเติม missing ทุกคอลัมน์ วิธีนี้สะดวกสำหรับตัวอย่าง แต่การต่อแถวจำนวนมากทีละแถวไม่มีประสิทธิภาพ ควรสะสม rows แล้วสร้าง DataFrame/`concat()` ครั้งเดียว
+
+#### ลบด้วย slicing และ `drop()`
+
+```python
+df = df.iloc[3:]                 # ตัด 3 แถวแรกออก
+df = df.iloc[:-3]                # ตัด 3 แถวท้ายออก
+df = df.drop(columns=["dummy"])
+df = df.drop(index=df.index[3:6])
+df.reset_index(drop=True, inplace=True)
+```
+
+- slicing เลือกส่วนที่ต้องการ “เก็บ”
+- `drop()` ระบุ labels ที่ต้องการ “ลบ”
+- หลังลบ row labels อาจไม่ต่อเนื่อง การ `reset_index(drop=True)` สร้าง `RangeIndex` ใหม่
+
+### 13.14 Sorting และการ Export/Render
+
+#### Sort label กับ sort value
+
+```python
+df.sort_index(ascending=False)       # เรียง row labels
+df.sort_index(axis=1)                # เรียง column labels
+df.sort_values(by="hp", ascending=False)
+df.sort_values(
+    by=["hp", "attack"],
+    ascending=[False, True],
+)
+```
+
+กรณีหลายคอลัมน์ จะเรียง `hp` จากมากไปน้อยก่อน และเมื่อ `hp` เท่ากันจึงเรียง `attack` จากน้อยไปมาก ลำดับใน `by` จึงเป็น priority ของ sorting key
+
+#### CSV และ Excel
+
+```python
+df.to_csv("pokemon_subset.csv", index=False)
+df.to_excel("pokemon_subset.xlsx", index=False)
+```
+
+Notebook ไม่ได้ใส่ `index=False` จึงบันทึก row index ลงไฟล์ด้วย สำหรับกรณี index เป็นเพียง `RangeIndex` ที่ไม่ได้มีความหมาย การใส่ `index=False` มักเหมาะกว่า มิฉะนั้นเมื่อนำกลับมาอ่านอาจเกิดคอลัมน์ `Unnamed: 0`
+
+#### HTML และ LaTeX
+
+```python
+html_text = df.head().to_html()
+display(HTML(html_text))
+
+latex_text = df.head().to_latex()
+print(latex_text)
+```
+
+`to_html()` และ `to_latex()` คืน **string ที่เป็น source code** ไม่ใช่เขียนไฟล์โดยอัตโนมัติ `IPython.display.Latex` เหมาะกับสมการมากกว่าตาราง LaTeX; หากต้องการเอกสารจริงต้องนำ source ไป compile ใน LaTeX environment
+
+#### JSON string กับ Python object
+
+```python
+import json
+
+json_text = df.head().to_json()
+json_obj = json.loads(json_text)
+
+print(json.dumps(json_obj, indent=2))
+display(JSON(json_obj))
+```
+
+- `to_json()` คืน JSON-formatted string
+- `json.loads()` parse string เป็น Python object เช่น dictionary
+- `json.dumps()` ทำกลับกัน คือ serialize Python object เป็น string
+- JSON orientation default ของ Pandas อาจไม่เหมาะกับทุก API ควรเลือก `orient` ให้ตรงผู้รับ เช่น `records`
+
+```python
+df.head().to_json(orient="records")
+```
+
+### 13.15 Mental Model: อ่านคำสั่ง Pandas จากซ้ายไปขวา
+
+เมื่อเจอ code ยาว ให้แยกเป็น 4 คำถาม:
+
+1. **Object:** กำลังทำกับ DataFrame หรือ Series ใด
+2. **Selector:** เลือก rows/columns ใด และอ้างด้วย label หรือ position
+3. **Operation:** คำนวณ เปลี่ยน label เรียง หรือลบอะไร
+4. **Persistence:** คืน object ใหม่, assign กลับ หรือแก้ด้วย `inplace=True`
+
+ตัวอย่าง:
+
+```python
+df.loc[:, ["against_bug", "against_dark"]].mean(axis=1)
+```
+
+- Object = `df`
+- Selector = ทุกแถวและสองคอลัมน์ตาม label
+- Operation = mean ข้าม columns ในแต่ละ row (`axis=1`)
+- Persistence = คืน Series ใหม่ ยังไม่แก้ `df` จนกว่าจะ assign
+
 ## 14. Roadmap ของ Pandas 1-4
 
 จากเอกสาร:
@@ -651,6 +1120,10 @@ print(df)
 - เลือกข้อมูลตาม label/position
 - sort และแก้ไขค่าด้วย `.loc`
 - ตรวจ missing และ duplicate เบื้องต้น
+- อธิบายชนิดผลลัพธ์ของ `df["col"]` เทียบกับ `df[["col"]]`
+- สร้าง/รีเซ็ต index และอธิบาย `drop=True`
+- สร้างคอลัมน์ด้วย vectorization และ broadcasting
+- export CSV/Excel โดยตัดสินใจว่าจะเก็บ index หรือไม่
 
 ### Scenario-based decisions
 
@@ -692,6 +1165,12 @@ print(df)
 **Q15.** พบ transaction สองแถวมีวัน สินค้า และยอดเท่ากัน ควรลบ duplicate หรือไม่? อธิบายขั้นตอนตัดสินใจ  
 **Q16.** หลังบวก Series สองตัวพบ `NaN` ทั้งที่ต้นทางไม่มี missing อธิบายสาเหตุที่เป็นไปได้  
 **Q17.** นักวิเคราะห์สรุปว่า “แคมเปญทำให้ยอดขายเพิ่ม” จากกราฟยอดขายที่สูงขึ้นในเดือนเดียว ข้อสรุปนี้มีปัญหาอย่างไร?
+
+**Q18.** เพราะเหตุใด `df.iloc[3]` จึงคืน Series แต่ `df.iloc[[3]]` คืน DataFrame?  
+**Q19.** อธิบายผลของ `df.sort_values(by=["hp", "attack"], ascending=[False, True])`  
+**Q20.** เพราะเหตุใดการบันทึก `to_csv()` โดยไม่กำหนด `index=False` อาจทำให้เกิดคอลัมน์ `Unnamed: 0` เมื่ออ่านกลับ?  
+**Q21.** `df = df_pokemon` ต่างจาก `df = df_pokemon.copy()` อย่างไร?  
+**Q22.** อธิบายแต่ละขั้นของ `(df["against_bug"] + df["against_dark"]) / 2`
 
 ## 19. Model Answers พร้อมเหตุผล
 
@@ -745,6 +1224,16 @@ df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
 **A17.** เป็นเพียง association ใน time series หนึ่งช่วง ยังไม่ควบคุม seasonality, trend, price, stock availability หรือเหตุการณ์อื่น และไม่มี counterfactual จึงยังสรุป causation ไม่ได้
 
+**A18.** Scalar row selector ลดมิติหนึ่งแกนจึงเหลือ Series ส่วน list-like selector ยังคงแกน row ไว้ แม้มี label เดียวจึงเป็น DataFrame ขนาดหนึ่งแถว
+
+**A19.** เรียง `hp` จากมากไปน้อยเป็นกุญแจหลัก และเฉพาะแถวที่ `hp` เท่ากันจึงเรียง `attack` จากน้อยไปมากเป็นกุญแจรอง
+
+**A20.** ค่า default คือบันทึก row index ด้วย เมื่อ index ไม่มีชื่อและอ่าน CSV กลับ คอลัมน์ดังกล่าวอาจถูกตีความเป็นคอลัมน์ข้อมูลชื่อ `Unnamed: 0` การใช้ `index=False` ป้องกันได้เมื่อ index ไม่มีความหมายทางธุรกิจ
+
+**A21.** Assignment อาจทำให้สองตัวแปรอ้าง object เดียวกัน การแก้แบบ in-place ผ่านชื่อหนึ่งจึงอาจเห็นผลผ่านอีกชื่อ ส่วน `.copy()` สร้าง DataFrame แยกสำหรับการทดลองโดยไม่ตั้งใจแก้ต้นฉบับ
+
+**A22.** เลือกสองคอลัมน์เป็น Series จัดแนวและบวกแบบ element-wise จากนั้น broadcast scalar 2 เพื่อหารทุกค่า ผลลัพธ์เป็น Series ตาม row index เดิม
+
 ## 20. Key Takeaways
 
 1. งานวิเคราะห์ที่ดีเริ่มจากคำถาม แต่ต้องตรวจ data feasibility และยอมปรับคำถามตามข้อมูลจริง
@@ -757,6 +1246,10 @@ df["date"] = pd.to_datetime(df["date"], errors="coerce")
 8. Pandas ไม่ได้รองรับข้อมูลไม่จำกัด เพราะเป็น in-memory analytics เป็นหลัก
 9. Notebook เป็น reference สำหรับทดลอง code ส่วน master note ใช้รักษา mental model และเหตุผลเบื้องหลัง
 10. Insight และ conclusion ทุกข้อใน mini-project ต้อง trace กลับไปยังข้อมูลและการวิเคราะห์ได้
+11. การอ่าน code ให้ถามเสมอว่าเลือกด้วย label หรือ position และผลลัพธ์ลดมิติเป็น Series หรือยังคงเป็น DataFrame
+12. คำสั่งส่วนใหญ่ไม่แก้ object เดิมจนกว่าจะ assign ผลกลับหรือใช้ `inplace=True`
+13. Vectorization และ broadcasting ทำให้คำนวณทั้งคอลัมน์ได้โดยไม่เขียน loop แต่ automatic alignment ตาม index ยังต้องได้รับการตรวจสอบ
+14. การ export ต้องตัดสินใจเรื่อง index และรูปแบบ JSON/HTML/LaTeX ตามระบบปลายทาง
 
 ## 21. Glossary
 
@@ -776,12 +1269,16 @@ df["date"] = pd.to_datetime(df["date"], errors="coerce")
 | PyArrow | implementation/ecosystem ของ Apache Arrow columnar memory format |
 | Series | one-dimensional labeled array |
 | Vectorization | การทำ operation กับ array/column โดยไม่วน Python loop ทีละค่า |
+| Broadcasting | การขยาย operand ขนาดเล็ก เช่น scalar ให้ทำงานร่วมกับ array/Series ได้โดยไม่สร้างค่าซ้ำด้วยตนเอง |
+| Rich display | การแสดง object ในรูปแบบ HTML, Markdown, ภาพ หรือสื่ออื่นแทนข้อความธรรมดา |
+| RangeIndex | Index จำนวนเต็มต่อเนื่องที่ Pandas สร้างให้โดย default |
 
 ## 22. References
 
 ### เอกสารรายวิชา
 
 - Thitirat Siriborvornratanakul. *DADS5001: Introduction & Pandas 1*, Week 1, 47 slides.
+- Thitirat Siriborvornratanakul. `Pandas1.ipynb`, 118 cells: IPython display, data creation, loading, inspection, indexing, transformation, sorting and output rendering.
 
 ### เอกสารทางการสำหรับคำอธิบายเพิ่มเติม
 
@@ -793,4 +1290,3 @@ df["date"] = pd.to_datetime(df["date"], errors="coerce")
 - [pandas: Scaling to large datasets](https://pandas.pydata.org/docs/user_guide/scale.html)
 - [pandas: IO tools](https://pandas.pydata.org/docs/user_guide/io.html)
 - [Python: Virtual environments and packages](https://docs.python.org/3/tutorial/venv.html)
-
