@@ -123,7 +123,7 @@ $$
 ให้กระบวนการมี coverage probability:
 
 $$
-P\{L<\theta<U\}=1-\alpha
+P\left(L<\theta<U\right)=1-\alpha
 $$
 
 เมื่อเก็บ sample แล้ว L และ U กลายเป็นค่าคงที่ เกิดเป็น observed interval (Slides 2–3)
@@ -599,10 +599,10 @@ $$
 ### 18.2 Proportion
 
 $$
-n=\frac{z_{\alpha/2}^2p^*(1-p^*)}{E^2}
+n=\frac{z_{\alpha/2}^{2}p^{*}(1-p^{*})}{E^{2}}
 $$
 
-หากไม่มี prior estimate ใช้ $p^*=0.5$ ซึ่งให้ variance สูงสุดและ sample size แบบ conservative
+หากไม่มี prior estimate ใช้ $p^{*}=0.5$ ซึ่งให้ variance สูงสุดและ sample size แบบ conservative
 
 ## 19. Assumptions and Diagnostics
 
@@ -828,4 +828,3 @@ $$
 1. เอกสารประกอบการสอน `dads6001_week2_interval_estimation.pptx`, Slides 1–18.
 2. Reilly et al. *Robbing Banks*. *Significance*, Vol. 9, Issue 3, pp. 17–21. อ้างถึงในสไลด์กรณีศึกษา Bank Robberies.
 3. ตัวเลข CI ใน Bank Robberies เป็นคำอธิบายเพิ่มเติมที่คำนวณจาก summary statistics ใน Slides 5–6 โดยใช้ $t_{0.025,363}\approx1.966$.
-
