@@ -828,8 +828,3 @@ $$
 1. เอกสารประกอบการสอน `dads6001_week2_interval_estimation.pptx`, Slides 1–18.
 2. Reilly et al. *Robbing Banks*. *Significance*, Vol. 9, Issue 3, pp. 17–21. อ้างถึงในสไลด์กรณีศึกษา Bank Robberies.
 3. ตัวเลข CI ใน Bank Robberies เป็นคำอธิบายเพิ่มเติมที่คำนวณจาก summary statistics ใน Slides 5–6 โดยใช้ $t_{0.025,363}\approx1.966$.
-126:P(L < \theta < U) = 1 - \alpha
-434:s_p^2=\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}{n_1+n_2-2}
-438:s_p=\sqrt{s_p^2}
-602:n = \frac{z_{\alpha/2}^{2} p_0 (1-p_0)}{E^{2}}
-605:โดย $p_0$ คือ planning value ของ population proportion หากไม่มี prior estimate ให้ใช้ $p_0=0.5$ ซึ่งให้ variance สูงสุดและ sample size แบบ conservative
