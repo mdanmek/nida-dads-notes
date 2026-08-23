@@ -3,9 +3,23 @@
 > **จากเอกสาร:** dads6002_week01-03_hadoop.pdf หน้า 22–38  
 > **Core:** Map → partition/shuffle/sort → Reduce, Word Count, Shared Friendship, Python Streaming และ Combiner
 
-## 10. MapReduce: จากแนวคิดสู่การไหลของข้อมูล
+> [← บทที่ 2](02_hdfs_and_yarn.md) | [สารบัญ](README.md) | [บทที่ 4 →](04_workflow_orchestration.md)
 
-### 10.1 Functional model
+## Learning Objectives ประจำบท
+
+1. ติดตาม record ผ่าน InputFormat, Mapper, Partitioner, Shuffle/Sort และ Reducer ได้
+2. ออกแบบ key/value สำหรับ Word Count และ Shared Friendship พร้อมตรวจความถูกต้องได้
+3. เขียน รัน แก้ไข และ debug Hadoop Streaming mapper/reducer ด้วย Python ได้
+4. อธิบาย retry/idempotency และเลือก Combiner อย่างไม่ทำให้คำตอบผิดได้
+5. วินิจฉัย malformed output, unsorted local input และ output path conflict ได้
+
+## Prerequisites และระดับความลึก
+
+ต้องเข้าใจ HDFS blocks และ YARN จาก [บทที่ 2](02_hdfs_and_yarn.md) รวมถึง Python loop/dictionary เบื้องต้น หัวข้อ Core คือ data flow, key design และ Streaming code; syntax คำสั่งเป็น Reference
+
+## MapReduce: จากแนวคิดสู่การไหลของข้อมูล
+
+### Functional model
 
 **จากเอกสาร (หน้า 22–23)** Mapper และ Reducer ควรเป็น stateless functions ที่รับและส่งคู่ key-value:
 
@@ -38,7 +52,7 @@ MapReduce สามารถ retry map task ได้เพราะ input อ�
 
 Key ไม่ใช่เพียงชื่อ column แต่เป็นการกำหนดว่า records ใดต้องพบกัน หากเลือก key ละเอียดเกินไป values ที่ควรรวมอาจแยกกัน หากหยาบเกินไป reducer เดียวอาจรับข้อมูลมหาศาลและเกิด skew ตัวอย่างเช่น `(date,branch)` ช่วยกระจายยอดขายรายสาขา แต่ key เพียง `date` อาจทำให้วันขายใหญ่ทั้งหมดไปรวม reducer เดียว การออกแบบ key จึงต้องคำนึงพร้อมกันทั้ง semantics ของคำตอบและ load distribution
 
-### 10.2 Worked Example: Word Count
+### Worked Example: Word Count
 
 **จากเอกสาร (หน้า 24–27)** ใช้ข้อความสองส่วน:
 
@@ -63,7 +77,7 @@ Mapper ทำ normalization แล้ว emit `(word, 1)` เช่น `(cat,1)`
 
 Reducer ไม่ต้องรู้ว่าเลข 1 ตัวแรกมาจาก block ใด เพียงบวก iterable เป็น 2 Validation ทำได้สองทาง: นับ token ทั้งหมดจาก input ได้ 13 และรวม counts ทุก key จาก output ต้องได้ 13; จากนั้นสุ่มตรวจ `the=3`, `cat=2`, `in=1` ด้วยมือ หากผลรวมไม่เท่ากัน ให้ตรวจ tokenizer, malformed output หรือ records ที่ถูก reject
 
-### 10.3 Worked Example: Shared Friendship
+### Worked Example: Shared Friendship
 
 **จากเอกสาร (หน้า 28–32)** ให้ adjacency list ของ Allen, Betty, Chris, David และ Ellen แล้วหาเพื่อนร่วมกันของทุกคู่ Mapper สร้าง canonical pair เพื่อไม่ให้ `(Allen, Betty)` กับ `(Betty, Allen)` แยกกัน จากนั้น Reducer หาจุดตัดของ friend lists ตัวอย่างผลคือ Allen กับ Betty มี Chris และ David เป็นเพื่อนร่วมกัน
 
@@ -78,13 +92,13 @@ mutual_friends = friends_of_a ∩ friends_of_b
 
 **คำอธิบายเพิ่มเติม:** ปัญหานี้เชื่อมกับ graph analytics และ recommendation แต่ “มีเพื่อนร่วมกัน” ไม่ควรถูกใช้เป็นเหตุผลเพียงอย่างเดียวในการแนะนำบุคคล เพราะอาจเปิดเผยความสัมพันธ์ที่ผู้ใช้ไม่ต้องการ เปิดช่อง stalking หรือสร้าง bias จึงต้องมี privacy controls, blocking rules และ evaluation มากกว่า click-through rate
 
-## 11. Hadoop Streaming ด้วย Python
+## Hadoop Streaming ด้วย Python
 
-**จากเอกสาร (หน้า 33–38)** Streaming ใช้โปรแกรมใดก็ได้ที่อ่าน `stdin` และเขียน `stdout`; Hadoop ส่ง input ให้ mapper และตีความบรรทัด output เป็น key-value ก่อน shuffle ไป reducer
+**จากเอกสาร (หน้า 33–38)** Streaming ใช้โปรแกรมใดก็ได้ที่อ่าน `stdin` และเขียน `stdout`; Hadoop ส่ง input ให้ mapper และตีความบรรทัด output เป็น key-value ก่อน shuffle ไป reducer กลไก executable/stdin/stdout นี้ตรวจสอบเพิ่มเติมจาก [Apache Hadoop Streaming](https://hadoop.apache.org/docs/current/hadoop-streaming/HadoopStreaming.html)
 
 > **คำอธิบายเพิ่มเติม/แก้ไข:** โค้ด Python ใน PDF มี capitalization, semicolon, indentation และ `__name__` ที่ไม่ถูกต้อง ตัวอย่างต่อไปนี้รักษาแนวคิดเดิม แต่แก้ให้รันได้จริง
 
-### 11.1 `mapper.py`
+### `mapper.py`
 
 ```python
 #!/usr/bin/env python3
@@ -96,7 +110,7 @@ for line in sys.stdin:
         print(f"{word}\t1")
 ```
 
-### 11.2 `reducer.py`
+### `reducer.py`
 
 ```python
 #!/usr/bin/env python3
@@ -147,13 +161,13 @@ hadoop jar "$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-*.jar" \
 
 ตรวจผลด้วย `hadoop fs -cat /user/student/output/part-*` และจำไว้ว่า output directory ต้องยังไม่มีอยู่ก่อนเริ่ม job
 
-## 12. Combiner, Partitioner, Data Skew และ Job Chaining
+## Combiner และการลด network traffic
 
-### 12.1 Combiner
+### Combiner
 
 **จากเอกสาร (หน้า 37–38)** Combiner ทำ local aggregation หลัง mapper เพื่อลดข้อมูลที่ส่งผ่านเครือข่าย เช่น รวมจำนวนเที่ยวบินของ IAD/JFK/SFO ก่อน shuffle
 
-**คำอธิบายเพิ่มเติม:** Hadoop ไม่รับประกันว่า Combiner จะรันกี่ครั้งหรือจะรันเลยหรือไม่ ดังนั้นคำตอบต้องถูกต้องแม้ไม่มี Combiner ฟังก์ชัน `sum`, `min`, `max` มักปลอดภัยเพราะ associative/commutative แต่ค่าเฉลี่ยห้ามเฉลี่ยค่าเฉลี่ยโดยตรง
+**คำอธิบายเพิ่มเติม:** Hadoop ไม่รับประกันว่า Combiner จะรันกี่ครั้งหรือจะรันเลยหรือไม่ ตามข้อควรระวังใน [Apache MapReduce Tutorial](https://hadoop.apache.org/docs/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapReduceTutorial.html) ดังนั้นคำตอบต้องถูกต้องแม้ไม่มี Combiner ฟังก์ชัน `sum`, `min`, `max` มักปลอดภัยเพราะ associative/commutative แต่ค่าเฉลี่ยห้ามเฉลี่ยค่าเฉลี่ยโดยตรง
 
 ตัวอย่าง: กลุ่ม A มี `[10,20]` เฉลี่ย 15; กลุ่ม B มี `[100]` เฉลี่ย 100 การเฉลี่ย `15` กับ `100` ได้ 57.5 แต่คำตอบจริงคือ `(10+20+100)/3 = 43.33` ต้องส่ง `(sum,count)` แล้วรวมทั้งสองส่วน
 
@@ -175,9 +189,87 @@ hadoop jar "$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-*.jar" \
 3. เปลี่ยน mapper ให้ emit (word, len(word)) แล้ว reducer หาผลรวมความยาว อธิบายว่าคำตอบหมายถึงอะไร
 4. ลองใช้ average เป็น Combiner แล้วสร้าง counterexample เพื่อพิสูจน์ว่า average-of-averages ผิด
 
-## Mastery Check ประจำบท
+## Guided Lab: Copy, Run, Break, Repair
 
-ผู้เรียนควรติดตามหนึ่ง record ผ่านทุก stage ได้, ออกแบบ key ให้ถูกทั้ง semantics และ load distribution, อธิบาย retry/idempotency, เขียน Streaming mapper/reducer ที่รันจริง และวินิจฉัย malformed output, unsorted input, output path ซ้ำ และ data skew ได้
+### Input และคำสั่ง
+
+บันทึก Mapper/Reducer ข้างต้น แล้วรัน:
+
+```bash
+printf 'The fast cat wears no hat.\nThe cat in the hat ran fast.\n' \
+  | python3 mapper.py \
+  | sort \
+  | python3 reducer.py
+```
+
+ผลที่ตรวจสอบแล้วควรเป็น:
+
+```text
+cat     2
+fast    2
+hat     2
+in      1
+no      1
+ran     1
+the     3
+wears   1
+```
+
+ก่อนดูผล ให้ทำนาย `the`, `cat` และจำนวน tokens รวม จากนั้นตรวจว่า sum ของ output counts = 13
+
+### Deliberate failures
+
+1. เอา `sort` ออก: key เดิมอาจแยกหลายช่วง ทำให้ reducer emit key ซ้ำ
+2. เปลี่ยน mapper ให้พิมพ์ space แทน tab: reducer เกิด `ValueError`
+3. เอา final flush ออก: key สุดท้ายหาย
+4. ส่ง job ไป output directory เดิม: Hadoop ปฏิเสธเพื่อไม่ overwrite โดยไม่ตั้งใจ
+
+หลังซ่อมต้อง rerun ได้ผลเดิมทุกครั้ง นี่คือหลักฐาน reproducibility ขั้นต่ำ
+
+## Troubleshooting และ Validation
+
+| อาการ | จุดตรวจ | วิธีแก้ |
+|---|---|---|
+| output key ซ้ำใน local test | input reducer ไม่ sorted | ใส่ `sort` ระหว่าง processes |
+| `ValueError` ตอน split/int | mapper contract ผิด | inspect tab และ numeric value |
+| คำสุดท้ายหาย | ไม่มี final flush | emit state หลัง loop |
+| counts รวมไม่เท่า token count | tokenizer/reject/drop | เทียบ mapper line count และ sample output |
+| reducers บางตัวช้ามาก | key skew | distribution, hot keys, pre-aggregation |
+
+## Progressive Practice และ Model Answers
+
+**Completion:** เติมเหตุผลว่า key เดียวกันต้องไป reducer เดียวกัน เพราะ ______  
+**เฉลย:** reducer ต้องเห็น values ทั้งหมดของ key เพื่อคำนวณ aggregate ที่ครบ มิฉะนั้นจะได้ partial results หลายชุด
+
+**Analyze:** ทำไม average ใช้เป็น Combiner โดยส่งเลขเฉลี่ยอย่างเดียวไม่ได้?  
+**เฉลย:** partial groups มีขนาดไม่เท่ากัน ค่าเฉลี่ยของค่าเฉลี่ยให้น้ำหนักแต่ละกลุ่มเท่ากัน ตัวอย่าง `[10,20]` กับ `[100]` ให้ 57.5 แต่ค่าจริง 43.33 ต้องส่ง `(sum,count)` ซึ่งรวมต่อได้
+
+**Transfer:** ต้องการยอดขายรายวัน-สาขา ควรใช้ key ใด?  
+**แนวคำตอบ:** `(business_date, branch_id)` เพราะ records ที่ต้องรวมพบกัน หากใช้ date อย่างเดียวจะเสีย grain และเสี่ยง hot partition; หากใช้ transaction ID จะละเอียดเกินไปและไม่ aggregate ระดับที่ถาม
+
+**Evaluate:** Mapper เขียนลงฐานข้อมูลโดยตรงแล้ว task ถูก retry มีความเสี่ยงอะไร?  
+**เฉลย:** side effect อาจเกิดซ้ำ แม้ MapReduce มอง task attempt ใหม่ว่าถูกต้อง ต้องใช้ idempotent key/transactional sink หรือเขียน output ผ่าน commit protocol แทน
+
+## Mastery Checklist
+
+- [ ] trace record ผ่าน Map → partition → shuffle/sort → Reduce ได้
+- [ ] reproduce Word Count และ validate total tokens ได้
+- [ ] อธิบาย reducer state/final flush จาก trace table ได้
+- [ ] ออกแบบ canonical key ของ Shared Friendship ได้
+- [ ] repair malformed/unsorted Streaming pipeline ได้
+- [ ] เลือก Combiner โดยพิสูจน์ correctness ได้
+
+## Glossary และ Source Coverage
+
+| คำ | ความหมาย |
+|---|---|
+| Input split | หน่วยเชิงตรรกะที่มอบให้ map task อ่าน |
+| Shuffle | การโอน intermediate records ไป reducer ตาม partition |
+| Sort/Group | การจัด key เพื่อให้ values ของ key เดียวอยู่รวมกัน |
+| Combiner | local pre-aggregation ที่อาจรันศูนย์หรือหลายครั้ง |
+| Final flush | การ emit state กลุ่มสุดท้ายหลัง input จบ |
+
+ครอบคลุม PDF หน้า 22–28 MapReduce/Word Count, หน้า 29–32 Shared Friendship และหน้า 33–38 Jobs/Streaming/Combiner โค้ดต้นฉบับที่ syntax ผิดถูกแยกจากฉบับแก้ไขชัดเจน
 
 ## References
 
