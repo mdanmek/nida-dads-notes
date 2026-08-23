@@ -3,6 +3,20 @@
 > **จากเอกสาร:** dads6002_week01-03_hadoop.pdf หน้า 39–43  
 > **Core:** data skew, การเชื่อม jobs เป็น DAG, Oozie fork/join และ Airflow workflows as code
 
+> [← บทที่ 3](03_mapreduce_and_streaming.md) | [สารบัญ](README.md)
+
+## Learning Objectives ประจำบท
+
+1. วิเคราะห์ data skew และเลือก pre-aggregation, salting หรือ custom partitioning ได้
+2. วาด DAG ที่มี sequential/parallel dependencies และตรวจ cycle ได้
+3. อธิบาย Oozie fork/join และ Airflow task lifecycle ได้
+4. แปล cron โดยคำนึงถึง timezone/data interval และออกแบบ retry ที่ idempotent ได้
+5. เลือก Oozie หรือ Airflow จากข้อจำกัดจริง ไม่ใช่ความใหม่ของเครื่องมือได้
+
+## Prerequisites และระดับความลึก
+
+ควรอ่าน [บทที่ 3](03_mapreduce_and_streaming.md) เพื่อเข้าใจ Partitioner และ job output ก่อน หัวข้อ Core คือ skew, DAG และ orchestration; operator names และ cron syntax เป็น Reference
+
 ## 1. จาก MapReduce job เดี่ยวสู่งานข้อมูลจริง
 
 **จากเอกสาร (หน้า 39–40)** Partitioner ควบคุมว่า key และ values จะถูกส่งไป reducer ใด ค่าเริ่มต้นคือ HashPartitioner ส่วนงานข้อมูลจริงมักมีหลาย jobs ที่ต้องรันตามลำดับหรือขนานกัน
@@ -100,7 +114,23 @@ Retry ช่วย transient failure แต่ task ต้อง **idempotent** 
 **ถาม:** retry publish แล้วข้อมูลซ้ำ แก้อย่างไร?  
 **ตอบ:** ทำ side effect ให้ idempotent ด้วย upsert/replace partition หรือ transaction ที่ใช้ deterministic key
 
-## 9. Mastery Checklist
+**Analyze:** มี reducers 20 ตัวแต่ UNKNOWN key มีข้อมูล 70% เหตุใด job ยังช้า?  
+**เฉลย:** ความสมดุลของจำนวน keys ไม่เท่าความสมดุลของ values/work UNKNOWN ยังถูกส่งไป reducer เดียว วิธีแก้ต้องเปลี่ยน distribution เช่น pre-aggregate หรือ salt แล้วรวมรอบสอง พร้อม validate total หลัง unsalt
+
+**Evaluate:** ควรย้าย Oozie workflow ที่เสถียรไป Airflow ทันทีหรือไม่?  
+**แนวคำตอบ:** ไม่ตัดสินจากความใหม่ ต้องเทียบ integration, SLA, skills, test/backfill coverage, security, observability และ migration risk ถ้า workflow ยัง Hadoop-native และดูแลได้ Oozie อาจคุ้มกว่า; หากต้องเชื่อมหลาย platforms และทีมพร้อม Python Airflow อาจให้ประโยชน์มากกว่า
+
+## 9. Validation, Failure Behavior และ Troubleshooting
+
+| อาการ | สาเหตุที่เป็นไปได้ | หลักฐาน/ทางแก้ |
+|---|---|---|
+| DAG ไม่เริ่ม | schedule/timezone/start date | logical date และ scheduler log |
+| downstream ไม่รัน | upstream state/trigger rule | task instance graph |
+| retry แล้วข้อมูลซ้ำ | task ไม่ idempotent | business key และ target rows |
+| workflow จบแต่ยอดผิด | ไม่มี data-quality gate | counts/totals/reconciliation |
+| reducer ท้ายสุดค้าง | skew ไม่ใช่ scheduler | key distribution/task duration |
+
+## 10. Mastery Checklist
 
 - [ ] วาด DAG ที่มี parallel branches และ join ได้
 - [ ] อธิบาย task lifecycle และจุดที่ retry เกิดได้
@@ -109,7 +139,19 @@ Retry ช่วย transient failure แต่ task ต้อง **idempotent** 
 - [ ] แยก orchestration ออกจาก processing
 - [ ] วินิจฉัย data skew จาก distribution/task duration
 
-## References
+## 11. Glossary และ Source Coverage
+
+| คำ | ความหมาย |
+|---|---|
+| DAG | กราฟ dependency มีทิศทางและไม่มีวงจร |
+| Fork/Join | เปิด branches ขนานและรอรวมก่อนเดินต่อ |
+| Backfill | รัน workflow ย้อนสำหรับช่วงข้อมูลในอดีต |
+| Idempotent | รันซ้ำแล้วผลธุรกิจสุดท้ายไม่เปลี่ยน/ไม่ซ้ำ |
+| Trigger rule | เงื่อนไขสถานะ upstream ที่อนุญาต downstream |
+
+ครอบคลุม PDF หน้า 39 เรื่อง Partitioner/skew/job chaining และหน้า 40–43 เรื่อง Oozie/Airflow/DAG/cron/operators ไม่มีหัวข้อจากหน้า 38 ที่ย้ายข้ามโดยไม่อ้างอิง; Combiner มีบ้านหลักในบทที่ 3
+
+## 12. References
 
 - เอกสารหลัก หน้า 39–43
 - [Apache Oozie Workflow Functional Specification](https://oozie.apache.org/docs/5.2.1/WorkflowFunctionalSpec.html)
