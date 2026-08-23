@@ -19,6 +19,34 @@
 
 ## MapReduce: จากแนวคิดสู่การไหลของข้อมูล
 
+### MapReduce คืออะไร
+
+**คำอธิบายพื้นฐาน:** MapReduce คือ **แบบจำลองและกรอบการประมวลผลข้อมูลแบบกระจาย** (distributed processing model/framework pattern) สำหรับแบ่งงานที่อ่านข้อมูลจำนวนมากออกไปทำบนหลายเครื่อง แล้วรวบรวมผลที่เกี่ยวข้องกันกลับมาสรุปอย่างเป็นระบบ ตัวมันไม่ใช่ฐานข้อมูล ไม่ใช่ระบบเก็บไฟล์ และไม่ใช่ฟังก์ชันเดียวที่ทำงานบนเครื่องเดียว; ใน Hadoop ข้อมูลมักอยู่ใน HDFS ส่วน YARN จัดทรัพยากร และ MapReduce กำหนดรูปแบบการประมวลผล
+
+- **ปัญหาที่แก้:** เครื่องเดียวอ่านข้อมูลไม่ทันหรือเก็บข้อมูลทั้งหมดไม่ไหว และการแชร์ตัวแปรนับกลางระหว่างหลายเครื่องทำให้เกิดคอขวด
+- **ขอบเขต:** หนึ่ง MapReduce **job** รับชุดข้อมูลเข้า แบ่งเป็น **tasks** บน workers หลายตัว และสร้างชุดไฟล์ผลลัพธ์ ไม่ได้ตอบ query แบบโต้ตอบทันที
+- **input/output ทั่วไป:** input คือ records เช่น บรรทัด log; output คือ records สรุป เช่น `คำ → จำนวนครั้ง`
+- **ผู้ลงมือ:** โค้ดของผู้ใช้กำหนด Map และ Reduce ส่วน framework แบ่งงาน ส่งข้อมูล จัดกลุ่ม key และ retry task ที่ล้ม
+
+#### ตัวอย่างเล็กที่สุดแบบยังไม่ใช้ศัพท์เทคนิค
+
+สมมติมีกระดาษสองแผ่น: `cat runs` และ `cat sleeps` ให้คนสองคนอ่านคนละแผ่นและเขียนบัตรคำ `cat:1`, `runs:1` หรือ `sleeps:1` จากนั้นเจ้าหน้าที่รวบบัตรชื่อเดียวกันไว้กองเดียว แล้วบวกเลขในแต่ละกอง ผลคือ `cat:2`, `runs:1`, `sleeps:1`
+
+นี่คือเรื่องทั้งหมดในภาพกว้าง: **กระจายการอ่านและสร้างหลักฐานย่อย → รวมหลักฐานที่มีชื่อเดียวกัน → สรุปแต่ละกลุ่ม** อุปมานี้ช่วยอธิบายการไหลของข้อมูล แต่ในระบบจริงไม่มีเจ้าหน้าที่คนเดียว; framework กระจายทั้งการอ่าน การส่ง และการสรุปไปหลายเครื่อง
+
+### ศัพท์พื้นฐานตามลำดับที่ต้องใช้
+
+| คำ | ความหมายในบทนี้ | ตัวอย่างเดียวกัน |
+|---|---|---|
+| Record | หน่วยข้อมูลที่ส่งให้โปรแกรมประมวลผลหนึ่งครั้ง | หนึ่งบรรทัด `cat runs` |
+| Key-value pair | คู่ “ป้ายกำกับ–ค่า” ที่ใช้บอกว่าข้อมูลใดควรรวมกัน | `(cat, 1)` |
+| Map | แปลง record หนึ่งรายการเป็น intermediate pairs ศูนย์คู่หรือหลายคู่ | `cat runs` → `(cat,1),(runs,1)` |
+| Intermediate result | ผลชั่วคราวหลัง Map ซึ่งยังไม่ใช่คำตอบสุดท้าย | บัตรคำทั้งหมด |
+| Group by key | รวม values ของ key เดียวกัน | `cat → [1,1]` |
+| Reduce | สรุป values หนึ่งกลุ่มเป็นผลลัพธ์ | `cat,[1,1]` → `cat,2` |
+
+คำว่า **Map** ในที่นี้หมายถึง “แปลงข้อมูล” ไม่ใช่แผนที่ และ **Reduce** หมายถึง “สรุปข้อมูลในแต่ละ key” ไม่จำเป็นต้องลดจำนวน record เสมอไป เช่น reducer อาจ emit หลายผลลัพธ์ได้
+
 ### Functional model
 
 **จากเอกสาร (หน้า 22–23)** Mapper และ Reducer ควรเป็น stateless functions ที่รับและส่งคู่ key-value:
@@ -34,17 +62,25 @@ reduce(k2, [v2]) -> list(k3, v3)
 
 ใน Word Count mapper ยังไม่จำเป็นต้องรู้ว่าคำว่า `cat` ปรากฏรวมทั่วคลัสเตอร์กี่ครั้ง มันเพียง emit `(cat,1)` ส่วนระบบรับผิดชอบรวบรวมค่า `1` ของ key `cat` จาก mappers ทุกตัวไปยัง reducer เดียวกัน Reducer จึงคำนวณผลรวมได้โดยไม่ต้องอ่าน input ดิบทั้งหมด ความง่ายนี้มีราคา: intermediate data ต้องถูก sort และส่งผ่านเครือข่ายในช่วง shuffle ซึ่งมักเป็นระยะที่แพงที่สุด
 
-#### การไหลของข้อมูลจริง
+#### การไหลของข้อมูลจริงและหน้าที่ของแต่ละองค์ประกอบ
 
-1. InputFormat แบ่ง input เป็น splits และ RecordReader สร้าง records
-2. Mapper แปลงแต่ละ record เป็น intermediate pairs
-3. Partitioner เลือกว่า key ใดไป reducer ตัวใด
-4. Shuffle โอนข้อมูลข้าม node และ Sort จัด key/group values
-5. Reducer สรุปผลของแต่ละ key และเขียน output
+เมื่อเข้าใจเรื่องบัตรคำแล้ว จึงค่อยแทนแต่ละช่วงด้วยชื่อทางการดังนี้
 
-Input split เป็นมุมมองเชิงตรรกะสำหรับงานอ่าน ส่วน HDFS block เป็นหน่วยจัดเก็บ ทั้งสองมักมีขนาดใกล้กันเพื่อ locality แต่ไม่ใช่สิ่งเดียวกันเสมอ จำนวน splits ขึ้นกับ InputFormat, compression และ configuration RecordReader แปลง bytes ให้เป็น records เช่น `(byte_offset, line_text)` ก่อนเรียก mapper
+**1) InputFormat — กติกาว่าจะอ่าน input อย่างไร** Framework เรียก InputFormat ตอนเตรียม job เพื่อสร้าง **input splits** ซึ่งเป็นคำอธิบายช่วงข้อมูลเชิงตรรกะที่จะมอบให้ map task แต่ละตัว InputFormat ไม่ได้ประมวลผลคำและไม่ใช่ HDFS block; split อาจคร่อมหรือรวม blocks ได้ตามชนิดไฟล์ การบีบอัด และ configuration ถ้าแบ่งไม่เหมาะ งานอาจมี tasks น้อยเกินไปหรือเกิด imbalance
 
-หลัง mapper, Partitioner ใช้ key เลือก reducer โดยทั่วไปแนวคิดคล้าย `hash(key) mod number_of_reducers` เงื่อนไขสำคัญคือ key เดียวกันต้องไป partition เดียวกัน จากนั้น mapper output ของแต่ละ partition ถูก sort ในเครื่องต้นทางและ shuffle ไปยัง reducer ปลายทาง Reducer จึงเห็น `key` พร้อม iterable ของ values ที่ถูก group แล้ว ไม่ได้เห็นข้อมูลแยกตาม mapper
+**2) RecordReader — ตัวแปลง bytes ให้เป็น records** ภายใน map task, RecordReader อ่าน split แล้วส่งคู่ input ให้ Mapper ทีละ record เช่น TextInputFormat มักให้ `(byte_offset, line_text)` มันจึงเป็นสะพานระหว่างไฟล์กับหน่วยข้อมูลที่โค้ดผู้ใช้เข้าใจ หากกำหนด record boundary ผิด เช่น ตัดข้อมูลหลายบรรทัดกลางรายการ Mapper จะได้รับข้อมูลไม่ครบ
+
+**3) Mapper — ตัวสร้างคู่ผลลัพธ์ชั่วคราว** Framework เรียก Mapper สำหรับแต่ละ record; input คือ `(k1,v1)` และ output เป็นศูนย์คู่หรือหลายคู่ `(k2,v2)` Mapper ควรเก็บ state ให้น้อยและไม่ทำ side effect ภายนอก เพื่อให้ task รันซ้ำได้ ถ้า Mapper emit รูปแบบผิด งานช่วง shuffle/reduce อาจล้ม หรือแย่กว่านั้นคือได้ผลที่ดูถูกต้องแต่ข้อมูลหาย
+
+**4) Partitioner — ตัวเลือก reducer ปลายทาง** หลัง Mapper, framework เรียก Partitioner กับ intermediate key เพื่อคืนหมายเลข partition เช่นแนวคิด `hash(key) mod R` โดย `R` คือจำนวน reducers หน้าที่ของมันคือ routing ไม่ใช่การรวมค่า เงื่อนไขสำคัญคือ key เดียวกันต้องไป reducer เดียวกัน; ถ้าฝ่าฝืน ผลรวมของ key จะถูกแยกและผิด
+
+**5) Shuffle — การขนย้าย intermediate data** ระบบดึง partition ที่เกี่ยวข้องจาก map workers ไปยัง reducer ปลายทาง นี่เป็นกลไกของ framework ไม่ใช่ฟังก์ชันที่ผู้ใช้เรียกทีละ record และมักแพงเพราะใช้ network และ disk หาก Mapper สร้างข้อมูลชั่วคราวมาก ช่วงนี้จะกลายเป็นคอขวด
+
+**6) Sort/Group — การจัด key และรวม values** ระบบเรียง intermediate keys และทำให้ values ของ key เดียวกันอยู่เป็นกลุ่มต่อเนื่อง เช่น `cat → [1,1]` ขั้นนี้เป็นเหตุให้ Streaming reducer แบบอ่านบรรทัดต่อบรรทัดสามารถรู้ได้ว่า key หนึ่งจบเมื่อใด
+
+**7) Reducer — ตัวสรุปหนึ่ง key ต่อครั้ง** Framework เรียก Reducer ด้วย key และกลุ่ม values ที่จัดเตรียมแล้ว Reducer สร้างผลลัพธ์สุดท้าย `(k3,v3)` และ OutputFormat เขียนลงไฟล์ Reducer ไม่ต้องค้นหา values จาก mappers เอง; ถ้า logic ไม่ associative ตามที่คาดหรือมี side effect ที่ไม่ idempotent การ retry อาจทำให้ผิดหรือซ้ำ
+
+สรุปลำดับอย่างเป็นทางการคือ `InputFormat → RecordReader → Mapper → Partitioner → Shuffle → Sort/Group → Reducer → OutputFormat` รายละเอียด API และ lifecycle ตรวจสอบได้จาก [Apache MapReduce Tutorial](https://hadoop.apache.org/docs/current/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapReduceTutorial.html)
 
 MapReduce สามารถ retry map task ได้เพราะ input อยู่ใน HDFS และ mapper ที่ดีไม่มี side effect ภายนอก หาก worker ล้ม task เดิมจึงไปรันบน worker อื่นได้ Reduce task ที่ล้มก็รันใหม่ได้จาก map outputs ที่ยังหาได้ หรืออาจบังคับให้ map บางส่วนสร้าง output ใหม่ อย่างไรก็ตาม ถ้า mapper เรียก API ที่ตัดเงินจริงหรือเขียนฐานข้อมูลโดยไม่มี idempotency การ retry อาจสร้างผลซ้ำ จึงต้องแยก pure transformation ออกจาก side effect
 
