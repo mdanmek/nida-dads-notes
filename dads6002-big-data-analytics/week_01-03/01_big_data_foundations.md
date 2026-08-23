@@ -3,7 +3,9 @@
 > **จากเอกสาร:** dads6002_week01-03_hadoop.pdf หน้า 1–10  
 > บทนี้สร้างพื้นฐานก่อนเข้าสู่ Hadoop โดยอธิบายจากปัญหาทางข้อมูลไปสู่การออกแบบ pipeline และ architecture
 
-## 1. ภาพรวมของบทเรียน
+> [← สารบัญ](README.md) | [บทถัดไป: HDFS และ YARN →](02_hdfs_and_yarn.md)
+
+## ภาพรวมและขอบเขต
 
 บทเรียนเริ่มจากเหตุผลที่ระบบข้อมูลแบบเดิมรองรับ Big Data ได้ยาก แล้วค่อยไล่จากวงจรงานข้อมูล สถาปัตยกรรม Lambda และ Data Lake ไปสู่แกนหลักของ Hadoop ได้แก่
 
@@ -15,27 +17,32 @@
 
 แก่นของบทเรียนไม่ใช่การจำชื่อเครื่องมือ แต่คือหลักคิดว่า **ย้ายการคำนวณไปใกล้ข้อมูล แบ่งงานเป็นส่วนย่อย ยอมรับว่าเครื่องเสียได้ และออกแบบให้ระบบกู้คืนได้อัตโนมัติ**
 
-## 2. Learning Objectives
+## Learning Objectives ประจำบท
 
 เมื่อเรียนจบบทนี้ควรทำได้ดังนี้
 
-1. จำแนก structured, semi-structured และ unstructured data พร้อมอธิบาย Big Data 5Vs ได้
-2. อธิบายเส้นทางข้อมูลตั้งแต่ ingestion จนถึง serving และเปรียบเทียบ batch กับ streaming ได้
-3. วาดและอธิบายบทบาท NameNode, DataNode, ResourceManager, NodeManager และ ApplicationMaster ได้
-4. คำนวณจำนวน HDFS blocks และผลของ replication factor แบบพื้นฐานได้
-5. ติดตามข้อมูลผ่าน Map → Shuffle/Sort → Reduce และทำนายผลลัพธ์ได้
-6. เขียนและทดสอบ Hadoop Streaming Word Count ด้วย Python ได้
-7. อธิบาย Combiner, Partitioner, data skew และ job chaining พร้อมข้อจำกัดได้
-8. ออกแบบ DAG งานข้อมูลและเลือก HDFS/ฐานข้อมูล, MapReduce/เครื่องมือสมัยใหม่ และ Oozie/Airflow ตามบริบทได้
+1. จำแนก structured, semi-structured และ unstructured data จากตัวอย่างใหม่ได้
+2. วิเคราะห์ 5Vs แล้วแปลงเป็นข้อกำหนดด้าน latency, quality, storage และ governance ได้
+3. ติดตามข้อมูลหนึ่งรายการผ่าน ingestion, staging, computation และ serving พร้อมออกแบบ validation checks ได้
+4. เปรียบเทียบ batch, speed layer และแนวทาง unified processing ตาม SLA และ late data ได้
+5. ออกแบบ Data Lake zones และ metadata ขั้นต่ำเพื่อป้องกัน data swamp ได้
 
-## 3. ความรู้พื้นฐานที่ควรมี
+## พื้นฐานที่ต้องรู้ก่อน
 
 - Linux shell เบื้องต้น: path, pipe (`|`), redirect (`>`/`>>`), permission
-- Python เบื้องต้น: อ่านทีละบรรทัด, dictionary, `stdin/stdout`
-- แนวคิดฐานข้อมูล: schema, transaction, query latency
-- เครือข่าย: node, rack, bandwidth, latency
+- แนวคิดฐานข้อมูล: table, schema, transaction และ query latency
+- ความต่างเบื้องต้นระหว่าง batch (ทำเป็นรอบ) กับ event (เกิดเป็นรายการต่อเนื่อง)
+- ไม่จำเป็นต้องรู้ Hadoop มาก่อน เพราะบทนี้เป็นพื้นฐานสำหรับบทที่ 2
 
-## 4. แผนที่แนวคิด
+## แผนขอบเขตและระดับความลึก
+
+| ระดับ | หัวข้อ |
+|---|---|
+| Core | Big Data Workflow, Lambda Architecture, Data Lake design |
+| Supporting | Data types, 5Vs, Data Product, Data Science Pipeline |
+| Reference | ชื่อ ingestion/compute tools ใน Hadoop ecosystem |
+
+## Concept Map
 
 ```mermaid
 flowchart TD
@@ -49,9 +56,9 @@ flowchart TD
     G --> F
 ```
 
-## 5. จากข้อมูลทั่วไปสู่ Big Data
+## จากข้อมูลทั่วไปสู่ Big Data
 
-### 5.1 ประเภทของข้อมูล
+### ประเภทของข้อมูล
 
 **จากเอกสาร (หน้า 1)**
 
@@ -63,7 +70,7 @@ flowchart TD
 
 **คำอธิบายเพิ่มเติม:** ประเภทข้อมูลไม่ได้ตัดสินจากนามสกุลไฟล์เพียงอย่างเดียว แต่ดูว่าเครื่องสามารถตีความโครงสร้างได้มากเพียงใด เช่น ข้อความใน JSON มีโครงสร้างระดับ key แต่ค่าภายในอาจเป็นข้อความอิสระ การเก็บทุกอย่างใน Data Lake ไม่ได้แปลว่าไม่ต้องมี governance; ยิ่ง schema ยืดหยุ่น ยิ่งต้องมี metadata, data quality และสิทธิ์เข้าถึงที่ชัดเจน
 
-### 5.2 Big Data 5Vs
+### Big Data 5Vs
 
 **จากเอกสาร (หน้า 2)**
 
@@ -75,15 +82,15 @@ flowchart TD
 
 **ตัวอย่าง:** ระบบส่งอาหารมี Volume จากธุรกรรมจำนวนมาก, Velocity จากตำแหน่งไรเดอร์, Variety จากคำสั่งซื้อ/ข้อความ/ภาพ, Veracity จาก GPS ที่คลาดเคลื่อน และ Value จากการลดเวลาจัดส่ง จุดสำคัญคือข้อมูล “ใหญ่” ไม่จำเป็นต้องเด่นทุก V พร้อมกัน; ข้อมูลไม่มากแต่ไหลเร็วมากก็ต้องใช้สถาปัตยกรรมเฉพาะได้
 
-### 5.3 Data Product และ Data Science Pipeline
+### Data Product และ Data Science Pipeline
 
 **จากเอกสาร (หน้า 3–4)** ยกตัวอย่าง Amazon, Facebook และรถอัตโนมัติเป็นผลิตภัณฑ์ที่ใช้ข้อมูล และนำเสนอ Data Science เป็นศาสตร์ผสม พร้อม pipeline ตั้งแต่รวบรวมข้อมูลไปจนถึงสร้างคุณค่า
 
 **คำอธิบายเพิ่มเติม:** Data product คือผลิตภัณฑ์หรือฟังก์ชันที่พฤติกรรมหลักขึ้นกับข้อมูล เช่น recommendation, fraud detection หรือ ETA ไม่ใช่เพียง dashboard หนึ่งหน้า Pipeline ที่ดีต้องมี feedback loop: ผลทำนายจริงถูกบันทึกกลับมาเพื่อวัด drift และปรับปรุงโมเดล
 
-## 6. Big Data Workflow, Lambda Architecture และ Data Lake
+## Big Data Workflow, Lambda Architecture และ Data Lake
 
-### 6.1 Big Data Workflow
+### Big Data Workflow
 
 **จากเอกสาร (หน้า 5–6)** แบ่งงานหลักเป็น ingestion, staging/storage, computation และ workflow management โดยมีเครื่องมือใน ecosystem รับผิดชอบแต่ละช่วง
 
@@ -105,7 +112,7 @@ Computation อ่านรายการที่ผ่าน validation ไ�
 
 การตรวจที่ควรมีอย่างน้อยคือ `source_count = accepted_count + rejected_count`, transaction ID ไม่ซ้ำ, amount อยู่ในช่วงที่ยอมรับ และ business total ก่อน/หลัง transformation reconcile ได้ การรันสำเร็จโดยไม่เกิด error ยังไม่พิสูจน์ว่าข้อมูลถูกต้อง
 
-### 6.2 Lambda Architecture
+### Lambda Architecture
 
 **จากเอกสาร (หน้า 7–9)** สถาปัตยกรรม Lambda แยกเป็น
 
@@ -130,27 +137,75 @@ Computation อ่านรายการที่ผ่าน validation ไ�
 | Engine รองรับ replay และ logic ชุดเดียว | Unified/Kappa-style processing อาจลดความซ้ำซ้อน |
 | ทีมเล็กและ SLA ไม่ต่ำมาก | Batch แบบง่ายมักดูแลง่ายกว่า Lambda |
 
-### 6.3 Data Lake
+### Data Lake
 
 **จากเอกสาร (หน้า 10)** Data Lake เป็นแหล่งรวมข้อมูลหลายรูปแบบในระดับใหญ่ เพื่อให้ผู้ใช้หลายกลุ่มนำไปประมวลผลต่อได้
 
 **คำอธิบายเพิ่มเติม:** Data Lake ไม่เท่ากับ HDFS เสมอไป—บน cloud มักเป็น object storage และอาจเพิ่ม table format/transaction layer กลายเป็น lakehouse หากไม่มี catalog, owner, quality rule, lineage และ lifecycle policy จะกลายเป็น “data swamp” ที่ค้นหาและเชื่อถือไม่ได้
 
-Data Lake ควรแยก logical zones ตามหน้าที่ เช่น raw/bronze เก็บข้อมูลต้นทางเพื่อ replay, validated/silver เก็บข้อมูลที่ผ่าน schema และ quality rules และ curated/gold เตรียมตาม business grain สำหรับผู้ใช้ปลายทาง ชื่อ zone ไม่สำคัญเท่ากับ contract ว่าข้อมูลแต่ละชั้นผ่านอะไรมาแล้ว การ copy ไฟล์จาก raw ไป gold โดยไม่มี validation ไม่ได้เพิ่มความน่าเชื่อถือ
+Data Lake ควรแยก logical zones ตามหน้าที่ เช่น raw/bronze เก็บข้อมูลต้นทางเพื่อ replay, validated/silver เก็บข้อมูลที่ผ่าน schema และ quality rules และ curated/gold เตรียมตาม business grain สำหรับผู้ใช้ปลายทาง แนวทางแบ่งคุณภาพเพิ่มขึ้นตาม zones สอดคล้องกับ [Microsoft Data Engineering Playbook](https://learn.microsoft.com/en-us/data-engineering/playbook/solutions/modern-data-warehouse/) ชื่อ zone ไม่สำคัญเท่ากับ contract ว่าข้อมูลแต่ละชั้นผ่านอะไรมาแล้ว การ copy ไฟล์จาก raw ไป gold โดยไม่มี validation ไม่ได้เพิ่มความน่าเชื่อถือ
 
 ตัวอย่างยอดขายร้านยาควรมี owner, schema version, business date, ingestion timestamp, source system, sensitivity classification, retention period และ lineage ไปยังรายงาน หากยอด dashboard ผิด ทีมจึงย้อนจาก metric ไปยัง curated table, transformation run และ raw transaction ได้ หากไม่มี metadata เหล่านี้ Data Lake จะเก็บข้อมูลได้มากแต่ตอบไม่ได้ว่าชุดใดควรใช้
 
-## Mastery Check ประจำบท
+## Guided Design Lab: ออกแบบ Sales Data Lake
 
-หลังจบบทนี้ควรอธิบายได้ว่า 5Vs ส่งผลต่อการออกแบบระบบอย่างไร, วาดเส้นทาง ingestion → storage → compute → serving ได้, เปรียบเทียบ batch/speed layers โดยอ้างอิง SLA และ late data และบอกได้ว่า Data Lake จะกลายเป็น data swamp เมื่อขาดการกำกับดูแลอย่างไร
+### โจทย์และข้อมูลตัวอย่าง
 
-## คำถามฝึกคิด
+ร้านยา 3 สาขาส่งไฟล์ `sales_YYYYMMDD.csv` ทุกคืน และส่ง cancellation events ระหว่างวัน Dashboard ต้องเห็นยอดประมาณการภายใน 5 นาที แต่ยอดปิดวันต้องตรง Finance
 
-1. ข้อมูลยอดขาย 20 GB/วันแต่ต้องแจ้ง fraud ภายใน 5 วินาที ความท้าทายหลักคือ V ใด เพราะเหตุใด?
-2. หาก batch และ streaming คำนวณ business rule คนละชุด จะเกิดความเสี่ยงใดใน Lambda Architecture?
-3. ออกแบบ metadata ขั้นต่ำสำหรับ raw zone ของ Data Lake: owner, schema, ingestion time, source, sensitivity และ retention ควรใช้อย่างไร?
+### ลงมือทำตาม Practicality Ladder
 
-**แนวคำตอบ:** ข้อ 1 เน้น Velocity มากกว่า Volume; ข้อ 2 เกิด logic duplication และผลสองเส้นทางไม่ตรงกัน จึงต้องมี reconciliation/source of truth; ข้อ 3 metadata ทำให้ค้นหา ตรวจคุณภาพ ควบคุมสิทธิ์ และลบข้อมูลตามวงจรชีวิตได้
+1. **Explain:** ระบุ 5Vs ที่มีผลต่อโจทย์ โดยห้ามตอบเพียงรายชื่อ V ต้องเชื่อมกับ design requirement
+2. **Trace:** ติดตาม `TX1001` จาก event → raw zone → validation → aggregate → dashboard และระบุ metadata ที่เพิ่มแต่ละจุด
+3. **Design:** วาด batch/speed/serving paths และกำหนด source of truth หลังปิดวัน
+4. **Modify:** เพิ่มเงื่อนไข cancellation มาช้า 2 วัน แล้วปรับ backfill/reconciliation policy
+5. **Diagnose:** สมมติ dashboard = 1,020,000 บาท แต่ batch = 1,000,000 บาท ให้ลำดับการตรวจ duplicate, late event, timezone และ logic version
+6. **Validate:** กำหนด checks ได้แก่ source count, duplicate transaction ID, accepted/rejected reconciliation และ amount totals
+7. **Transfer:** ปรับ design ไปใช้กับ inventory movement ซึ่งมี stock correction ย้อนหลัง
+
+### ผลงานและเกณฑ์ผ่าน
+
+ส่ง diagram หนึ่งภาพ, data contract หนึ่งตาราง และเหตุผลเลือก architecture ไม่เกินหนึ่งหน้า ถือว่าผ่านเมื่ออธิบายได้ว่า latency กับ correctness ขัดกันตรงไหน, rerun อย่างไร และข้อมูลใด authoritative
+
+## Validation และ Troubleshooting
+
+| อาการ | สมมติฐานที่ควรตรวจ | หลักฐาน |
+|---|---|---|
+| ยอด stream สูงกว่า batch | duplicate/reversal มาช้า | transaction ID และ event type |
+| ไฟล์อยู่ใน Lake แต่หาไม่พบ | catalog/partition metadata ขาด | path, partition, registration log |
+| schema เปลี่ยนแล้ว pipeline ล้ม | producer เพิ่ม/เปลี่ยน field | schema version และ rejected records |
+| รายงานแต่ละทีมไม่ตรงกัน | grain/business rule ต่าง | metric definition และ lineage |
+
+## Progressive Practice และเฉลย
+
+**Guided:** ข้อมูล 20 GB/วันแต่ต้องแจ้ง fraud ภายใน 5 วินาที V ใดเด่นที่สุด?  
+**เฉลย:** Velocity เพราะ SLA บังคับให้ประมวลผลเร็ว แม้ Volume มีผลต่อ storage แต่ไม่ใช่ตัวขับ architecture หลักของ alert นี้
+
+**Analyze:** หาก batch และ stream ใช้ business rule คนละ version จะเกิดอะไร?  
+**เฉลยพร้อมเหตุผล:** ผลสองเส้นทางต่างกันแม้ input เดียวกัน การ reconcile ด้วยการแทนค่าปลายทางอย่างเดียวซ่อน root cause ต้อง version logic, ทดสอบด้วย golden dataset และกำหนดว่า batch หรือ corrected stream เป็น authoritative
+
+**Transfer:** ออกแบบ metadata ขั้นต่ำของ raw zone  
+**แนวคำตอบ:** owner/source เพื่อรับผิดชอบ, schema/version เพื่ออ่านซ้ำ, event/ingestion time เพื่อจัดการ late data, sensitivity เพื่อควบคุมสิทธิ์, retention เพื่อ lifecycle และ lineage/run ID เพื่อย้อนผลลัพธ์ การให้เพียงชื่อ field โดยไม่อธิบายการใช้ได้คะแนนไม่เต็ม
+
+## Mastery Checklist
+
+- [ ] แปลงแต่ละ V เป็น design consequence พร้อมตัวอย่างได้
+- [ ] trace transaction ผ่าน workflow และระบุ validation checkpoints ได้
+- [ ] อธิบาย reconciliation ของ late/corrected events ได้
+- [ ] เลือก batch, Lambda หรือ unified approach พร้อม trade-off ได้
+- [ ] ออกแบบ Lake zones, metadata และ lineage ที่ audit ได้
+
+## Glossary และ Source Coverage
+
+| คำ | ความหมาย |
+|---|---|
+| Ingestion | การรับข้อมูลเข้าสู่ platform |
+| Staging | พื้นที่พัก/เตรียมข้อมูลก่อนประมวลผลหลัก |
+| Late event | เหตุการณ์ที่มาถึงหลังช่วงเวลาที่คาด |
+| Reconciliation | การเทียบและอธิบายความต่างจนได้ผลที่เชื่อถือได้ |
+| Lineage | เส้นทางจากแหล่งข้อมูลผ่าน transformations ไปผลลัพธ์ |
+
+ครอบคลุม PDF หน้า 1–4 ในส่วน Data/5Vs/Data Product และหน้า 5–10 ในส่วน Workflow/Lambda/Data Lake ภาพหน้า 7–9 ใช้ยืนยันความสัมพันธ์ของ layers โดยไม่มีส่วนอ่านไม่ได้
 
 ## References
 
