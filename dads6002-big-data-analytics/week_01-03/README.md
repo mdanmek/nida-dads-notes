@@ -33,6 +33,13 @@
 
 บทที่ 1 เป็นฐานเรื่อง workflow/latency → บทที่ 2 เพิ่ม storage/resource mechanisms → บทที่ 3 ใช้ HDFS/YARN เพื่ออธิบาย distributed computation → บทที่ 4 นำ jobs หลายชุดมา orchestration ดังนั้นควรอ่านตามลำดับ 1 → 2 → 3 → 4 หากต้องทบทวนเฉพาะสอบ ให้เริ่มจาก objectives/mastery checklist ของบท แล้วกลับไป worked examples ที่ยังอธิบายไม่ได้
 
+### วิธีอ่านสำหรับผู้เริ่มต้น: สองรอบ
+
+1. **รอบที่ 1 — เข้าใจเรื่องก่อนศัพท์:** อ่านหัวข้อ “คืออะไร”, ปัญหาที่แก้ และตัวอย่างเล็กที่สุดของแต่ละบท ให้เล่าเส้นทางข้อมูลด้วยภาษาธรรมดาได้ก่อน
+2. **รอบที่ 2 — แทนเรื่องด้วยโมเดลจริง:** กลับมาอ่าน architecture, component contracts, failure modes, code และแบบฝึกหัด โดยใช้ตัวอย่างเดิมเป็นจุดยึด
+
+ลำดับคำศัพท์ที่ควรเข้าใจคือ `data/record → workflow → cluster/node → block/metadata/replication → resource/application/task → key-value/Map/group/Reduce → partition/shuffle → task/dependency/DAG/orchestration` หากพบคำด้านขวาที่ยังอธิบายไม่ได้ ให้ย้อนกลับไปคำด้านซ้ายก่อน
+
 ## แผนขอบเขตและระดับความลึก
 
 | ระดับ | หัวข้อ |
@@ -108,6 +115,8 @@
 - แต่ละ source topic มี primary home ตามตาราง Coverage และใช้ cross-link เมื่อเชื่อมบท
 - Chapter objectives เป็นคนละชุดและรวมกันเท่ากับ cumulative objectives
 - คำศัพท์ block/split/container/task/DAG ใช้ความหมายสม่ำเสมอ
+- แนวคิดหลักเริ่มจากนิยาม ปัญหา ขอบเขต input/output ตัวอย่างเล็กที่สุด และสิ่งที่ไม่ใช่ ก่อนเข้าสู่ component/pipeline
+- MapReduce ใช้ตัวอย่าง Word Count เดิมสองรอบ: ภาษาธรรมดาก่อน แล้วจึง map ไปยัง InputFormat, RecordReader, Mapper, Partitioner, Shuffle/Sort และ Reducer
 - Assessments ครอบคลุม Core objectives ทั้ง Explain, Apply, Analyze และ Evaluate/Create
 - Capstone เชื่อม source-to-storage-to-compute-to-orchestration และมี failure/validation evidence
 - ไม่พบส่วนอ่านไม่ได้หรือ ambiguity ที่ต้องคาดเดา; ความคลาดเคลื่อนของโค้ดต้นฉบับถูกระบุในบท 3
