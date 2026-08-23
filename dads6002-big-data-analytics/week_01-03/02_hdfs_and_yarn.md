@@ -3,9 +3,23 @@
 > **จากเอกสาร:** dads6002_week01-03_hadoop.pdf หน้า 11–21  
 > **Core:** distributed-system requirements, HDFS read/write/failure recovery, blocks/replication และ YARN application lifecycle
 
-## 7. Hadoop Ecosystem และหลักของระบบกระจาย
+> [← บทที่ 1](01_big_data_foundations.md) | [สารบัญ](README.md) | [บทที่ 3 →](03_mapreduce_and_streaming.md)
 
-### 7.1 Ecosystem
+## Learning Objectives ประจำบท
+
+1. อธิบายเหตุผลที่ distributed storage ต้องมี partitioning, replication และ failure detection ได้
+2. ติดตาม HDFS write/read ของไฟล์หลาย blocks พร้อมอธิบาย metadata และ payload flow ได้
+3. คำนวณ blocks/storage overhead และเปรียบเทียบ replication กับ erasure coding ได้
+4. วิเคราะห์ผลของ NameNode/DataNode failure และแยก checkpoint ออกจาก High Availability ได้
+5. ติดตาม YARN application lifecycle และใช้ HDFS CLI อย่างปลอดภัยได้
+
+## Prerequisites และระดับความลึก
+
+ควรอ่าน [บทที่ 1](01_big_data_foundations.md) เพื่อเข้าใจ workflow, throughput และ Data Lake ก่อน หัวข้อ Core คือ HDFS/YARN mechanisms; ecosystem และ CLI เป็น Supporting/Reference
+
+## Hadoop Ecosystem และหลักของระบบกระจาย
+
+### Ecosystem
 
 **จากเอกสาร (หน้า 11)** แสดงเครื่องมือหลายชั้น เช่น HDFS, YARN, MapReduce, Hive, Pig, HBase, Sqoop, Flume, Oozie และ ZooKeeper
 
@@ -18,21 +32,21 @@
 | HBase | distributed NoSQL บน Hadoop | HDFS file shell |
 | Oozie/Airflow | workflow orchestration | compute engine |
 
-### 7.2 คุณสมบัติที่ต้องการ
+### คุณสมบัติที่ระบบกระจายต้องมี
 
 **จากเอกสาร (หน้า 12–14)** เน้น fault tolerance, recoverability, consistency และ scalability รวมถึงการแบ่งข้อมูลเป็น blocks, replication, data locality, การแบ่ง job เป็น tasks และสถาปัตยกรรม master/worker
 
 **คำอธิบายเพิ่มเติม:** “เครื่องเสีย” เป็นเหตุการณ์ปกติ ไม่ใช่ข้อยกเว้น การออกแบบจึงต้องมี heartbeat, retry, replica และ metadata ที่บอกตำแหน่งข้อมูล Data locality ลดการส่งข้อมูลขนาดใหญ่ผ่านเครือข่าย โดยพยายามส่งโค้ดขนาดเล็กไปยัง node ที่มี block แทน แนวคิดนี้ตรงกับเอกสาร HDFS ปัจจุบันของ Apache ซึ่งเน้น throughput และการย้าย computation ไปใกล้ข้อมูล
 
-## 8. Hadoop Architecture: HDFS และ YARN
+## Hadoop Architecture: HDFS และ YARN
 
-### 8.1 ภาพรวมคลัสเตอร์
+### ภาพรวมคลัสเตอร์
 
 **จากเอกสาร (หน้า 15–16)** Hadoop มีสองแกน: HDFS จัดเก็บข้อมูล และ YARN จัดการทรัพยากร งานถูกพยายามวางใกล้ block ที่ต้องอ่าน มี replication และ speculative execution ช่วยรับมือ node/task ที่ช้า
 
 **คำอธิบายเพิ่มเติม:** speculative execution คือการรันสำเนาของ task ที่ช้าผิดปกติ แล้วรับผลจากสำเนาที่เสร็จก่อน เหมาะกับ straggler แต่ไม่ควรใช้แบบไม่คิดกับ task ที่มี side effect เช่น เรียก API ภายนอกหรือเขียนข้อมูลซ้ำ
 
-### 8.2 HDFS components
+### HDFS components
 
 **จากเอกสาร (หน้า 17, 19–20)**
 
@@ -41,13 +55,13 @@
 - **Secondary NameNode:** ทำ checkpoint โดยรวม `fsimage` กับ `edit logs`; **ไม่ใช่ backup NameNode**
 - HDFS เหมาะกับไฟล์ใหญ่ การอ่านแบบ streaming และ write-once-read-many
 
-#### 8.2.1 เริ่มจากปัญหา: ทำไมต้องแยก metadata ออกจากข้อมูลจริง
+#### เริ่มจากปัญหา: ทำไมต้องแยก metadata ออกจากข้อมูลจริง
 
 สมมติองค์กรมีไฟล์ log ขนาด 300 MB แต่ disk หนึ่งเครื่องอาจเสียได้ หากเก็บไฟล์เพียงสำเนาเดียว การเสียของ disk อาจทำให้ข้อมูลหาย และเมื่อไฟล์โตเป็นหลาย TB เครื่องเดียวก็อาจเก็บหรืออ่านไม่ทัน HDFS จึงแบ่งไฟล์เป็น **blocks** เพื่อกระจายการเก็บและการอ่าน และสร้าง **replicas** บนคนละเครื่องเพื่อให้ยังอ่านได้เมื่อบางเครื่องล่ม
 
 เมื่อกระจายไฟล์แล้ว ระบบต้องตอบคำถามสองกลุ่มซึ่งมีลักษณะต่างกันมาก กลุ่มแรกคือไฟล์ชื่ออะไร อยู่ directory ใด ประกอบด้วย block ใด และแต่ละ block อยู่เครื่องไหน ข้อมูลกลุ่มนี้เรียกว่า **metadata** กลุ่มที่สองคือ byte จริงของ block ซึ่งมีขนาดใหญ่กว่ามาก HDFS จึงแยกผู้ดูแล “แผนที่” ออกจากผู้เก็บ “ของจริง” เพื่อไม่ให้เครื่อง master ต้องรับข้อมูลทุก byte และกลายเป็นคอขวด
 
-#### 8.2.2 NameNode: ผู้จัดการแผนที่ ไม่ใช่โกดังข้อมูล
+#### NameNode: ผู้จัดการแผนที่ ไม่ใช่โกดังข้อมูล
 
 NameNode ดูแล **file-system namespace** เช่น `/user/pae/input/sales.csv` รวมถึง owner, permission, replication policy และความสัมพันธ์ว่าไฟล์ประกอบด้วย block ใด นอกจากนี้ยังทราบว่า replica ของแต่ละ block อยู่บน DataNode ใด เมื่อ client ต้องการเปิดไฟล์ client จึงติดต่อ NameNode ก่อนเพื่อขอแผนที่ แล้วติดต่อ DataNode เพื่อรับ byte จริง ด้วยเหตุนี้ user data ตามปกติจึงไม่ไหลผ่าน NameNode ตามที่ [Apache HDFS Architecture](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html) อธิบายไว้
 
@@ -55,13 +69,13 @@ NameNode ทำ namespace operations เช่น create, rename และ delet
 
 ถ้า NameNode ใช้งานไม่ได้ client จะไม่มีผู้บอกตำแหน่ง block และทำ namespace operation ใหม่ไม่ได้ แม้ block bytes ยังอยู่ครบใน DataNodes ก็ตาม ระบบ production จึงใช้ **NameNode High Availability** แบบ Active/Standby พร้อม shared edits และ failover ไม่ใช่หวังให้ Secondary NameNode รับงานต่อ
 
-#### 8.2.3 DataNode: ผู้เก็บและส่ง block จริง
+#### DataNode: ผู้เก็บและส่ง block จริง
 
 DataNode ดูแลพื้นที่ disk ของ worker แต่ละเครื่อง โดยเก็บ HDFS blocks เป็นไฟล์ใน local file system เมื่อได้รับ request หรือคำสั่ง มันจะสร้าง block, อ่าน block ให้ client, รับ block ใหม่, ส่งต่อ replica และลบ block ที่ NameNode สั่ง
 
 DataNode รายงานกลับไปยัง NameNode สองรูปแบบสำคัญ **Heartbeat** บอกว่า node ยังมีชีวิตและติดต่อได้ ส่วน **Block report** บอกรายการ blocks ที่ node ถืออยู่ หาก heartbeat ขาดหาย NameNode จะหยุดส่งงานอ่าน/เขียนใหม่ไปยัง node นั้น ตรวจหา blocks ที่มี replica ต่ำกว่า policy แล้วสั่ง DataNodes ที่ยังดีให้ทำ **re-replication** ดังนั้น fault tolerance ไม่ได้เกิดเพียงเพราะมีหลายเครื่อง แต่เกิดจากวงจรตรวจจับ ตัด node ที่เสียออก และซ่อมระดับ replication กลับมา
 
-#### 8.2.4 End-to-end write: เขียนไฟล์ 300 MB
+#### End-to-end write: เขียนไฟล์ 300 MB
 
 กำหนด block size 128 MB และ replication factor 3 ไฟล์จะถูกแบ่งเป็น `B1=128 MB`, `B2=128 MB` และ `B3=44 MB` แล้วเกิดขั้นตอนดังนี้
 
@@ -87,19 +101,19 @@ sequenceDiagram
     D1-->>C: acknowledgement
 ```
 
-#### 8.2.5 End-to-end read และการรับมือ block เสีย
+#### End-to-end read และการรับมือ block เสีย
 
 เมื่ออ่านไฟล์ client ขอเปิด path กับ NameNode และได้รับรายการ blocks พร้อมตำแหน่ง replicas ซึ่งมักเรียงตำแหน่งที่ใกล้หรือเหมาะสม จากนั้น client อ่าน B1 จาก DataNode ที่เลือกและตรวจ checksum เมื่อ B1 จบจึงเปลี่ยนไป B2 และ B3 ซึ่งอาจอยู่คนละเครื่อง หาก DataNode อ่านไม่ได้หรือ checksum ผิด client สามารถลอง replica อื่นได้ การอ่านจึงใช้ bandwidth รวมจาก workers และไม่ผลัก payload ผ่าน NameNode
 
 อย่างไรก็ตาม replication ไม่ได้แปลว่าข้อมูลไม่มีวันสูญหาย หากทุก replica ของ block เดียวกันหาย block นั้นจะอ่านไม่ได้ และ replication ก็ไม่ใช่ backup สำหรับการลบไฟล์ผิดโดยผู้ใช้ จึงยังต้องมี snapshot, backup/retention และการทดสอบ recovery ตามระดับความสำคัญของข้อมูล
 
-#### 8.2.6 `FsImage`, `EditLog` และ Secondary NameNode
+#### `FsImage`, `EditLog` และ Secondary NameNode
 
 NameNode ต้องทำให้ metadata อยู่รอดหลัง restart จึงใช้ `FsImage` เป็นภาพรวม namespace ณ checkpoint หนึ่ง และใช้ `EditLog` บันทึกการเปลี่ยนแปลงหลังจากนั้น เช่น create, rename หรือเปลี่ยน replication factor เหตุผลที่ไม่เขียน image ใหญ่ทั้งก้อนทุกครั้งคือจะช้า จึงบันทึก incremental changes ลง log ก่อน
 
 เมื่อ log โต การ restart จะนานเพราะต้องโหลด `FsImage` แล้ว replay edits จำนวนมาก **Checkpoint** จึงรวม `FsImage + EditLog` เป็น `FsImage` รุ่นใหม่ Secondary NameNode ทำงาน checkpoint นี้ตามสถาปัตยกรรมในบทเรียน แต่ไม่ได้รับ client traffic ต่อโดยอัตโนมัติเมื่อ NameNode ล่ม จึงไม่ใช่ hot standby หรือ backup NameNode
 
-#### 8.2.7 เหตุใด HDFS เหมาะกับไฟล์ใหญ่แต่ไม่เหมาะกับ OLTP
+#### เหตุใด HDFS เหมาะกับไฟล์ใหญ่แต่ไม่เหมาะกับ OLTP
 
 HDFS แลก low latency และ POSIX semantics บางส่วนกับ high-throughput streaming access ปัจจุบันรองรับ append และ truncate แต่ไม่รองรับการแก้ byte กลางไฟล์อย่างอิสระ จึงเหมาะกับ log, archive, batch input และ analytical data มากกว่าระบบขายหน้าร้านที่ต้องแก้ record เล็ก ๆ พร้อม transactions จำนวนมาก นอกจากนี้ไฟล์เล็กจำนวนมหาศาลสร้าง metadata ต่อไฟล์และมักสร้าง tasks จำนวนมาก จึงควรควบคุม file size และ compaction
 
@@ -109,7 +123,7 @@ HDFS แลก low latency และ POSIX semantics บางส่วนกั
 | DataNode | Block bytes บน local disks | Client, NameNode, DataNodes อื่น | Replica บางชุดหาย; NameNode สั่ง re-replication |
 | Secondary NameNode | งาน checkpoint metadata | NameNode/metadata files | Checkpoint หยุดและ EditLog โต แต่ไม่ได้ทำ failover |
 
-### 8.3 Blocks, replication และ erasure coding
+### Blocks, replication และ erasure coding
 
 **จากเอกสาร (หน้า 12–14, 19–20)** ใช้ block ขนาดตัวอย่าง 128 MB และทำ replication เพื่อความทนทาน; เอกสารกล่าวถึง erasure coding ใน Hadoop 3
 
@@ -137,7 +151,7 @@ Replication factor กำหนดและเปลี่ยนได้ใน�
 
 **คำอธิบายเพิ่มเติม:** Hadoop 3 ไม่ได้ “เลิก replication”; erasure coding เป็นอีกทางเลือก Policy ควรเลือกตาม hot/cold data, failure domain และ SLA ไม่ใช่ใช้แบบเดียวทั้งคลัสเตอร์
 
-### 8.4 YARN components
+### YARN components
 
 **จากเอกสาร (หน้า 18)**
 
@@ -148,7 +162,7 @@ Replication factor กำหนดและเปลี่ยนได้ใน�
 
 ปัญหาของคลัสเตอร์ที่มีผู้ใช้หลายคนคือทุก job ต้องการ CPU และ RAM พร้อมกัน หากแต่ละโปรแกรมยึดเครื่องเอง จะเกิดทั้งการแย่งทรัพยากรและเครื่องที่ว่างโดยไม่มีใครใช้ YARN จึงทำหน้าที่คล้ายผู้จัดสรรพื้นที่ทำงาน มันไม่ได้คำนวณ Word Count เอง แต่จัดทรัพยากรให้ application ที่รู้วิธีคำนวณ
 
-ResourceManager มีภาพรวมว่าคลัสเตอร์มีทรัพยากรเท่าใดและใช้ไปเท่าใด แต่ไม่ควรต้องควบคุม task ทุกตัวโดยละเอียด หน้าที่ระดับ application จึงแยกให้ ApplicationMaster ส่วน NodeManager เป็นผู้ลงมือเริ่ม/หยุด process และเฝ้าทรัพยากรบน worker ของตน การแยกนี้ทำให้หลาย processing frameworks ใช้คลัสเตอร์เดียวกันได้ ไม่ได้จำกัดเฉพาะ MapReduce
+ResourceManager มีภาพรวมว่าคลัสเตอร์มีทรัพยากรเท่าใดและใช้ไปเท่าใด แต่ไม่ควรต้องควบคุม task ทุกตัวโดยละเอียด หน้าที่ระดับ application จึงแยกให้ ApplicationMaster ส่วน NodeManager เป็นผู้ลงมือเริ่ม/หยุด process และเฝ้าทรัพยากรบน worker ของตน การแบ่งความรับผิดชอบนี้ตรงกับ [Apache Hadoop YARN Architecture](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) และทำให้หลาย processing frameworks ใช้คลัสเตอร์เดียวกันได้ ไม่ได้จำกัดเฉพาะ MapReduce
 
 #### ลำดับการส่ง MapReduce job ผ่าน YARN
 
@@ -166,7 +180,7 @@ ResourceManager มีภาพรวมว่าคลัสเตอร์ม�
 
 **เปรียบเทียบที่ต้องจำ:** HDFS ตอบว่า “ข้อมูลอยู่ที่ไหนและอ่านอย่างไร” ส่วน YARN ตอบว่า “application ใดได้ CPU/RAM ที่ไหนและเมื่อใด” ขณะที่ MapReduce เป็น processing model ที่ใช้บริการทั้งสองระบบ ไม่ใช่อีกชื่อของ YARN
 
-## 9. การใช้งาน HDFS CLI
+## การใช้งาน HDFS CLI
 
 **จากเอกสาร (หน้า 20–21)** ยกคำสั่ง `put`, `get`, `mkdir`, `ls`, `mv`, `cp`, `rm` และ `chmod`
 
@@ -185,21 +199,61 @@ hadoop fs -rm /user/student/archive.txt
 
 Permission `664` เท่ากับ `rw-rw-r--`: owner อ่าน/เขียน, group อ่าน/เขียน, others อ่านเท่านั้น
 
-## Mastery Check ประจำบท
+## Hands-on Paper Lab: Store, Read, Fail, Recover
 
-- วาด NameNode/DataNode/client และอธิบาย write กับ read flow ได้โดยไม่ดูโน้ต
-- คำนวณจำนวน blocks และ payload ภายใต้ replication factor ได้ พร้อมอธิบายสมมติฐาน
-- แยก checkpoint จาก High Availability และอธิบายได้ว่า Secondary NameNode ไม่ใช่ standby
-- ติดตาม YARN job ตั้งแต่ client submit จน ApplicationMaster คืน resources ได้
-- วินิจฉัยได้ว่า DataNode, NameNode, task หรือ NodeManager ล้มแล้วผู้ใช้จะสังเกตอะไร
+ใช้ cluster จำลอง: DataNodes `D1–D4`, block size 128 MB, replication factor 3 และไฟล์ 300 MB
 
-## แบบฝึกหัดพร้อมเฉลยย่อ
+1. คำนวณ `B1=128`, `B2=128`, `B3=44 MB`
+2. กำหนด placement ให้แต่ละ block มี 3 replicas โดยไม่วาง block ซ้ำสองชุดบน node เดียว
+3. trace write pipeline ของ B1 พร้อม acknowledgement ย้อนกลับ
+4. เลือก read replica ที่ใกล้ client และอธิบายว่าข้อมูลไม่ผ่าน NameNode
+5. จงใจให้ D2 ล้ม ทำรายการ under-replicated blocks และเลือก target re-replication
+6. จงใจให้ NameNode ล้ม เปรียบเทียบผลกับ D2 failure และอธิบายบทบาท HA
+7. ตรวจว่าหลัง recovery ทุก block กลับมามี 3 replicas และ file length ยัง 300 MB
 
-**โจทย์:** ไฟล์ 1,050 MB, block size 128 MB และ replication factor 3 ใช้กี่ logical blocks และ payload รวมประมาณเท่าไร?  
-**เฉลย:** $\lceil1{,}050/128\rceil=9$ blocks และ payload ประมาณ $1{,}050\times3=3{,}150$ MB ไม่คูณพื้นที่ว่างของ block สุดท้ายเป็นข้อมูลจริง
+Lab นี้เป็น paper simulation เพราะไม่ต้องมี Hadoop cluster แต่รักษากลไกการตัดสินใจและ failure behavior ไว้ครบ
 
-**โจทย์:** DataNode หายหนึ่งเครื่องกับ NameNode หายหนึ่งเครื่องต่างกันอย่างไร?  
-**เฉลย:** DataNode failure ทำให้ replicas บางชุดหายและ NameNode สั่ง re-replication ได้ ส่วน NameNode failure กระทบ namespace/ตำแหน่ง blocks ทั้งคลัสเตอร์จนกว่า HA failover หรือ recovery จะสำเร็จ
+## Validation และ Troubleshooting
+
+| อาการ | สาเหตุหลัก | วิธีตรวจ |
+|---|---|---|
+| HDFS path เปิดไม่ได้ทั้งที่ disks ยังอยู่ | NameNode/namespace unavailable | NameNode/HA state และ client error |
+| under-replicated blocks เพิ่ม | DataNode/rack หาย | heartbeat, block report, replication metrics |
+| NameNode memory สูง | small files จำนวนมาก | file/block count และ average file size |
+| YARN task killed | memory/vcore เกิน allocation | container log และ resource request |
+| CLI permission denied | owner/group/mode ไม่อนุญาต | `hadoop fs -ls` และ effective user |
+
+## Progressive Practice และ Model Answers
+
+**Apply:** ไฟล์ 1,050 MB, block 128 MB, replication 3 ใช้กี่ blocks/payload?  
+**เฉลย:** $\lceil1{,}050/128\rceil=9$ logical blocks; payload $1{,}050\times3=3{,}150$ MB โดยประมาณ ไม่คิด block สุดท้ายเป็น 128 MB เต็ม เพราะเป็น logical capacity ไม่ใช่ข้อมูลจริง
+
+**Analyze:** DataNode failure ต่างจาก NameNode failure อย่างไร?  
+**เฉลย:** DataNode failure กระทบ replicas ที่เครื่องนั้นและ trigger re-replication; NameNode failure ทำให้ client ขาด namespace/block-location service ทั้งคลัสเตอร์จน failover/recovery ดังนั้น replication ของ blocks ไม่แก้ metadata availability
+
+**Evaluate:** ควรใช้ erasure coding กับไฟล์ที่ถูกอ่านบ่อยและเขียนใหม่ระหว่างวันหรือไม่?  
+**แนวคำตอบ:** มักเริ่มจาก replication เพราะ recovery/read path ง่ายกว่าและเหมาะกับ hot data; erasure coding เหมาะกับ cold/large data ที่ต้องลด storage overhead แต่แลก CPU/network reconstruction ต้องตัดสินจาก SLA และ workload ไม่ใช่ version ของ Hadoop
+
+## Mastery Checklist
+
+- [ ] trace HDFS write/read รวม metadata และ payload ได้
+- [ ] คำนวณ blocks/replicas พร้อมตรวจหน่วยได้
+- [ ] อธิบาย heartbeat, block report และ re-replication ได้
+- [ ] แยก Secondary NameNode, checkpoint และ HA ได้
+- [ ] trace YARN application และ failure scopes ได้
+- [ ] ใช้ CLI โดยตรวจ path/permission ก่อน mutation ได้
+
+## Glossary และ Source Coverage
+
+| คำ | ความหมาย |
+|---|---|
+| Namespace | โครงสร้างชื่อไฟล์/directories และ metadata |
+| Heartbeat | สัญญาณว่า DataNode/NodeManager ยังติดต่อได้ |
+| Block report | รายการ HDFS blocks ที่ DataNode ถืออยู่ |
+| Container | allocation ของทรัพยากรสำหรับ process ใน YARN |
+| Checkpoint | การรวม FsImage กับ EditLog เป็น metadata snapshot ใหม่ |
+
+ครอบคลุม PDF หน้า 11–16 เรื่อง ecosystem/requirements/architecture และหน้า 17–21 เรื่อง HDFS, YARN, blocks และ CLI โดยแก้ขีดยาวในคำสั่งเป็น ASCII hyphen เพื่อให้รันได้จริง
 
 ## References
 
@@ -207,4 +261,3 @@ Permission `664` เท่ากับ `rw-rw-r--`: owner อ่าน/เขี
 - [Apache Hadoop: HDFS Architecture](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html)
 - [Apache Hadoop: YARN Architecture](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html)
 - [Apache Hadoop: HDFS Erasure Coding](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HDFSErasureCoding.html)
-
