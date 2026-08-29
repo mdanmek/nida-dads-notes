@@ -1,4 +1,4 @@
-# DADS6001 Week 01: Introduction to Probability and Sampling Distribution
+# Introduction to Probability and Sampling Distribution
 
 > **Course:** DADS6001 Applied Modern Statistical Analysis  
 > **Week:** 01  
