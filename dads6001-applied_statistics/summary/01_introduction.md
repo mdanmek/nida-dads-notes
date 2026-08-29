@@ -2,7 +2,7 @@
 
 > **Course:** DADS6001 Applied Modern Statistical Analysis  
 > **Week:** 01  
-> **Source:** `dads6001_week1_intro(1).pptx` จำนวน 41 สไลด์  
+> **Source:** `dads6001-applied_statistics/lecture/dads6001_01_introduction.pptx` จำนวน 41 สไลด์  
 > **Main topics:** Probability, random variables, probability distributions, sampling distributions, Central Limit Theorem และการตรวจสอบ Normality
 
 ## 1. Chapter Overview
@@ -347,13 +347,13 @@ $$
 เมื่อสุ่มจาก finite population แบบไม่คืนที่ observations ไม่ independent และ variance ของ sample mean ลดลง:
 
 $$
-V(\bar X)=\frac{\sigma^2}{n}\left(\frac{N-n}{N-1}\right)
+V(\bar X)=\frac{\sigma^2}{n}(\frac{N-n}{N-1})
 $$
 
 สำหรับ $N=5,n=2,\sigma^2=2$:
 
 $$
-V(\bar X)=\frac{2}{2}\left(\frac{5-2}{5-1}\right)=0.75
+V(\bar X)=\frac{2}{2}(\frac{5-2}{5-1})=0.75
 $$
 
 พจน์ $\frac{N-n}{N-1}$ คือ finite population correction ในรูป variance เมื่อ sample fraction สูง ความไม่แน่นอนลดลงเพราะมีสมาชิกที่ยังไม่ถูกเลือกเหลือน้อยลง
@@ -389,7 +389,7 @@ $\binom{n}{x}$ นับจำนวนตำแหน่งที่สาม�
 Slides 19–20 กำหนด $n=4,p=3/5$ จึงมี $X\sim B(4,3/5)$
 
 $$
-P(X=x)=\binom4x\left(\frac35\right)^x\left(\frac25\right)^{4-x}
+P(X=x)=\binom4x(\frac35)^x(\frac25)^{4-x}
 $$
 
 | x | Probability |
@@ -522,7 +522,7 @@ z-score บอกว่าค่า X อยู่ห่างจาก mean ก
 ถ้า $X_1,\ldots,X_n$ เป็น i.i.d. จาก $N(\mu,\sigma^2)$:
 
 $$
-\bar X\sim N\left(\mu,\frac{\sigma^2}{n}\right)
+\bar X\sim N(\mu,\frac{\sigma^2}{n})
 $$
 
 ดังนั้น:
@@ -596,7 +596,7 @@ $$
 หรือกล่าวว่า:
 
 $$
-\bar X\approx N\left(\mu,\frac{\sigma^2}{n}\right)
+\bar X\approx N(\mu,\frac{\sigma^2}{n})
 $$
 
 แม้ population distribution ไม่เป็น Normal โดย approximation จะดีขึ้นเมื่อ n เพิ่มขึ้น (Slide 31)
@@ -822,7 +822,7 @@ $$V(\bar X)=\frac{\sigma^2}{n}$$
 
 Without replacement from finite population:
 
-$$V(\bar X)=\frac{\sigma^2}{n}\left(\frac{N-n}{N-1}\right)$$
+$$V(\bar X)=\frac{\sigma^2}{n}(\frac{N-n}{N-1})$$
 
 ### Binomial
 
@@ -879,9 +879,23 @@ $$\frac{(n-1)S^2}{\sigma^2}\sim\chi^2_{n-1}$$
 | P–P plot | กราฟเปรียบเทียบ cumulative probabilities |
 | Q–Q plot | กราฟเปรียบเทียบ quantiles |
 
-## 25. References
+## 25. Source Coverage Audit
 
-1. เอกสารประกอบการสอน `dads6001_week1_intro(1).pptx`, Slides 1–41.
+| Source slides | Primary teaching home |
+|---|---|
+| 1–6 | Chapter overview; random experiment, outcome, sample space และ event |
+| 7–12 | Event operations, Venn diagrams, probability axioms และ probability approaches |
+| 13–18 | Random variables, PMF, expectation, variance และ sampling with/without replacement |
+| 19–22 | Binomial distribution และ multiple-choice exercise |
+| 23–30 | Continuous uniform, Normal, Standard Normal, t, Chi-square และ Normal approximation |
+| 31 | Central Limit Theorem |
+| 32–40 | Distribution checking, P–P plot และ Q–Q plot |
+| 41 | Utility-data normality exercise |
+
+บทนี้เป็น prerequisite โดยตรงของ [02 Interval Estimation](02_interval_estimation.md) โดยเฉพาะ sampling distribution, Standard Error, Normal, Student's t, Chi-square และ CLT
+
+## 26. References
+
+1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_01_introduction.pptx`, Slides 1–41.
 2. Berenson, M., Levine, D. M., & Krehbiel, T. C. (2012). *Basic Business Statistics: Concepts and Applications* (12th ed.). Pearson. อ้างถึงใน Slide 41.
 3. แหล่งข้อมูลประกอบที่ระบุไว้ในสไลด์: Wikipedia pages for Binomial, Normal, Student's t, Chi-square, P–P plot และ Q–Q plot. ใช้เพื่อชี้แหล่งเดิมของภาพ/คำอธิบายในเอกสาร ไม่ได้ใช้แทนเนื้อหาหลักของรายวิชา
-
