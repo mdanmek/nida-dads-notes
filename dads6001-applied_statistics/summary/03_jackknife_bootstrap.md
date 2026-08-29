@@ -41,7 +41,7 @@ Master Note นี้เรียบเรียงจากสไลด์ **DA
 ให้
 
 $$
-X_1, X_2, \ldots, X_n \mathrel{\overset{iid}{\sim}} F
+X_1, X_2, \ldots, X_n \overset{\mathrm{iid}}{\sim} F
 $$
 
 หมายถึงตัวแปรสุ่มทั้ง $n$ ตัวเป็นอิสระต่อกันและมี distribution เดียวกันคือ $F$ คำว่า iid ประกอบด้วย:
@@ -143,7 +143,7 @@ $$
 
 $$
 \widehat{\operatorname{Bias}}_{jack}
-= (n-1)\bigl(\bar{\theta}_{(\cdot)}-\hat{\theta}\bigr)
+= (n-1)(\bar{\theta}_{(\cdot)}-\hat{\theta})
 $$
 
 และ bias-corrected Jackknife estimate คือ
@@ -168,7 +168,7 @@ $$
 \widehat{SE}_{jack}(\hat{\theta})
 = \sqrt{\frac{n-1}{n}
 \sum_{i=1}^{n}
-\bigl(\hat{\theta}_{(i)}-\bar{\theta}_{(\cdot)}\bigr)^2}
+(\hat{\theta}_{(i)}-\bar{\theta}_{(\cdot)})^2}
 $$
 
 ค่าภายในผลรวมวัดว่า estimate จากแต่ละ leave-one-out sample ห่างจากค่าเฉลี่ยเพียงใด ถ้าการตัด observation เพียงตัวเดียวทำให้ estimate เปลี่ยนมาก standard error จะสูง และยังเป็นสัญญาณว่า estimator อาจถูกครอบงำด้วย influential observations
@@ -259,7 +259,7 @@ $$
 และ estimate จากชุดนั้นคือ
 
 $$
-\hat{\theta}^{*(b)}=t\bigl(x_1^{*(b)},\ldots,x_n^{*(b)}\bigr)
+\hat{\theta}^{*(b)}=t(x_1^{*(b)},\ldots,x_n^{*(b)})
 $$
 
 เครื่องหมายดอกจันหมายถึงค่าที่ได้จากโลก Bootstrap ไม่ได้หมายถึงค่าจริงของ population
@@ -273,7 +273,7 @@ $$
 ใน Bootstrap sample ขนาด $n$ จำนวน observation ที่ไม่ซ้ำกันโดยเฉลี่ยประมาณ $0.632n$ เมื่อ $n$ ใหญ่ เพราะความน่าจะเป็นที่ค่าหนึ่งไม่ถูกเลือกเลยคือ
 
 $$
-\left(1-\frac{1}{n}\right)^n \mathrel{\longrightarrow} e^{-1}
+(1-\frac{1}{n})^n \to e^{-1}
 $$
 
 ดังนั้นสัดส่วนที่ถูกเลือกอย่างน้อยหนึ่งครั้งเข้าใกล้ $1-e^{-1}\approx0.632$
@@ -307,7 +307,7 @@ $$
 \widehat{SE}_{boot}(\hat{\theta})
 =\sqrt{\frac{1}{B-1}
 \sum_{b=1}^{B}
-\bigl(\hat{\theta}^{*(b)}-\bar{\theta}^{*}\bigr)^2}
+(\hat{\theta}^{*(b)}-\bar{\theta}^{*})^2}
 $$
 
 สูตรนี้คือ sample standard deviation ของ Bootstrap estimates จำนวน $B$ ค่า เมื่อ $B$ เพิ่มขึ้น Monte Carlo error จากการสุ่ม Bootstrap จะลดลง แต่ข้อจำกัดจาก sample เดิมไม่ได้หายไป
@@ -332,14 +332,14 @@ $$
 
 $$
 CI_{percentile}
-=\bigl[q^{*}_{\alpha/2},q^{*}_{1-\alpha/2}\bigr]
+=[q^{*}_{\alpha/2},q^{*}_{1-\alpha/2}]
 $$
 
 สำหรับ 95% CI ใช้ percentile ที่ 2.5 และ 97.5:
 
 $$
-CI_{95\%}
-=\bigl[q^{*}_{0.025},q^{*}_{0.975}\bigr]
+CI_{95}
+=[q^{*}_{0.025},q^{*}_{0.975}]
 $$
 
 วิธีนี้สะท้อนความไม่สมมาตรของ Bootstrap distribution ได้ แต่ไม่ได้แปลว่าแก้ bias หรือ coverage error ได้เสมอไป
@@ -350,8 +350,8 @@ $$
 
 $$
 CI_{basic}
-=\bigl[2\hat{\theta}-q^{*}_{1-\alpha/2},
-2\hat{\theta}-q^{*}_{\alpha/2}\bigr]
+=[2\hat{\theta}-q^{*}_{1-\alpha/2},
+2\hat{\theta}-q^{*}_{\alpha/2}]
 $$
 
 อย่าสับสน basic interval กับ percentile interval เพราะขอบเขตกลับด้านรอบ $\hat{\theta}$
@@ -673,7 +673,8 @@ SE และ CI มักสะท้อน sampling variability แต่ไม
 ให้ $n=5$, $\hat{\theta}=10$ และ $\bar{\theta}_{(\cdot)}=10.2$
 
 $$
-\widehat{\operatorname{Bias}}_{jack}=(\_\_-1)(\_\_-\_\_)
+\widehat{\operatorname{Bias}}_{jack}
+=(\square-1)(\square-\square)
 $$
 
 **เฉลย:**
