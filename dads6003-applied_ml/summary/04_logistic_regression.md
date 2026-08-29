@@ -1,6 +1,6 @@
 # DADS6003 Applied Machine Learning — Logistic Regression
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week4_logistic_regression.pdf` จำนวน 17 หน้า  
+> **แหล่งเนื้อหาหลัก:** `dads6003_week04_logistic_regression.pdf` จำนวน 17 หน้า  
 > **ผู้สอนในเอกสาร:** Ekarat Rattagan  
 > **วันที่ในเอกสาร:** 29 มกราคม 2026  
 > **หมายเหตุ:** ชื่อไฟล์และ destination ระบุ Week 04 แต่หน้าปก/ส่วนท้ายของสไลด์ระบุ “Week 5: Logistic Regression” โน้ตนี้ใช้ path Week 04 ตามที่ผู้ใช้กำหนดโดยไม่แก้ข้อมูลต้นฉบับ
@@ -826,6 +826,131 @@ $$
 10. **“เพิ่ม features ยิ่งมากยิ่งดี”**  
    เพิ่มความเสี่ยง leakage, multicollinearity และ overfitting จึงต้อง validate และ regularize
 
+## Hands-on Lab: Probability, Threshold และต้นทุนความผิดพลาด
+
+Lab นี้แยกสองเรื่องที่มักสับสนกัน: โมเดลสร้าง probability ก่อน จากนั้นจึงใช้ threshold แปลง probability เป็น class
+
+```python
+import pandas as pd
+
+from sklearn.datasets import make_classification
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    confusion_matrix,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score
+)
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+X, y = make_classification(
+    n_samples=2_000,
+    n_features=6,
+    n_informative=4,
+    n_redundant=1,
+    weights=[0.9, 0.1],
+    random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    stratify=y,
+    random_state=42
+)
+
+model = Pipeline([
+    ('scaler', StandardScaler()),
+    ('model', LogisticRegression(max_iter=1_000))
+])
+
+model.fit(X_train, y_train)
+probabilities = model.predict_proba(X_test)[:, 1]
+
+results = []
+
+for threshold in [0.3, 0.5, 0.7]:
+    predictions = (probabilities >= threshold).astype(int)
+
+    tn, fp, fn, tp = confusion_matrix(y_test, predictions).ravel()
+
+    results.append({
+        'Threshold': threshold,
+        'TP': tp,
+        'FP': fp,
+        'FN': fn,
+        'TN': tn,
+        'Precision': precision_score(y_test, predictions),
+        'Recall': recall_score(y_test, predictions),
+        'F1': f1_score(y_test, predictions)
+    })
+
+print(f'ROC-AUC: {roc_auc_score(y_test, probabilities):.3f}')
+pd.DataFrame(results).round(3)
+```
+
+### สิ่งที่ควรสังเกต
+
+เมื่อ threshold ลดจาก 0.5 เป็น 0.3 โมเดลมักทำนาย positive มากขึ้น ทำให้ Recall สูงขึ้นและ FN ลดลง แต่ FP อาจเพิ่มและ Precision อาจลดลง เมื่อ threshold สูงขึ้นจะเกิดแนวโน้มตรงข้าม ROC-AUC ไม่เปลี่ยนตาม threshold เพราะวัดความสามารถในการจัดอันดับจาก probabilities ตลอดหลาย thresholds
+
+อย่าเลือก threshold จาก test set ซ้ำไปมา ใน workflow จริงให้เลือกจาก validation set ตาม cost หรือ capacity แล้วใช้ test set ประเมินครั้งสุดท้าย
+
+### Modification experiments
+
+1. เปลี่ยน `weights` เป็น `[0.99, 0.01]` แล้วดูว่า Accuracy ยังมีประโยชน์เพียงใด
+2. เพิ่ม `class_weight='balanced'` ใน LogisticRegression แล้วเปรียบเทียบ Recall/Precision
+3. กำหนดต้นทุน `FN = 10` และ `FP = 1` แล้วคำนวณ total cost ของแต่ละ threshold
+4. วาด Precision-Recall curve และเลือก threshold ที่ทีมปฏิบัติการรับจำนวน alerts ได้
+
+### Troubleshooting
+
+- `predict()` คืน class ไม่ใช่ probability: ใช้ `predict_proba()[:, 1]`
+- Confusion matrix อ่านกลับด้าน: ระบุ positive class และลำดับ `tn, fp, fn, tp` ให้ชัด
+- Accuracy สูงผิดปกติในข้อมูล imbalance: ตรวจ class distribution, Recall และ PR-AUC
+- เกิด overflow เมื่อคำนวณ sigmoid เอง: ใช้ implementation ที่ numerically stable และหลีกเลี่ยง `log(0)`
+- Probability สูงเกินจริงแม้ AUC ดี: ตรวจ calibration curve และพิจารณา calibration บน holdout data
+
+## Decision Framework: Metric และ Threshold
+
+| เป้าหมาย | Metric/การตัดสินใจที่ควรเน้น |
+|---|---|
+| พลาด positive ไม่ได้ เช่น severe disease | Recall สูงและต้นทุน FN |
+| Alert มีค่าใช้จ่ายสูง | Precision และจำนวน predicted positives |
+| ต้องการสมดุล Precision/Recall | F1 หรือ cost function ที่กำหนดชัด |
+| เปรียบเทียบ ranking โดยไม่ fix threshold | ROC-AUC; ใช้ PR-AUC เมื่อ positive rare |
+| ต้องใช้ probability เพื่อวางแผน | Log loss, Brier score และ calibration |
+
+## Mini-project / Transfer Challenge
+
+สร้างโมเดลคัดกรอง vendor risk หรือ fraud โดยเริ่มจากกำหนด positive class และ prediction time จากนั้นรายงาน probability model, class balance, threshold policy, confusion matrix, Precision/Recall/F1, ROC-AUC หรือ PR-AUC, calibration, leakage risks และผลกระทบต่อทีมที่ต้องรับ alerts
+
+## Critical Discussion
+
+Logistic Regression อธิบาย coefficient ได้ง่ายกว่าหลายโมเดล แต่ coefficient ไม่ใช่ causal effect หากมี omitted variables, selection bias หรือ confounding นอกจากนี้ threshold เป็นนโยบายการตัดสินใจที่อาจสร้างผลกระทบต่างกันระหว่างกลุ่ม จึงควรตรวจ subgroup performance, fairness และผลของ false positives/false negatives ก่อน deployment
+
+## Cross-topic Connections
+
+- Linear Regression และ Logistic Regression ใช้ linear score (\theta^Tx) เหมือนกัน แต่ output space และ loss ต่างกัน
+- Polynomial features ทำให้ decision boundary โค้งได้โดยโมเดลยัง linear in parameters
+- Regularization ควบคุม coefficient และลด overfitting โดยเฉพาะเมื่อมี features มาก
+- Calibration และ threshold selection แยกจาก discrimination; AUC สูงไม่ได้แปลว่า probability ถูกต้อง
+
+## Mastery Checklist
+
+- [ ] อธิบาย sigmoid, probability, odds และ log-odds ได้
+- [ ] แปลง coefficient เป็น odds ratio และตีความได้ถูกต้อง
+- [ ] หา decision boundary จากสมการโมเดลได้
+- [ ] อธิบายเหตุผลที่ใช้ BCE/NLL แทน MSE ได้
+- [ ] derive gradient จนได้รูป ((prediction-target)\times feature) ได้
+- [ ] คำนวณ confusion matrix metrics ด้วยมือได้
+- [ ] เลือก metric และ threshold จากต้นทุนจริงได้
+- [ ] แยก discrimination, calibration และ class decision ได้
+- [ ] ตรวจ class imbalance, leakage และ fairness risk ได้
+
 ## 23. Likely Exam Focus
 
 > หัวข้อต่อไปนี้อนุมานจากสูตร กราฟ และตารางในเอกสาร ไม่ใช่ข้อสอบจริง
@@ -1019,7 +1144,7 @@ $$
 
 ### เอกสารประกอบการสอน
 
-- Rattagan, E. (2026). `dads6003_week4_logistic_regression.pdf`: *Week 5: Logistic Regression*, หน้า 1–17.
+- Rattagan, E. (2026). `dads6003_week04_logistic_regression.pdf`: *Week 5: Logistic Regression*, หน้า 1–17.
 
 ### แหล่งที่อ้างในเอกสาร
 
