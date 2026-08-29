@@ -93,7 +93,7 @@ Resampling distribution ไม่ใช่ population distribution และไ�
 Bias ของ estimator นิยามเป็น
 
 $$
-\operatorname{Bias}(\hat{\theta}) = E(\hat{\theta}) - \theta
+\mathrm{Bias}(\hat{\theta}) = E(\hat{\theta}) - \theta
 $$
 
 - Bias เป็นบวก: estimator มีแนวโน้มสูงกว่า parameter
@@ -103,7 +103,7 @@ $$
 Bias-corrected estimate เขียนในรูปทั่วไปได้ว่า
 
 $$
-\hat{\theta}_{BC} = \hat{\theta} - \widehat{\operatorname{Bias}}(\hat{\theta})
+\hat{\theta}_{BC} = \hat{\theta} - \widehat{\mathrm{Bias}}(\hat{\theta})
 $$
 
 ### 5.2 Standard error
@@ -111,7 +111,7 @@ $$
 Standard error คือส่วนเบี่ยงเบนมาตรฐานของ sampling distribution:
 
 $$
-SE(\hat{\theta}) = \sqrt{\operatorname{Var}(\hat{\theta})}
+SE(\hat{\theta}) = \sqrt{\mathrm{Var}(\hat{\theta})}
 $$
 
 มันบอกความผันผวนของ estimator ระหว่างการสุ่ม sample ซ้ำ ไม่ใช่การกระจายของข้อมูลรายหน่วย ดังนั้น **standard deviation ของข้อมูล** กับ **standard error ของ estimator** ตอบคนละคำถาม
@@ -142,7 +142,7 @@ $$
 สูตรประมาณ bias คือ
 
 $$
-\widehat{\operatorname{Bias}}_{jack}
+\widehat{\mathrm{Bias}}_{jack}
 = (n-1)(\bar{\theta}_{(\cdot)}-\hat{\theta})
 $$
 
@@ -150,7 +150,7 @@ $$
 
 $$
 \hat{\theta}_{jack,BC}
-= \hat{\theta}-\widehat{\operatorname{Bias}}_{jack}
+= \hat{\theta}-\widehat{\mathrm{Bias}}_{jack}
 $$
 
 จัดรูปได้เป็น
@@ -209,7 +209,7 @@ $$
 ค่าเฉลี่ยของ leave-one-out means คือ $22.7$ เท่ากับ sample mean ดังนั้น
 
 $$
-\widehat{\operatorname{Bias}}_{jack}=9(22.7-22.7)=0
+\widehat{\mathrm{Bias}}_{jack}=9(22.7-22.7)=0
 $$
 
 และ
@@ -290,7 +290,7 @@ $$
 Bootstrap estimate of bias คือ
 
 $$
-\widehat{\operatorname{Bias}}_{boot}
+\widehat{\mathrm{Bias}}_{boot}
 =\bar{\theta}^{*}-\hat{\theta}
 $$
 
@@ -673,7 +673,7 @@ SE และ CI มักสะท้อน sampling variability แต่ไม
 ให้ $n=5$, $\hat{\theta}=10$ และ $\bar{\theta}_{(\cdot)}=10.2$
 
 $$
-\widehat{\operatorname{Bias}}_{jack}
+\widehat{\mathrm{Bias}}_{jack}
 =(\square-1)(\square-\square)
 $$
 
