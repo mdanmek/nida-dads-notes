@@ -1,4 +1,4 @@
-# DADS6001 Week 02: Interval Estimation
+# Interval Estimation
 
 > **Course:** DADS6001 Applied Modern Statistical Analysis  
 > **Week:** 02  
