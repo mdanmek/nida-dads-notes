@@ -1,6 +1,6 @@
 # DADS6003 Applied Machine Learning — Week 03: Multiple Linear Regression
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week3_multiple_linear_regression.pdf` จำนวน 11 หน้า  
+> **แหล่งเนื้อหาหลัก:** `dads6003_week03_multiple_linear_regression.pdf` จำนวน 11 หน้า  
 > **ผู้สอนในเอกสาร:** Ekarat Rattagan  
 > **วันที่ในเอกสาร:** 21 มกราคม 2026  
 > **ขอบเขต:** Multiple Linear Regression, matrix representation, feature scaling, BGD/SGD/Mini-batch GD, learning-rate scheduling และ Polynomial Regression
@@ -761,6 +761,126 @@ $$
 10. **“\(R^2\) สูงแปลว่าโมเดลถูกต้อง”**  
    ยังอาจมี leakage, overfitting, biased residuals หรือไม่มี causal meaning
 
+## Hands-on Lab: Multiple และ Polynomial Regression โดยไม่ให้ข้อมูลรั่ว
+
+Lab นี้สาธิตลำดับที่ถูกต้อง: split ก่อน, fit preprocessing จาก training data และใช้ pipeline เพื่อให้ transformation เดียวกันกับ test data
+
+```python
+import numpy as np
+import pandas as pd
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+
+rng = np.random.default_rng(42)
+n = 1_000
+
+x1 = rng.normal(0, 1, n)
+x2 = rng.normal(0, 1, n)
+y = 4 + 3*x1 - 2*x2 + 1.5*x1*x2 + 0.8*x1**2 + rng.normal(0, 1, n)
+
+data = pd.DataFrame({
+    'x1': x1,
+    'x2': x2,
+    'y': y
+})
+
+X_train, X_test, y_train, y_test = train_test_split(
+    data[['x1', 'x2']],
+    data['y'],
+    test_size=0.2,
+    random_state=42
+)
+
+linear_model = Pipeline([
+    ('scaler', StandardScaler()),
+    ('model', LinearRegression())
+])
+
+polynomial_model = Pipeline([
+    ('polynomial', PolynomialFeatures(degree=2, include_bias=False)),
+    ('scaler', StandardScaler()),
+    ('model', LinearRegression())
+])
+
+models = {
+    'Multiple Linear Regression': linear_model,
+    'Polynomial Regression': polynomial_model
+}
+
+results = []
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+    mse = mean_squared_error(y_test, predictions)
+
+    results.append({
+        'Model': name,
+        'MAE': mean_absolute_error(y_test, predictions),
+        'RMSE': np.sqrt(mse),
+        'R2': r2_score(y_test, predictions)
+    })
+
+pd.DataFrame(results).set_index('Model').round(3)
+```
+
+### Expected result และการแปลผล
+
+Polynomial Regression ควรทำได้ดีกว่า เพราะข้อมูลถูกสร้างด้วย (x_1x_2) และ (x_1^2) ซึ่ง Multiple Linear Regression ที่มีเพียง (x_1,x_2) ไม่มี representation เพียงพอ จุดสำคัญคือ polynomial model ไม่ได้ “ฉลาดกว่า” โดยอัตโนมัติ แต่ hypothesis space ของมันตรงกับกลไกที่สร้างข้อมูลมากกว่า
+
+Pipeline ป้องกันไม่ให้ผู้ใช้เผลอ fit scaler แยกบน test data เมื่อเรียก `fit()` สถิติของ scaler และ coefficients จะเรียนจาก training data เท่านั้น ส่วน `predict()` จะนำ transformation ที่เรียนแล้วไปใช้กับ test data
+
+### Modification experiments
+
+1. ลบ interaction term `1.5*x1*x2` จาก target แล้วเปรียบเทียบผลใหม่
+2. เปลี่ยน degree จาก 2 เป็น 5 แล้วเปรียบเทียบ train/test gap
+3. เพิ่ม feature `x3 = 1000*x1` แล้วสังเกตผลเมื่อมีและไม่มี scaling
+4. ใช้ `polynomial_model.named_steps['polynomial'].get_feature_names_out()` ตรวจชื่อ features ที่สร้างขึ้น
+
+### Troubleshooting
+
+- จำนวน features เพิ่มเร็ว: คำนวณ combination ก่อนเลือก degree และจำกัดจำนวน input features
+- Train ดีมากแต่ test แย่: ลด degree, ใช้ regularization และประเมินด้วย cross-validation เมื่อเรียนถึงหัวข้อนั้น
+- Coefficients เปลี่ยนมากเมื่อเพิ่ม feature: ตรวจ multicollinearity, scale และ unit
+- ผล test ดีผิดปกติ: ตรวจว่า scaler/feature selection ไม่ได้ fit จากข้อมูลทั้งหมด
+
+## Decision Framework
+
+| สถานการณ์ | แนวทางเริ่มต้น |
+|---|---|
+| ความสัมพันธ์โดยประมาณเป็นเส้นตรงและต้องอธิบายง่าย | Multiple Linear Regression |
+| เห็น curvature หรือ interaction ที่มีเหตุผล | Polynomial Regression degree ต่ำ |
+| Features มี scale ต่างกันมากและใช้ GD | Standardize จาก training data |
+| จำนวน observations ใหญ่ | Mini-batch GD มักสมดุลด้าน speed และ stability |
+| Coefficients ไม่เสถียร | ตรวจ multicollinearity และพิจารณา regularization |
+| Degree สูงทำให้ train-test gap กว้าง | ลด complexity และตรวจด้วย validation/CV |
+
+## Mini-project / Transfer Challenge
+
+ใช้ข้อมูลจริงหนึ่งชุดสร้างโมเดล 3 ระดับ: one-feature Linear Regression, Multiple Linear Regression และ Polynomial Regression degree 2 เปรียบเทียบด้วย split เดียวกัน รายงาน feature engineering, coefficients, train/test metrics, residual diagnostics, model selection และข้อจำกัด ห้ามใช้ test set เพื่อเลือก preprocessing ซ้ำหลายรอบ
+
+## Cross-topic Connections
+
+- ต่อจาก Week 02: cost function เดิม แต่เปลี่ยนจาก scalar feature เป็น vector/matrix
+- เชื่อม Week 04: Logistic Regression ใช้ linear score แบบเดียวกัน แต่แปลงผ่าน sigmoid และเปลี่ยน loss
+- เชื่อมบท Regularization: degree สูงและ multicollinearity ทำให้ Ridge/Lasso มีบทบาท
+- เชื่อม Cross-Validation: ใช้ประเมินว่า degree และ hyperparameters ทำงานสม่ำเสมอหลาย split หรือไม่
+
+## Mastery Checklist
+
+- [ ] ตรวจ dimension ของ (X,\theta,y) และ prediction ได้
+- [ ] ตีความ coefficient แบบควบคุม predictors อื่นคงที่ได้
+- [ ] อธิบายเหตุผลและวิธี fit scaler โดยไม่เกิด leakage ได้
+- [ ] เปรียบเทียบ BGD, SGD และ Mini-batch GD ได้
+- [ ] คำนวณ learning-rate schedule ตาม iteration ได้
+- [ ] อธิบายว่า Polynomial Regression ยัง linear in parameters ได้
+- [ ] คำนวณจำนวน polynomial terms และระบุ interaction terms ได้
+- [ ] เลือกโมเดลจาก test/generalization evidence ไม่ใช่ training score อย่างเดียว
+
 ## 20. Likely Exam Focus
 
 > หัวข้อต่อไปนี้อนุมานจากสูตร ตัวอย่าง และคำถามที่เน้นในเอกสาร ไม่ใช่ข้อสอบจริง
@@ -952,7 +1072,7 @@ $$
 
 ### เอกสารประกอบการสอน
 
-- Rattagan, E. (2026). `dads6003_week3_multiple_linear_regression.pdf`: *Week 3: Multiple Linear Regression*, หน้า 1–11.
+- Rattagan, E. (2026). `dads6003_week03_multiple_linear_regression.pdf`: *Week 3: Multiple Linear Regression*, หน้า 1–11.
 
 ### แหล่งที่อ้างในเอกสาร
 
