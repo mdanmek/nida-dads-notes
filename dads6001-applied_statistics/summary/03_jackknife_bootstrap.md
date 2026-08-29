@@ -250,19 +250,19 @@ Jackknife มีข้อดีคือ deterministic ทำซ้ำแล้�
 
 Bootstrap ถือว่า empirical distribution $\hat{F}_n$ เป็นค่าประมาณของ population distribution $F$ แล้วสุ่มข้อมูลขนาด $n$ **แบบคืนที่** จาก sample เดิม ทำซ้ำ $B$ รอบ
 
-Bootstrap sample ที่ $b$ เขียนเป็น
+Bootstrap sample รอบที่ $b$ เขียนเป็น
 
 $$
-x_1^{*(b)},x_2^{*(b)},\ldots,x_n^{*(b)}
+x_{b1},x_{b2},\ldots,x_{bn}
 $$
 
 และ estimate จากชุดนั้นคือ
 
 $$
-\hat{\theta}^{*(b)}=t(x_1^{*(b)},\ldots,x_n^{*(b)})
+\hat{\theta}_b=t(x_{b1},\ldots,x_{bn})
 $$
 
-เครื่องหมายดอกจันหมายถึงค่าที่ได้จากโลก Bootstrap ไม่ได้หมายถึงค่าจริงของ population
+Subscript $b$ หมายถึงรอบของการสุ่ม Bootstrap ส่วนเลข $1,\ldots,n$ หมายถึงตำแหน่งข้อมูลภายใน resample นั้น การเขียนแบบนี้หลีกเลี่ยงเครื่องหมายดอกจันซึ่งอาจถูกรบกวนโดย Markdown parser
 
 ### 7.2 ทำไมต้องสุ่มแบบคืนที่
 
@@ -283,22 +283,22 @@ $$
 ให้
 
 $$
-\bar{\theta}^{*}
-=\frac{1}{B}\sum_{b=1}^{B}\hat{\theta}^{*(b)}
+\bar{\theta}_{boot}
+=\frac{1}{B}\sum_{b=1}^{B}\hat{\theta}_b
 $$
 
 Bootstrap estimate of bias คือ
 
 $$
 \widehat{\mathrm{Bias}}_{boot}
-=\bar{\theta}^{*}-\hat{\theta}
+=\bar{\theta}_{boot}-\hat{\theta}
 $$
 
 และ bias-corrected estimate คือ
 
 $$
 \hat{\theta}_{boot,BC}
-=2\hat{\theta}-\bar{\theta}^{*}
+=2\hat{\theta}-\bar{\theta}_{boot}
 $$
 
 ### 7.4 Bootstrap estimate of standard error
@@ -307,7 +307,7 @@ $$
 \widehat{SE}_{boot}(\hat{\theta})
 =\sqrt{\frac{1}{B-1}
 \sum_{b=1}^{B}
-(\hat{\theta}^{*(b)}-\bar{\theta}^{*})^2}
+(\hat{\theta}_b-\bar{\theta}_{boot})^2}
 $$
 
 สูตรนี้คือ sample standard deviation ของ Bootstrap estimates จำนวน $B$ ค่า เมื่อ $B$ เพิ่มขึ้น Monte Carlo error จากการสุ่ม Bootstrap จะลดลง แต่ข้อจำกัดจาก sample เดิมไม่ได้หายไป
@@ -332,14 +332,14 @@ $$
 
 $$
 CI_{percentile}
-=[q^{*}_{\alpha/2},q^{*}_{1-\alpha/2}]
+=[q_{boot,\alpha/2},q_{boot,1-\alpha/2}]
 $$
 
 สำหรับ 95% CI ใช้ percentile ที่ 2.5 และ 97.5:
 
 $$
 CI_{95}
-=[q^{*}_{0.025},q^{*}_{0.975}]
+=[q_{boot,0.025},q_{boot,0.975}]
 $$
 
 วิธีนี้สะท้อนความไม่สมมาตรของ Bootstrap distribution ได้ แต่ไม่ได้แปลว่าแก้ bias หรือ coverage error ได้เสมอไป
@@ -350,8 +350,8 @@ $$
 
 $$
 CI_{basic}
-=[2\hat{\theta}-q^{*}_{1-\alpha/2},
-2\hat{\theta}-q^{*}_{\alpha/2}]
+=[2\hat{\theta}-q_{boot,1-\alpha/2},
+2\hat{\theta}-q_{boot,\alpha/2}]
 $$
 
 อย่าสับสน basic interval กับ percentile interval เพราะขอบเขตกลับด้านรอบ $\hat{\theta}$
@@ -689,7 +689,7 @@ $$
 
 ให้ Bootstrap estimates ที่เรียงแล้วจำนวน 100 ค่า ถ้ากำหนด 90% CI ควรใช้ percentile ใด
 
-**เฉลย:** $\alpha=0.10$ จึงใช้ percentile ที่ 5 และ 95 หรือ empirical quantiles $q^{*}_{0.05}$ และ $q^{*}_{0.95}$ การเลือกตำแหน่ง array จริงขึ้นกับ quantile convention ของ software
+**เฉลย:** $\alpha=0.10$ จึงใช้ percentile ที่ 5 และ 95 หรือ empirical quantiles $q_{boot,0.05}$ และ $q_{boot,0.95}$ การเลือกตำแหน่ง array จริงขึ้นกับ quantile convention ของ software
 
 ### 19.4 Analyze: เลือกหน่วย resampling
 
