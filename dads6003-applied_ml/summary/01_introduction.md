@@ -1,6 +1,6 @@
 # DADS6003 Applied Machine Learning — Week 01: Introduction to Machine Learning
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week1_introduction(1).pdf` จำนวน 24 หน้า  
+> **แหล่งเนื้อหาหลัก:** `dads6003_week01_introduction.pdf` จำนวน 20 หน้า  
 > **ขอบเขต:** ความหมายและประเภทของ Machine Learning, กระบวนการพัฒนาโมเดล และองค์ประกอบของอัลกอริทึม  
 > **รูปแบบโน้ต:** เนื้อหาจากเอกสารประกอบการสอน + คำอธิบายเพิ่มเติมเพื่อการเรียนและเตรียมสอบ
 
@@ -441,6 +441,63 @@ $$
 7. **“Optimization metric กับ business KPI เป็นสิ่งเดียวกัน”**  
    loss ใช้ฝึกโมเดล ส่วน metric ใช้ประเมิน และ business KPI ใช้วัดผลกระทบ ทั้งสามควรเชื่อมโยงแต่ไม่จำเป็นต้องเหมือนกัน
 
+## Hands-on Lab: เปลี่ยนโจทย์ธุรกิจให้เป็น ML Problem
+
+Lab นี้ฝึกขั้นตอนที่มักถูกข้ามก่อนเขียนโค้ด เป้าหมายไม่ใช่สร้างโมเดลซับซ้อน แต่ทำให้โจทย์มี input, target และเกณฑ์สำเร็จที่ตรวจสอบได้
+
+สมมติว่าโรงพยาบาลต้องการคัดกรอง PO ที่มีโอกาสส่งมอบล่าช้า ให้สร้าง Problem Canvas ดังนี้
+
+| คำถาม | คำตอบตัวอย่าง |
+|---|---|
+| Business outcome | ลดจำนวน PO ที่ส่งล่าช้าและช่วยให้ทีมติดตามก่อนเกิดปัญหา |
+| Task (T) | ทำนายว่า PO จะล่าช้าหรือไม่ก่อนถึงกำหนดส่ง |
+| Experience (E) | PO ในอดีตพร้อม vendor, material group, lead time และผลส่งมอบจริง |
+| Performance (P) | Recall ของ PO ล่าช้า, Precision และจำนวนเคสที่ทีมติดตามได้ต่อวัน |
+| Prediction time | หลังอนุมัติ PO แต่ก่อนทราบผลส่งมอบ |
+| Target | `is_late` ซึ่งสร้างจากวันที่ส่งจริงเทียบกับกำหนดส่ง |
+| Leakage ที่ต้องตัด | actual delivery date, final delay reason และข้อมูลที่เกิดหลัง prediction time |
+
+### Validation checklist
+
+1. หนึ่งแถวแทนหน่วยใด เช่น PO line หรือ PO header
+2. ทุก feature มีอยู่จริง ณ เวลา prediction หรือไม่
+3. target สะท้อนผลลัพธ์ที่ธุรกิจต้องการหรือเป็นเพียง proxy
+4. metric สอดคล้องกับต้นทุน false positive และ false negative หรือไม่
+5. วิธี split จำลองการใช้งานจริงหรือไม่ หากข้อมูลมีเวลา ควรพิจารณา time-based split
+
+### Expected result
+
+เมื่อจบ Lab ผู้เรียนควรอธิบายได้ว่าโจทย์นี้เป็น supervised binary classification เพราะมี label `is_late` และควรให้ความสำคัญกับ Recall เมื่อการพลาด PO ที่จะล่าช้ามีต้นทุนสูง แต่ยังต้องดู Precision เพื่อไม่ให้ทีมติดตามงานเกินกำลัง
+
+### Troubleshooting
+
+- หากยังนิยาม target ไม่ได้ แสดงว่ายังไม่พร้อม train model ต้องกลับไปตกลง business definition
+- หาก metric ดีผิดปกติ ให้ตรวจ leakage และความซ้ำระหว่าง train/test ก่อนสรุปว่าโมเดลดี
+- หาก Accuracy สูงแต่จับ PO ล่าช้าไม่ได้ ให้ตรวจ class balance และ confusion matrix
+- หากผลทดสอบดีแต่ใช้งานจริงตกลง ให้ตรวจ data drift, concept drift และความต่างของ prediction time
+
+## Mini-project / Transfer Challenge
+
+เลือกหนึ่งโจทย์จากงานจริง เช่น vendor risk, stock-out, invoice mismatch หรือ demand forecasting แล้วส่งมอบ 1 หน้า ประกอบด้วย Business Requirement, T-E-P, unit of analysis, target, candidate features, leakage risks, split strategy, metric และ monitoring plan ห้ามเริ่มจากชื่อ algorithm ให้เริ่มจากการตัดสินใจที่ผู้ใช้ต้องทำจากผลโมเดล
+
+## Cross-topic Connections
+
+- Week 02 ใช้กรอบนี้กับ continuous target และ Linear Regression
+- Week 03 ขยายจากหนึ่ง feature ไปหลาย features พร้อม feature engineering
+- Week 04 เปลี่ยน output เป็น probability สำหรับ classification และต้องตัดสิน threshold
+- ในงาน Power BI ผลโมเดลเป็นเพียงข้อมูลอีกชุดหนึ่งที่ต้องมี grain, definition และ monitoring เช่นเดียวกับ KPI
+
+## Mastery Checklist
+
+- [ ] อธิบาย ML ด้วยภาษาของตนเองโดยไม่ใช้คำว่า “ระบบฉลาดเอง”
+- [ ] แปลงโจทย์ใหม่เป็น Task, Experience และ Performance ได้
+- [ ] แยก supervised, unsupervised และ reinforcement learning จากข้อมูลที่มีได้
+- [ ] ระบุ target, feature, parameter และ hyperparameter ได้ถูกต้อง
+- [ ] อธิบายบทบาทของ representation, optimization และ evaluation ได้
+- [ ] ตรวจ prediction time และ data leakage ได้
+- [ ] เลือก metric จากต้นทุนข้อผิดพลาด ไม่ใช่จากความเคยชิน
+- [ ] อธิบายเหตุผลที่ต้องแยก train, validation และ test ได้
+
 ## 11. Likely Exam Focus
 
 > หัวข้อต่อไปนี้อนุมานจากนิยาม ตารางเปรียบเทียบ แผนภาพ และรายการ metric ที่เน้นในเอกสาร ไม่ใช่ข้อสอบจริง
@@ -593,11 +650,10 @@ $$
 
 ### เอกสารประกอบการสอน
 
-- `dads6003_week1_introduction(1).pdf`, DADS6003 Applied Machine Learning, Week 01, หน้า 1–24.
+- Rattagan, E. (2025). `dads6003_week01_introduction.pdf`: *Week 1: Introduction*, หน้า 1–20.
 
 ### คำอธิบายเพิ่มเติม
 
 - Google Cloud, [What is Supervised Learning?](https://cloud.google.com/discover/what-is-supervised-learning)
 - scikit-learn, [Metrics and scoring: quantifying the quality of predictions](https://scikit-learn.org/stable/modules/model_evaluation.html)
 - scikit-learn, [Cross-validation evaluation with `cross_val_score`](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_val_score.html)
-
