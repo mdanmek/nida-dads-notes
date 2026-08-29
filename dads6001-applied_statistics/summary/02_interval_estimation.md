@@ -2,7 +2,7 @@
 
 > **Course:** DADS6001 Applied Modern Statistical Analysis  
 > **Week:** 02  
-> **Source:** `dads6001_week2_interval_estimation.pptx` จำนวน 18 สไลด์  
+> **Source:** `dads6001-applied_statistics/lecture/dads6001_02_interval_estimation.pptx` จำนวน 17 สไลด์  
 > **Main topics:** Point estimation, confidence intervals, one/two population means, paired means และ one/two population proportions
 
 ## 1. Chapter Overview
@@ -215,7 +215,7 @@ $$
 ถ้า $X_1,\ldots,X_n$ มาจาก Normal population หรือ n ใหญ่พอสำหรับ Normal approximation และทราบ $\sigma$:
 
 $$
-\bar X\sim N\left(\mu,\frac{\sigma^2}{n}\right)
+\bar X\sim N(\mu,\frac{\sigma^2}{n})
 $$
 
 $$
@@ -412,7 +412,7 @@ $$
 Welch–Satterthwaite degrees of freedom:
 
 $$
-\nu=\frac{\left(s_1^2/n_1+s_2^2/n_2\right)^2}
+\nu=\frac{(s_1^2/n_1+s_2^2/n_2)^2}
 {\frac{(s_1^2/n_1)^2}{n_1-1}+\frac{(s_2^2/n_2)^2}{n_2-1}}
 $$
 
@@ -517,7 +517,7 @@ $$
 \boxed{(\hat p_1-\hat p_2)\pm z_{\alpha/2}SE}
 $$
 
-ที่มา: Slides 17–18
+ที่มา: Slides 16–17
 
 ### 15.1 Worked Example
 
@@ -591,7 +591,7 @@ Paired design ที่มี positive within-pair correlation อาจลด v
 ต้องการ margin of error ไม่เกิน E:
 
 $$
-n=\left(\frac{z_{\alpha/2}\sigma}{E}\right)^2
+n=(\frac{z_{\alpha/2}\sigma}{E})^2
 $$
 
 ปัดขึ้นเป็นจำนวนเต็มเสมอ
@@ -823,8 +823,24 @@ $$
 | Paired sample | Observations ที่เชื่อมโยงเป็นคู่ |
 | Coverage probability | สัดส่วนระยะยาวของ intervals ที่ครอบคลุม parameter |
 
-## 27. References
+## 27. Source Coverage Audit
 
-1. เอกสารประกอบการสอน `dads6001_week2_interval_estimation.pptx`, Slides 1–18.
+| Source slides | Primary teaching home |
+|---|---|
+| 1–3 | Statistical inference, point/interval estimation และ CI terminology |
+| 4, 7–9 | Sampling distributions และ CI for one population mean |
+| 5–6 | Bank Robberies worked case |
+| 10–11 | Binomial review และ CI for one population proportion |
+| 12 | CI for two independent means when population variances are known |
+| 13 | Welch interval for unknown unequal variances |
+| 14 | Pooled interval under equal-variance assumption |
+| 15 | Paired-mean interval |
+| 16–17 | Binomial review และ CI for difference between two proportions |
+
+บทนี้ใช้ [01 Introduction](01_introduction.md) เป็น prerequisite โดยตรง และเป็นฐานสำหรับ Jackknife/Bootstrap ซึ่งใช้ resampling เพื่อประมาณ Standard Error และ Confidence Interval เมื่อ classical derivation ทำได้ยาก
+
+## 28. References
+
+1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_02_interval_estimation.pptx`, Slides 1–17.
 2. Reilly et al. *Robbing Banks*. *Significance*, Vol. 9, Issue 3, pp. 17–21. อ้างถึงในสไลด์กรณีศึกษา Bank Robberies.
 3. ตัวเลข CI ใน Bank Robberies เป็นคำอธิบายเพิ่มเติมที่คำนวณจาก summary statistics ใน Slides 5–6 โดยใช้ $t_{0.025,363}\approx1.966$.
