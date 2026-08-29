@@ -1,6 +1,6 @@
 # DADS6003 Applied Machine Learning — Week 02: Single Variable Linear Regression
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week2_regression.pdf` จำนวน 16 หน้า  
+> **แหล่งเนื้อหาหลัก:** `dads6003_week02_single_linear_regression.pdf` จำนวน 16 หน้า  
 > **ผู้สอนในเอกสาร:** Ekarat Rattagan  
 > **วันที่ในเอกสาร:** 18 สิงหาคม 2026  
 > **ขอบเขต:** การแทนโมเดล Linear Regression ตัวแปรเดียว, Mean Squared Error, Normal Equation และ Batch Gradient Descent
@@ -734,6 +734,92 @@ $$
 8. **“MSE ต่ำบน training data แปลว่าโมเดลดี”**  
    ต้องประเมินกับ unseen data และตรวจ assumptions/diagnostics ด้วย
 
+## Hands-on Lab: สร้างและตรวจ Linear Regression แบบครบวงจร
+
+Lab นี้ใช้ข้อมูลเล็กเพื่อให้เห็น input, model, prediction, residual และ metric ครบในครั้งเดียว
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+
+rng = np.random.default_rng(42)
+
+x = np.arange(1, 101)
+y = 5 + 2.5 * x + rng.normal(0, 12, size=len(x))
+
+data = pd.DataFrame({
+    'x': x,
+    'y': y
+})
+
+train_data, test_data = train_test_split(
+    data,
+    test_size=0.2,
+    random_state=42
+)
+
+model = LinearRegression()
+model.fit(train_data[['x']], train_data['y'])
+
+predictions = model.predict(test_data[['x']])
+residuals = test_data['y'].to_numpy() - predictions
+
+mse = mean_squared_error(test_data['y'], predictions)
+
+print(f'Intercept: {model.intercept_:.3f}')
+print(f'Slope: {model.coef_[0]:.3f}')
+print(f'MAE: {mean_absolute_error(test_data["y"], predictions):.3f}')
+print(f'RMSE: {np.sqrt(mse):.3f}')
+print(f'R2: {r2_score(test_data["y"], predictions):.3f}')
+
+plt.scatter(predictions, residuals, alpha=0.6)
+plt.axhline(0, color='red', linestyle='--')
+plt.xlabel('Predicted y')
+plt.ylabel('Residual')
+plt.title('Residuals vs Predicted Values')
+plt.show()
+```
+
+### สิ่งที่ต้องอ่านจากผลลัพธ์
+
+ค่าที่สร้างข้อมูลจริงคือ intercept 5 และ slope 2.5 ดังนั้นค่าที่โมเดลเรียนรู้ควรอยู่ใกล้สองค่านี้ แต่ไม่จำเป็นต้องเท่ากันเพราะมี noise และ train/test split การตีความ slope คือเมื่อ (x) เพิ่มหนึ่งหน่วย ค่า prediction เพิ่มประมาณ 2.5 หน่วยโดยเฉลี่ย
+
+Residual plot ควรกระจายรอบศูนย์โดยไม่มีรูปโค้งชัด หากเห็นเส้นโค้ง แสดงว่าเส้นตรงอาจไม่เหมาะ หากความกว้างเพิ่มตาม prediction อาจเกิด heteroscedasticity หากมีจุดห่างมากควรย้อนตรวจ outlier และ data quality
+
+### Modification experiments
+
+1. เปลี่ยน noise จาก 12 เป็น 40 แล้วสังเกต RMSE และ (R^2)
+2. เปลี่ยน target เป็น `5 + 2.5*x + 0.08*x**2 + noise` แล้วดูรูป residual
+3. เปลี่ยน `random_state` และตรวจว่าค่าทดสอบเปลี่ยนเพียงใด
+4. คำนวณ prediction ที่ (x=120) แล้วอภิปรายความเสี่ยงของ extrapolation
+
+### Troubleshooting
+
+- Error เรื่อง expected 2D array: ใช้ `data[['x']]` แทน `data['x']` สำหรับ feature matrix
+- MSE เพิ่มทุก iteration ในโค้ด GD: ตรวจเครื่องหมายลบ, learning rate และ feature scale
+- Coefficient ต่างจากที่คาดมาก: ตรวจ outlier, unit, missing value และช่วงของข้อมูล
+- Training score ดีแต่ test scoreต่ำ: ตรวจ overfitting, leakage และความต่างของ distribution
+
+## Mini-project / Transfer Challenge
+
+เลือก KPI ต่อเนื่องหนึ่งตัว เช่น lead time, spending amount หรือ demand ใช้หนึ่ง predictor สร้าง Linear Regression แล้วส่งมอบสมการ, coefficient interpretation, MAE/RMSE/(R^2), residual plot, ข้อจำกัด และคำตอบว่าโมเดลเหมาะสำหรับ interpolation หรือ extrapolation เพียงใด
+
+## Mastery Checklist
+
+- [ ] เขียนสมการ (h_\theta(x)=\theta_0+\theta_1x) และอธิบายทุกส่วนได้
+- [ ] แยก residual, loss และ cost ได้
+- [ ] คำนวณ MSE ด้วยมือจากข้อมูลขนาดเล็กได้
+- [ ] อธิบาย Normal Equation, pseudo-inverse และ Gradient Descent ได้
+- [ ] ทำหนึ่งรอบ Batch GD โดย update parameters พร้อมกันได้
+- [ ] วินิจฉัย learning rate สูงหรือต่ำเกินไปได้
+- [ ] ตีความ coefficient โดยไม่สรุปเป็น causality ได้
+- [ ] อ่าน residual plot และแยก training performance จาก test performance ได้
+
 ## 18. Likely Exam Focus
 
 > หัวข้อต่อไปนี้อนุมานจากสูตร ตารางเปรียบเทียบ และ Exercise ในเอกสาร ไม่ใช่ข้อสอบจริง
@@ -890,7 +976,7 @@ $$
 
 ### เอกสารประกอบการสอน
 
-- Rattagan, E. (2026). `dads6003_week2_regression.pdf`: *Week 2: Single Variable Linear Regression*, หน้า 1–16.
+- Rattagan, E. (2026). `dads6003_week02_single_linear_regression.pdf`: *Week 2: Single Variable Linear Regression*, หน้า 1–16.
 
 ### แหล่งที่อ้างในเอกสาร
 
