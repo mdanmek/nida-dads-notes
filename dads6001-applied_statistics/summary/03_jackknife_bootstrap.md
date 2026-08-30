@@ -1,8 +1,17 @@
 # Jackknife and Bootstrap Methods for Estimation
 
+> **Course:** DADS6001 Applied Modern Statistical Analysis  
+> **Week:** 03  
+> **Source:** `dads6001-applied_statistics/lecture/dads6001_03_jackknife_bootstrap.pptx` จำนวน 14 สไลด์  
+> **Main topics:** Resampling, Jackknife bias and standard error, Bootstrap bias, standard error และ confidence intervals
+
+> **Course navigation:** [Course Overview](00_readme.md) · บทก่อนหน้า [01 Introduction](01_introduction.md) และ [02 Interval Estimation](02_interval_estimation.md)
+
 ## 1. ข้อมูลต้นฉบับและขอบเขตบทเรียน
 
 Master Note นี้เรียบเรียงจากสไลด์ **DADS6001: Jackknife and Bootstrap Method for Estimation** จำนวน 14 สไลด์ เนื้อหาจากเอกสารครอบคลุมการทบทวน classical statistical inference แนวคิด resampling, Jackknife สำหรับประมาณ bias และ standard error, Bootstrap สำหรับประมาณ bias, standard error และ confidence interval ตลอดจนแบบฝึกหัด 3 ชุด
+
+บทนี้ต่อยอดจาก sampling distribution และ confidence interval โดยตรง ประเด็นแกนกลางคือ เมื่อสูตรเชิงทฤษฎีของ sampling distribution หาได้ยาก เราสามารถใช้ sample ที่มีอยู่สร้าง resampling distribution เพื่อประมาณความไม่แน่นอนของ estimator ได้ แต่ resampling ไม่ได้เพิ่มสารสนเทศใหม่และไม่สามารถชดเชย sample ที่มีอคติหรือโครงสร้างการพึ่งพาที่ถูกละเลยได้
 
 > **หมายเหตุการถอดความ:** สมการบางส่วนในไฟล์ต้นฉบับเป็นวัตถุ Equation รุ่นเก่าและซ้อนทับกันเมื่อแสดงผล จึงเขียนใหม่ด้วย notation มาตรฐาน พร้อมตรวจสอบสูตรและตัวอย่างเชิงตัวเลขโดยอิสระ แทนการคัดรูปสมการที่อ่านไม่สมบูรณ์
 
