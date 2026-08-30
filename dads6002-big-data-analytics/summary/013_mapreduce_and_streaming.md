@@ -3,7 +3,7 @@
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 22–38  
 > **Core:** Map → partition/shuffle/sort → Reduce, Word Count, Shared Friendship, Python Streaming และ Combiner
 
-> [← บทที่ 01.2](012_hdfs_and_yarn.md) | [สารบัญ](README.md) | [บทที่ 01.4 →](014_workflow_orchestration.md)
+> [← บทที่ 01.2](012_hdfs_and_yarn.md) | [สารบัญ](000_readme.md) | [บทที่ 01.4 →](014_workflow_orchestration.md)
 
 ## Learning Objectives ประจำบท
 
