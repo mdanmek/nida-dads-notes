@@ -31,6 +31,10 @@
 
 MapReduce job หนึ่งชุดตอบโจทย์ transformation หนึ่งช่วงได้ดี แต่ pipeline จริงมักประกอบด้วยการรับข้อมูล ตรวจคุณภาพ แปลงข้อมูล สรุปผล และเผยแพร่ หากเริ่มทุกงานด้วย cron แยกกันโดยไม่บอก dependency งานปลายทางอาจเริ่มทั้งที่ input ยังไม่เสร็จ หรือทำงานต่อจาก upstream ที่ล้มเหลว **Workflow orchestration** จึงเป็นการนิยามว่า task ใดต้องรัน เมื่อใด ขึ้นกับ task ใด retry อย่างไร และสถานะใดถือว่าสำเร็จ
 
+ลองต่อเรื่องร้านยาจากสามบทก่อน ทุกคืนระบบต้องรับไฟล์จากทุกสาขา ตรวจ schema และจำนวนรายการ จากนั้นคำนวณยอดขายและสต็อก แล้วจึงเผยแพร่ dashboard ถ้าเขียนคำสั่งทั้งหมดเรียงกันใน shell script เราอาจจัดลำดับง่าย ๆ ได้ แต่เมื่อ schema check กับ volume check ต้องรันขนาน เมื่อบางสาขามาช้า หรือเมื่อต้องรันย้อนหลังเฉพาะวันที่ผิด สคริปต์เส้นตรงเริ่มอธิบายสถานะไม่พอ เราต้องมีแบบจำลองที่บอก dependency สถานะ retry และหลักฐานของแต่ละรอบ นี่คือบริบทที่ DAG และ orchestrator จำเป็น
+
+ก่อนเดินต่อควรแยกขอบเขตสองระดับให้ชัด Partitioner อยู่ “ภายใน MapReduce job” และตัดสินว่า intermediate key ไป reducer ใด ส่วน orchestrator อยู่ “เหนือหลาย jobs” และตัดสินว่างานใดพร้อมเริ่ม ความสับสนระหว่างสองระดับทำให้แก้ปัญหาผิดจุด เช่น reducer ช้าเพราะ skew ไม่ได้แก้ด้วยการเพิ่ม Airflow worker และ downstream เริ่มเร็วเกินไปไม่ได้แก้ด้วย custom partitioner
+
 ## 2. Partitioner และ Data Skew
 
 Partitioner ทำงานหลัง Mapper โดยเลือก partition ของ intermediate key เงื่อนไขความถูกต้องคือ key เดียวกันต้องไป reducer เดียวกัน มิฉะนั้น reducer แต่ละตัวจะเห็นข้อมูลเพียงบางส่วนและผลรวมจะผิด HashPartitioner มักกระจาย “จำนวน keys” ได้ดีเมื่อ key distribution สมเหตุผล แต่ไม่ได้รับประกันว่าจำนวน values หรือปริมาณงานจะเท่ากัน
@@ -54,6 +58,10 @@ Salting แลก skew ที่ลดลงกับ job เพิ่มอี�
 **DAG (Directed Acyclic Graph)** คือกราฟมีทิศทางที่ไม่มีวงจร Node แทน task และ edge แทน dependency คำว่า acyclic สำคัญ เพราะถ้า A รอ B และ B รอ A จะไม่มีงานใดเริ่มได้
 
 ตัวอย่าง pipeline คือ Ingest แล้วแยก Schema Check และ Volume Check ให้รันขนาน จากนั้น Aggregate ต้องรอทั้งสอง check ก่อนจึง Publish หาก Volume Check ล้ม Aggregate และ Publish ต้องไม่รัน การวาด DAG จึงทำให้ data contract มองเห็นได้ ไม่ใช่เพียงจัดลำดับ script
+
+DAG มีคุณค่าเพราะเปลี่ยนความสัมพันธ์ที่เคยซ่อนอยู่ในลำดับคำสั่งให้ตรวจสอบได้ Edge จาก Schema Check ไป Aggregate ไม่ได้หมายความเพียงว่า “รันทีหลัง” แต่หมายความว่า Aggregate ยอมรับ input ก็ต่อเมื่อ schema ผ่าน contract แล้ว ส่วน join ก่อน Publish หมายความว่าผลลัพธ์ต้องผ่านเงื่อนไขหลายด้านพร้อมกัน หากวาดกราฟแล้วเกิดวงจร เช่น Publish ต้องรอ Audit แต่ Audit ต้องรอ Publish แสดงว่าเราออกแบบ dependency ที่ไม่มีจุดเริ่ม ระบบจึงห้าม cycle
+
+อย่างไรก็ตาม DAG บอกเพียงโครงความสัมพันธ์ ยังต้องมีระบบคอยสร้างรอบการรัน ตรวจว่า task ใดพร้อม ส่งงานไปยัง execution environment และเก็บสถานะ ความต้องการนี้คือสะพานจาก DAG ไปสู่ Oozie และ Airflow เครื่องมือทั้งสองใช้แนวคิดเดียวกันแต่มีภาษานิยามและบริบทการใช้งานต่างกัน
 
 ## 4. Apache Oozie
 
@@ -94,6 +102,14 @@ Retry ช่วย transient failure แต่ task ต้อง **idempotent** 
 | เหมาะกับ | ระบบ Hadoop เดิม | Modern multi-system platform |
 
 ไม่ควรย้ายเพียงเพราะเครื่องมือหนึ่งใหม่กว่า ต้องประเมิน test coverage, backfill, alerting, secrets, access control, operating skill และ migration risk
+
+ในเชิงทฤษฎี Oozie และ Airflow ไม่ได้เปลี่ยนคำตอบทางธุรกิจของ pipeline สิ่งที่เปลี่ยนคือวิธีแสดง dependency วิธีเชื่อมระบบ และความสะดวกในการปฏิบัติการ Oozie เติบโตมากับงานใน Hadoop ecosystem จึงสัมพันธ์กับ action nodes แบบ Hadoop-native ส่วน Airflow ใช้ Python เพื่อประกาศ DAG และเชื่อมบริการได้กว้างกว่า การเลือกจึงควรถามว่า workload อยู่ที่ใด ทีมดูแลภาษาอะไร และต้อง backfill/monitor แบบไหน ไม่ใช่ถามเพียงว่าเครื่องมือใดใหม่กว่า
+
+### จากทฤษฎีไปสู่การสอบและการใช้จริง
+
+ในการสอบ เมื่อได้รับโจทย์ workflow ให้ตอบเป็นลำดับ: ระบุ tasks ระบุ dependencies หา branch ที่รันขนาน หา join อธิบาย failure propagation แล้วจึงเลือกเครื่องมือ หากเริ่มตอบด้วยชื่อ Airflow หรือ Oozie โดยยังไม่วิเคราะห์ dependency คำตอบจะขาดเหตุผล ส่วนในการใช้จริงให้เพิ่มอีกสามคำถาม: task รันซ้ำได้หรือไม่ ข้อมูลช่วงเวลาใดกำลังถูกประมวลผล และมี validation ใดพิสูจน์ว่าผลถูกต้อง
+
+ตัวอย่างเช่น Publish ล้มหลังเขียนข้อมูลสำเร็จแต่ก่อนรายงานสถานะ ถ้า retry แล้วใช้ `INSERT` อย่างเดียว อาจเกิดข้อมูลซ้ำ แม้ DAG ถูกต้อง วิธีแก้คือทำ task ให้ idempotent เช่น replace partition ตาม `business_date` หรือ upsert ด้วย deterministic key นี่แสดงความสัมพันธ์สำคัญว่า orchestrator ช่วย “สั่ง retry” แต่ความปลอดภัยของ retry ต้องถูกออกแบบใน task และ data contract เอง
 
 ## 7. Guided Design Lab
 
