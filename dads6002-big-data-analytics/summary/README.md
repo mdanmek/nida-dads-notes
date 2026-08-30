@@ -2,6 +2,8 @@
 
 สารบัญกลางของ Master Notes ภาษาไทย เรียงเลขบทด้วยรูปแบบ `เอกสารหลัก.บทย่อย` เช่น `01.3` หมายถึงบทย่อยที่ 3 จากเอกสาร Hadoop หมายเลข 01 และ `02.1` หมายถึงบทย่อยที่ 1 จากเอกสาร Hive หมายเลข 02
 
+ชุด canonical ที่แนะนำให้อ่านคือไฟล์ `011`–`014` และ `021`–`023` ซึ่งอยู่ในโฟลเดอร์ `summary/` นี้โดยตรง ไฟล์ในโฟลเดอร์ย่อย `02_hive/` เป็นชุดเก่าที่เก็บไว้เพื่อรักษาลิงก์เดิม จึงไม่ควรใช้เป็นจุดเริ่มต้นในการอ่านหรืออ้างเลขบทใหม่
+
 ## 01 — Hadoop
 
 แหล่งหลัก: `dads6002_01_hadoop.pdf` จำนวน 43 หน้า
@@ -32,6 +34,12 @@ flowchart TD
 ```
 
 ลำดับนี้เริ่มจากเหตุผลที่ต้องใช้ distributed system ต่อด้วย storage/resource management, distributed processing และ workflow ก่อนยกระดับสู่ SQL-based analytics ด้วย Hive
+
+### สะพานเชื่อมแนวคิดระหว่างเอกสาร 01 และ 02
+
+ชุด Hadoop อธิบายกลไกด้านล่าง: HDFS เก็บไฟล์, YARN จัดสรรทรัพยากร, MapReduce แบ่งและรวมงาน และ orchestrator ควบคุมหลาย jobs เมื่อเข้าสู่ Hive เราไม่ได้ทิ้งกลไกเหล่านั้น แต่เพิ่ม abstraction แบบตาราง Hive ใช้ metadata อธิบายไฟล์และแปล HQL เป็น execution plan ทำให้นักวิเคราะห์ระบุผลที่ต้องการโดยไม่เขียน Mapper/Reducer ทุกครั้ง
+
+เรื่องราวหลักของทั้งชุดคือข้อมูลจัดซื้อโรงพยาบาล เริ่มจาก raw events เข้า Data Lake เก็บอย่างทนทานในระบบกระจาย แปลงด้วยงาน batch ควบคุมด้วย DAG จากนั้นประกาศ Hive tables และ schema เพื่อให้ query ได้ สุดท้ายจึง aggregate และ join กับ vendor master โดยตรวจ grain, unmatched keys, row multiplication และยอดรวม การอ่านตามลำดับนี้ช่วยให้เห็นว่าแต่ละเครื่องมือแก้ข้อจำกัดจากขั้นก่อนหน้า
 
 ## Cumulative Learning Objectives
 
@@ -82,6 +90,14 @@ flowchart TD
 
 - `dads6002_01_hadoop.pdf` หน้า 1–43 ครอบคลุมในบท 01.1–01.4
 - `dads6002_02_hive.pdf` หน้า 1–21 ครอบคลุมในบท 02.1–02.3
+
+## Suite Review
+
+- เลขบท canonical สอดคล้องกัน: `01.1–01.4` และ `02.1–02.3`
+- ทุกบทมี source range, prerequisites, teaching layer, practice, exam focus และ mastery checks
+- Hadoop → Hive เชื่อมผ่าน HDFS, MapReduce, metadata และ SQL abstraction
+- Hive หน้า 1–5 มีบ้านหลักใน 02.1, หน้า 6–15 ใน 02.2 และหน้า 16–21 ใน 02.3 โดยไม่มีช่วงหน้าตกหล่น
+- โฟลเดอร์ `02_hive/` ไม่ใช่ canonical suite และคงไว้เฉพาะ backward compatibility
 
 ## References
 
