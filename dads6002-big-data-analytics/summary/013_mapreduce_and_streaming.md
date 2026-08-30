@@ -1,9 +1,9 @@
-# บทที่ 3: MapReduce, Hadoop Streaming และการปรับประสิทธิภาพ
+# บทที่ 01.3: MapReduce, Hadoop Streaming และการปรับประสิทธิภาพ
 
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 22–38  
 > **Core:** Map → partition/shuffle/sort → Reduce, Word Count, Shared Friendship, Python Streaming และ Combiner
 
-> [← บทที่ 2](012_hdfs_and_yarn.md) | [สารบัญ](README.md) | [บทที่ 4 →](014_workflow_orchestration.md)
+> [← บทที่ 01.2](012_hdfs_and_yarn.md) | [สารบัญ](README.md) | [บทที่ 01.4 →](014_workflow_orchestration.md)
 
 ## Learning Objectives ประจำบท
 
@@ -15,7 +15,7 @@
 
 ## Prerequisites และระดับความลึก
 
-ต้องเข้าใจ HDFS blocks และ YARN จาก [บทที่ 2](012_hdfs_and_yarn.md) รวมถึง Python loop/dictionary เบื้องต้น หัวข้อ Core คือ data flow, key design และ Streaming code; syntax คำสั่งเป็น Reference
+ต้องเข้าใจ HDFS blocks และ YARN จาก [บทที่ 01.2](012_hdfs_and_yarn.md) รวมถึง Python loop/dictionary เบื้องต้น หัวข้อ Core คือ data flow, key design และ Streaming code; syntax คำสั่งเป็น Reference
 
 ## MapReduce: จากแนวคิดสู่การไหลของข้อมูล
 
