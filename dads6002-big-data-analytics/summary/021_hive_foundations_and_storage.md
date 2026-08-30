@@ -11,6 +11,8 @@
 
 ควรรู้ว่า HDFS แบ่งไฟล์เป็น blocks และ MapReduce เป็นงานประมวลผลแบบ batch หัวข้อ Core คือ Hive mental model, Metastore และ partition design; ACID/bucketing เป็น Supporting และ legacy indexing เป็น Reference
 
+บทนี้ต่อจากชุด Hadoop โดยตรง ในบท 01.3 เราต้องอธิบายให้ MapReduce รู้ว่าจะสร้าง key อะไรและรวมค่าอย่างไร แม้คำถามจะเป็นเพียง “ยอดจัดซื้อต่อโรงพยาบาลเท่าไร” ภาระดังกล่าวเหมาะกับวิศวกรที่ต้องควบคุมอัลกอริทึม แต่ไม่เหมาะกับนักวิเคราะห์ที่คิดเป็นตาราง คอลัมน์ การกรอง และการรวมยอด Hive จึงไม่ได้มาแทน HDFS หรือ MapReduce แต่เพิ่มชั้นภาษาและ metadata เพื่อแปลคำถามเชิงตารางให้กลายเป็นแผนประมวลผลบนระบบกระจาย
+
 ## 1. Hive คืออะไร
 
 ### ปัญหาก่อนมี Hive
@@ -31,6 +33,14 @@ GROUP BY hospital;
 
 Hive อ่าน schema จาก Metastore วางแผน scan และ aggregation แล้ว engine ประมวลผลไฟล์ ข้อดีคือผู้ใช้คิดในระดับ table/query แทนการเขียน distributed program เอง
 
+### Mental model สองรอบ: จากไฟล์สู่ตารางที่ query ได้
+
+รอบแรกให้นึกถึงโกดังที่มีแฟ้มรายการจัดซื้อหลายล้านบรรทัด HDFS รับผิดชอบว่ากระดาษแต่ละกองอยู่ที่ใดและยังมีสำเนาเมื่อชั้นวางหนึ่งเสีย แต่ HDFS ไม่รู้ว่าอักขระช่วงแรกคือ `hospital_id` หรือช่วงท้ายคือ `amount` Hive เพิ่ม “บัตรรายการ” ที่บอกชื่อชุดข้อมูล ตำแหน่งไฟล์ ชื่อคอลัมน์ ชนิดข้อมูล และกติกาอ่านแต่ละบรรทัด เมื่อผู้ใช้ถามด้วย HQL ระบบจึงเปิดบัตรรายการก่อน แล้วค่อยส่งคนไปอ่านเฉพาะแฟ้มที่เกี่ยวข้อง
+
+รอบที่สองใช้ศัพท์ทางการ บัตรรายการคือ metadata ใน Hive Metastore แฟ้มจริงคือ files ใน HDFS หรือ storage อื่น นิยาม table เชื่อมสองส่วนเข้าด้วยกัน และ execution engine เป็นผู้รัน physical plan ที่ Hive สร้าง ดังนั้น input ของ query ไม่ได้มีเพียงไฟล์ แต่มีทั้ง HQL, metadata และ file layout ส่วน output อาจเป็น result set หรือ files ของ table ใหม่
+
+ความเปรียบเทียบแบบโกดังมีข้อจำกัด เพราะ Hive ไม่ได้อ่านไฟล์ทีละแฟ้มด้วยคน และ optimizer อาจปรับลำดับ operators หรือเลือก engine ต่างกัน แต่ภาพนี้ช่วยกันความเข้าใจผิดสำคัญสามข้อ: Hive ไม่ได้เก็บข้อมูลทั้งหมดใน Metastore, HQL ไม่ได้ทำงานแทน execution engine และการสร้าง table ไม่จำเป็นต้องคัดลอกไฟล์เสมอไป
+
 ## 2. Data กับ Metadata อยู่คนละที่
 
 Metastore เป็นบริการเก็บ metadata เช่น database, table name, columns, types, location, partition และ SerDe โดยทั่วไป metadata อยู่ใน relational database เพราะต้องแก้ไขและค้นอย่างมีประสิทธิภาพ ส่วน record จำนวนมากยังอยู่ใน distributed storage
@@ -47,6 +57,8 @@ Metastore เป็นบริการเก็บ metadata เช่น datab
 6. Hive ส่งผลกลับหรือเขียนเป็น table ใหม่
 
 ถ้า Metastore ใช้งานไม่ได้ query ใหม่จะ resolve metadata ไม่ได้ แม้ไฟล์จริงยังอยู่ หากไฟล์ถูกลบแต่ metadata ยังอยู่ query อาจพบ path ว่างหรือ file-not-found ทั้งสองกรณีแสดงว่าความพร้อมของ metadata และ data ต้องตรวจแยกกัน
+
+ลองตาม query ยอดจัดซื้อของเดือนสิงหาคม ผู้ใช้ส่ง HQL ไปยังบริการ Hive ระบบตรวจว่ามี table และ columns จริง จากนั้นถาม Metastore ว่า table ชี้ไป directory ใด แบ่ง partition ด้วยอะไร และใช้ file format/SerDe แบบใด Optimizer จึงตัด partition เดือนอื่นออกและสร้างแผน aggregation Execution engine อ่าน bytes จาก storage แปลงเป็น rows รวมยอด และส่งคำตอบกลับ ถ้า `month='08'` ไม่ได้เป็น partition predicate ระบบอาจต้องเปิดไฟล์ทั้งปี แม้คำตอบสุดท้ายเหมือนกัน นี่คือจุดที่ logical query เชื่อมกับ physical layout
 
 ## 3. ACID และข้อจำกัดเชิงงาน
 
@@ -73,6 +85,8 @@ Partition แยก table เป็น subdirectories ตามค่าคอ�
 
 การ partition ด้วย `po_id` ซึ่งมีหลายล้านค่าอาจสร้าง directories และ metadata จำนวนมาก จึงมักเลือกคอลัมน์ที่ปรากฏบ่อยใน filter และมี cardinality พอเหมาะ เช่น date/month/region
 
+สมมติ table มีข้อมูล 5 ปี เดือนละ 100 GB และผู้ใช้ถามเฉพาะเดือนสิงหาคม 2026 หากจัด partition เป็น `year/month` และ predicate ระบุสองคอลัมน์ Hive มีโอกาสอ่านเพียง 100 GB แทน 6 TB แต่ถ้าจัด partition ด้วย `po_id` หลายล้านค่า เราจะได้ directory เล็กจำนวนมหาศาล Metastore ต้องติดตาม partitions มากขึ้นและเกิด small-files overhead การออกแบบ partition จึงเป็นการแลก “ลดปริมาณ scan” กับ “เพิ่มจำนวนหน่วยที่ต้องจัดการ” ไม่ใช่ยิ่งละเอียดแล้วยิ่งดี
+
 ### Bucket
 
 Bucket ใช้ hash ของคอลัมน์กำหนดว่า row ไปไฟล์ใดภายใน table หรือ partition เช่น 8 buckets:
@@ -82,6 +96,12 @@ bucket_number = hash(vendor_id) mod 8
 ```
 
 Bucket ไม่เหมือน partition เพราะค่าจริงไม่ได้กลายเป็นชื่อ directory ทุกค่า การ bucket อาจช่วย sampling หรือ join บางรูปแบบ แต่ต้องแลกกับการควบคุมจำนวนไฟล์และการเขียนข้อมูลให้สอดคล้องกับนิยาม
+
+ความสัมพันธ์ที่ควรจำคือ partition ตัดข้อมูลด้วยค่าที่ผู้ใช้มักเขียนใน `WHERE` ส่วน bucket กระจาย rows ภายใน partition ด้วย hash เช่น partition เดือนสิงหาคมอาจมี 8 bucket files ตาม `vendor_id` ผู้ใช้ไม่เลือก directory ชื่อ vendor แต่ hash จะกำหนดไฟล์ปลายทาง การประกาศ `CLUSTERED BY` ใน metadata โดยที่ขั้นเขียนไม่สร้าง layout ตามนั้นทำให้ table “บอกว่ามี bucket” แต่ไฟล์จริงไม่รักษาสัญญา เอกสาร Apache จึงเตือนว่าคุณสมบัติ bucketing ต้องถูกทำให้เกิดจริงตอนเขียน ไม่ใช่เชื่อจาก DDL อย่างเดียว [Apache Hive Bucketed Tables](https://hive.apache.org/docs/latest/language/languagemanual-ddl-bucketedtables/)
+
+## สะพานไปสู่ HQL และ Schema-on-read
+
+เมื่อรู้แล้วว่า Hive เชื่อม metadata กับ files อย่างไร คำถามถัดไปคือเราจะสร้าง metadata นั้นอย่างไร และถ้าไฟล์ดิบไม่เป็นตารางเรียบร้อย Hive จะแยก bytes เป็น columns ได้อย่างไร บท 02.2 จึงเริ่มจาก HQL สำหรับสร้าง database/table แล้วตามด้วย managed/external ownership, schema-on-read และ SerDe ลำดับนี้สำคัญ เพราะ syntax `CREATE TABLE` จะมีความหมายก็ต่อเมื่อเราเข้าใจว่ากำลังประกาศสัญญาการอ่านและ lifecycle ของไฟล์ ไม่ใช่เพียงสร้างกล่องว่างแบบฐานข้อมูลธุรกรรม
 
 | กลไก | หน่วยกายภาพ | เหมาะเมื่อ | ความเสี่ยง |
 |---|---|---|---|
