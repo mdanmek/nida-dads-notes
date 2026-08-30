@@ -3,7 +3,7 @@
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 1–10  
 > บทนี้สร้างพื้นฐานก่อนเข้าสู่ Hadoop โดยอธิบายจากปัญหาทางข้อมูลไปสู่การออกแบบ pipeline และ architecture
 
-> [← สารบัญ](README.md) | [บทที่ 01.2: HDFS และ YARN →](012_hdfs_and_yarn.md)
+> [← สารบัญ](000_readme.md) | [บทที่ 01.2: HDFS และ YARN →](012_hdfs_and_yarn.md)
 
 ## ภาพรวมและขอบเขต
 
