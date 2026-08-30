@@ -1,9 +1,9 @@
-# บทที่ 2: Hadoop Architecture, HDFS และ YARN
+# บทที่ 01.2: Hadoop Architecture, HDFS และ YARN
 
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 11–21  
 > **Core:** distributed-system requirements, HDFS read/write/failure recovery, blocks/replication และ YARN application lifecycle
 
-> [← บทที่ 1](011_big_data_foundations.md) | [สารบัญ](README.md) | [บทที่ 3 →](013_mapreduce_and_streaming.md)
+> [← บทที่ 01.1](011_big_data_foundations.md) | [สารบัญ](README.md) | [บทที่ 01.3 →](013_mapreduce_and_streaming.md)
 
 ## Learning Objectives ประจำบท
 
@@ -15,7 +15,7 @@
 
 ## Prerequisites และระดับความลึก
 
-ควรอ่าน [บทที่ 1](011_big_data_foundations.md) เพื่อเข้าใจ workflow, throughput และ Data Lake ก่อน หัวข้อ Core คือ HDFS/YARN mechanisms; ecosystem และ CLI เป็น Supporting/Reference
+ควรอ่าน [บทที่ 01.1](011_big_data_foundations.md) เพื่อเข้าใจ workflow, throughput และ Data Lake ก่อน หัวข้อ Core คือ HDFS/YARN mechanisms; ecosystem และ CLI เป็น Supporting/Reference
 
 ## Hadoop Ecosystem และหลักของระบบกระจาย
 
