@@ -3,7 +3,7 @@
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 39–43  
 > **Core:** data skew, การเชื่อม jobs เป็น DAG, Oozie fork/join และ Airflow workflows as code
 
-> [← บทที่ 01.3](013_mapreduce_and_streaming.md) | [สารบัญ](README.md)
+> [← บทที่ 01.3](013_mapreduce_and_streaming.md) | [สารบัญ](000_readme.md)
 
 ## Learning Objectives ประจำบท
 
