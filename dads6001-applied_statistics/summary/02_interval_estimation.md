@@ -5,6 +5,8 @@
 > **Source:** `dads6001-applied_statistics/lecture/dads6001_02_interval_estimation.pptx` จำนวน 17 สไลด์  
 > **Main topics:** Point estimation, confidence intervals, one/two population means, paired means และ one/two population proportions
 
+> **Course navigation:** [Course Overview](00_readme.md) · บทก่อนหน้า [01 Introduction](01_introduction.md) · บทถัดไป [03 Jackknife and Bootstrap](03_jackknife_bootstrap.md)
+
 ## 1. Chapter Overview
 
 บทนี้เริ่มต้น Statistical Inference อย่างเป็นทางการ โดยใช้ข้อมูลจาก sample เพื่อประมาณ population parameter ที่ไม่ทราบค่า การประมาณมีสองแบบ:
