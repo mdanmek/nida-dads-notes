@@ -1,7 +1,7 @@
-# บทที่ 022: HQL, Schema, SerDe and Loading
+# บทที่ 02.2: HQL, Schema, SerDe and Loading
 
 > **จากเอกสาร:** `dads6002_02_hive.pdf` หน้า 6–15  
-> [← บทที่ 021](021_hive_foundations_and_storage.md) | [สารบัญ](README.md) | [บทถัดไป →](023_hive_analytics_and_joins.md)
+> [← บทที่ 02.1](021_hive_foundations_and_storage.md) | [สารบัญ](README.md) | [บทที่ 02.3 →](023_hive_analytics_and_joins.md)
 
 ## Learning Objectives
 
