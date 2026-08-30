@@ -7,6 +7,12 @@
 
 สร้าง database/table, เลือก managed หรือ external, อธิบาย SerDe และ schema-on-read, เลือก data types และออกแบบ load/validation workflow ได้
 
+## พื้นฐานเชิงตารางก่อนเขียน HQL
+
+ก่อนอ่าน syntax ให้กำหนดความหมายของข้อมูลก่อน **table** คือมุมมองเชิงแถวและคอลัมน์ของชุดข้อมูล หนึ่ง **row** แทนหนึ่งหน่วยตาม grain เช่นหนึ่งรายการ PO ไม่ใช่หนึ่ง vendor ส่วน **column** แทนคุณลักษณะของหน่วยนั้น เช่น `po_id`, `vendor_id` และ `amount` คอลัมน์ที่ใช้ระบุหน่วยโดยไม่ซ้ำเรียก key และจำนวนค่าที่แตกต่างกันเรียก cardinality หากเราไม่รู้ว่า “หนึ่งแถวแทนอะไร” เราจะเลือก type, partition และการตรวจจำนวนแถวไม่ได้
+
+ใช้ตัวอย่างเดียวตลอดบท: ไฟล์ `po_202608.csv` มีหนึ่ง row ต่อหนึ่ง PO line โดย `po_line_id` ควรไม่ซ้ำ, `vendor_id` เป็นรหัส และ `amount` เป็นมูลค่า Hive ไม่ได้บังคับความเป็นเอกลักษณ์นี้แทนเราโดยอัตโนมัติ มันอ่านไฟล์ตาม schema ที่ประกาศ ดังนั้น key และ grain เป็น data contract ที่ pipeline ต้องตรวจเอง
+
 ## 1. จาก CLI สู่ HQL
 
 สไลด์ใช้ Hive CLI เช่น `hive`, `hive -e` และ `hive -f` เพื่อสอน interactive, inline และ script execution แนวคิดสำคัญยังใช้ได้ แต่ระบบใช้งานจริงมักเชื่อม HiveServer2 ผ่าน Beeline เพื่อแยก client จาก service และรองรับ authentication/authorization
@@ -19,6 +25,8 @@ DESCRIBE apache_log;
 ```
 
 DDL เปลี่ยน metadata ส่วน `SELECT` อ่านข้อมูล และ `INSERT`/`LOAD` เปลี่ยนสิ่งที่ table อ้างถึงหรือเก็บ การ run สำเร็จไม่ได้ยืนยันว่า row ถูก parse ถูกต้อง จึงต้องมี validation หลัง load
+
+ให้แยก “ภาษา” ออกจาก “ช่องทางส่งภาษา” HQL คือภาษาที่บอกสิ่งที่ต้องการ ส่วน Hive CLI, Beeline หรือ application client เป็นช่องทางส่งคำสั่ง สไลด์ใช้ Hive CLI เพื่อสาธิตได้ง่าย แต่ความรู้ที่ควรนำไปใช้คือ DDL/DML และ query semantics ไม่ใช่การยึดติดว่าต้องพิมพ์ผ่านคำสั่ง `hive` เท่านั้น ระบบจริงมักส่งคำสั่งผ่าน HiveServer2 และ Beeline เพื่อจัดการ session, authentication และหลายผู้ใช้ [Apache Hive documentation](https://hive.apache.org/docs/latest/)
 
 ## 2. Managed Table กับ External Table
 
@@ -51,6 +59,8 @@ STORED AS TEXTFILE
 LOCATION '/user/student/external_table';
 ```
 
+การเลือกสองแบบนี้คือการตัดสิน “ownership” มากกว่าการตัดสิน “ความเร็ว” ถ้า pipeline อื่นเป็นผู้สร้าง raw files และ Spark/Hive ต้องใช้ร่วมกัน การให้ Hive ลบไฟล์เมื่อ drop metadata เป็นความเสี่ยง External table จึงเหมาะกว่า ในทางกลับกัน ถ้า Hive สร้าง intermediate result และรับผิดชอบวงจรชีวิตทั้งหมด managed table ทำให้ cleanup เป็นระบบกว่า ก่อนใช้ `DROP TABLE` ต้องตอบให้ได้ว่าใครเป็นเจ้าของ data และมีระบบใดอ้าง path เดียวกันอยู่บ้าง
+
 ## 3. Schema-on-read คืออะไร
 
 Hive ผูก schema ตอนอ่าน ไม่ได้ตรวจทุก field แบบ transactional database ตอน `LOAD DATA` หาก type หรือจำนวน fields ไม่ตรง query อาจคืน `NULL` แทน การโหลดสำเร็จจึงหมายถึงไฟล์ถูกย้าย/อ้างถึงสำเร็จ ไม่ได้หมายถึงข้อมูลมีคุณภาพ
@@ -65,6 +75,8 @@ ABC	300.00
 
 แถวสองมี `po_id` ผิดชนิดและแถวสามมี `amount` ผิดชนิด ผลลัพธ์อาจมี `NULL` การตรวจขั้นต่ำคือ total rows, null-by-column, rejected-pattern count และยอดรวมเทียบ source
 
+คำว่า schema-on-read ไม่ได้แปลว่า “ไม่มี schema” แต่แปลว่า schema ถูกนำมาใช้ตีความเมื่ออ่าน ข้อดีคือรับไฟล์ดิบได้เร็วและเปลี่ยนมุมมองได้ยืดหยุ่น ข้อเสียคือความผิดพลาดอาจถูกค้นพบช้า เช่น load เสร็จโดยไม่ error แต่เดือนถัดมาคอลัมน์สลับตำแหน่งจน `amount` กลายเป็น `NULL` ถ้า dashboard ใช้ `SUM(amount)` โดยไม่ตรวจ null ยอดอาจต่ำลงอย่างเงียบ ๆ ดังนั้น staging table ควรเก็บค่าดิบเป็น string แล้ว curated step ค่อยตรวจรูปแบบ cast และแยก rejected rows
+
 ## 4. SerDe: สะพานระหว่าง bytes กับ columns
 
 SerDe ย่อจาก Serializer/Deserializer ฝั่งอ่าน Deserializer แปล record ในไฟล์เป็น fields ที่ Hive เข้าใจ ฝั่งเขียน Serializer แปลง row กลับเป็นรูปแบบจัดเก็บ SerDe ไม่ใช่เพียง delimiter แต่สามารถ parse format ที่ซับซ้อน เช่น web log ด้วย regular expression
@@ -72,6 +84,10 @@ SerDe ย่อจาก Serializer/Deserializer ฝั่งอ่าน Deseri
 คำศัพท์ต้องอ่านตามลำดับ: raw line → record boundary → pattern/delimiter → fields → type conversion → Hive row หาก regex จับกลุ่มไม่ครบ column mapping จะเลื่อนหรือกลายเป็น `NULL`
 
 สไลด์แสดง `RegSerde` แต่ class ที่ใช้จริงควรตรวจจาก Hive distribution และมักพบ `RegexSerDe` การคัดลอก class name จากสไลด์โดยไม่ตรวจ JAR/version เป็น failure mode สำคัญ
+
+ลองตาม raw line `PO1001|V020|1250.50` ทีละขั้น InputFormat/record reader กำหนดว่าหนึ่งบรรทัดคือหนึ่ง record จากนั้น Deserializer แยกสาม fields ด้วย delimiter หรือ regex แล้ว Hive แปลง field ที่สามเป็นชนิดตัวเลขตาม schema ผลคือ row `(PO1001, V020, 1250.50)` ที่ operators ใช้ต่อได้ หาก regex จับได้เพียงสอง groups คอลัมน์ที่สามไม่มีค่า หากจับ groups เกินหรือเรียงผิด ค่าจะไปอยู่ผิด column แม้ query ยังรันได้ การทดสอบ SerDe จึงต้องเทียบ raw sample กับผลลัพธ์ทีละ field ไม่ใช่ดูเฉพาะ `COUNT(*)`
+
+Serializer ทำเส้นทางกลับกันเมื่อต้องเขียน row ออกเป็นไฟล์ แต่ไม่ควรเหมารวมว่า SerDe เป็นตัวตรวจ business rules มันแปล representation เท่านั้น กฎอย่าง `amount >= 0`, vendor ต้องมีใน master หรือ `po_line_id` ต้อง unique อยู่ในชั้น validation/curation
 
 ## 5. Regex ที่จำเป็นต่อการอ่าน log
 
@@ -143,6 +159,10 @@ WHERE po_id = '' OR po_id RLIKE '[^0-9]';
 ```
 
 สมการ reconciliation เชิงแนวคิดคือ `source_rows = valid_rows + rejected_rows` หากไม่เท่าต้องหาข้อมูลซ้ำ สูญหาย หรือ classification overlap
+
+## สะพานจาก rows ที่อ่านได้ไปสู่ analytics
+
+หลังบทนี้ Hive มองไฟล์เป็น typed rows ได้แล้ว แต่การมี rows ยังไม่ตอบคำถามธุรกิจ เราต้องกำหนด grain ของผลลัพธ์ด้วย `GROUP BY` และเชื่อมข้อมูลคนละ table ด้วย key การทำสองอย่างนี้อาจลดหรือเพิ่มจำนวนแถว: aggregation รวมหลาย rows เป็นหนึ่งกลุ่ม ส่วน join อาจสร้างหลาย combinations เมื่อ key ซ้ำ บท 02.3 จึงเริ่มจากการนับและรวมยอด แล้วค่อยสร้าง relational mental model สำหรับ match, unmatched row และ row multiplication ก่อนเลือกชนิด join
 
 ## Troubleshooting
 
