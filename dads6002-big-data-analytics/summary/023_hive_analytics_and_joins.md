@@ -1,7 +1,7 @@
 # บทที่ 02.3: Hive Analytics and Joins
 
 > **จากเอกสาร:** `dads6002_02_hive.pdf` หน้า 16–21  
-> [← บทที่ 02.2](022_hql_schema_serde_and_loading.md) | [สารบัญ](README.md)
+> [← บทที่ 02.2](022_hql_schema_serde_and_loading.md) | [สารบัญ](000_readme.md)
 
 ## Learning Objectives
 
