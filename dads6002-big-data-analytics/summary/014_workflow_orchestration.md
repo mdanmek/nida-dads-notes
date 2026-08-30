@@ -1,9 +1,9 @@
-# บทที่ 4: Partitioner, Job Chaining และ Workflow Orchestration
+# บทที่ 01.4: Partitioner, Job Chaining และ Workflow Orchestration
 
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 39–43  
 > **Core:** data skew, การเชื่อม jobs เป็น DAG, Oozie fork/join และ Airflow workflows as code
 
-> [← บทที่ 3](013_mapreduce_and_streaming.md) | [สารบัญ](README.md)
+> [← บทที่ 01.3](013_mapreduce_and_streaming.md) | [สารบัญ](README.md)
 
 ## Learning Objectives ประจำบท
 
@@ -15,7 +15,7 @@
 
 ## Prerequisites และระดับความลึก
 
-ควรอ่าน [บทที่ 3](013_mapreduce_and_streaming.md) เพื่อเข้าใจ Partitioner และ job output ก่อน หัวข้อ Core คือ skew, DAG และ orchestration; operator names และ cron syntax เป็น Reference
+ควรอ่าน [บทที่ 01.3](013_mapreduce_and_streaming.md) เพื่อเข้าใจ Partitioner และ job output ก่อน หัวข้อ Core คือ skew, DAG และ orchestration; operator names และ cron syntax เป็น Reference
 
 ## 1. จาก MapReduce job เดี่ยวสู่งานข้อมูลจริง
 
@@ -157,7 +157,7 @@ Retry ช่วย transient failure แต่ task ต้อง **idempotent** 
 | Idempotent | รันซ้ำแล้วผลธุรกิจสุดท้ายไม่เปลี่ยน/ไม่ซ้ำ |
 | Trigger rule | เงื่อนไขสถานะ upstream ที่อนุญาต downstream |
 
-ครอบคลุม PDF หน้า 39 เรื่อง Partitioner/skew/job chaining และหน้า 40–43 เรื่อง Oozie/Airflow/DAG/cron/operators ไม่มีหัวข้อจากหน้า 38 ที่ย้ายข้ามโดยไม่อ้างอิง; Combiner มีบ้านหลักในบทที่ 3
+ครอบคลุม PDF หน้า 39 เรื่อง Partitioner/skew/job chaining และหน้า 40–43 เรื่อง Oozie/Airflow/DAG/cron/operators ไม่มีหัวข้อจากหน้า 38 ที่ย้ายข้ามโดยไม่อ้างอิง; Combiner มีบ้านหลักในบทที่ 01.3
 
 ## 12. References
 
