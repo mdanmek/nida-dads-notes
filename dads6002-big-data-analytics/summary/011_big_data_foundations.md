@@ -1,9 +1,9 @@
-# บทที่ 1: Big Data Foundations, Workflow และ Data Lake
+# บทที่ 01.1: Big Data Foundations, Workflow และ Data Lake
 
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 1–10  
 > บทนี้สร้างพื้นฐานก่อนเข้าสู่ Hadoop โดยอธิบายจากปัญหาทางข้อมูลไปสู่การออกแบบ pipeline และ architecture
 
-> [← สารบัญ](README.md) | [บทถัดไป: HDFS และ YARN →](012_hdfs_and_yarn.md)
+> [← สารบัญ](README.md) | [บทที่ 01.2: HDFS และ YARN →](012_hdfs_and_yarn.md)
 
 ## ภาพรวมและขอบเขต
 
@@ -32,7 +32,7 @@
 - Linux shell เบื้องต้น: path, pipe (`|`), redirect (`>`/`>>`), permission
 - แนวคิดฐานข้อมูล: table, schema, transaction และ query latency
 - ความต่างเบื้องต้นระหว่าง batch (ทำเป็นรอบ) กับ event (เกิดเป็นรายการต่อเนื่อง)
-- ไม่จำเป็นต้องรู้ Hadoop มาก่อน เพราะบทนี้เป็นพื้นฐานสำหรับบทที่ 2
+- ไม่จำเป็นต้องรู้ Hadoop มาก่อน เพราะบทนี้เป็นพื้นฐานสำหรับบทที่ 01.2
 
 ## แผนขอบเขตและระดับความลึก
 
