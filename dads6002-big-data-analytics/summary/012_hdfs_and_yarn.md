@@ -3,7 +3,7 @@
 > **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 11–21  
 > **Core:** distributed-system requirements, HDFS read/write/failure recovery, blocks/replication และ YARN application lifecycle
 
-> [← บทที่ 01.1](011_big_data_foundations.md) | [สารบัญ](README.md) | [บทที่ 01.3 →](013_mapreduce_and_streaming.md)
+> [← บทที่ 01.1](011_big_data_foundations.md) | [สารบัญ](000_readme.md) | [บทที่ 01.3 →](013_mapreduce_and_streaming.md)
 
 ## Learning Objectives ประจำบท
 
