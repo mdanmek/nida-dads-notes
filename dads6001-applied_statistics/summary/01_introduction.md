@@ -5,6 +5,8 @@
 > **Source:** `dads6001-applied_statistics/lecture/dads6001_01_introduction.pptx` จำนวน 41 สไลด์  
 > **Main topics:** Probability, random variables, probability distributions, sampling distributions, Central Limit Theorem และการตรวจสอบ Normality
 
+> **Course navigation:** [Course Overview](00_readme.md) · บทถัดไป [02 Interval Estimation](02_interval_estimation.md)
+
 ## 1. Chapter Overview
 
 บทนี้สร้างรากฐานสำหรับ Statistical Inference ทั้งวิชา เส้นทางความคิดเริ่มจากการทดลองที่ผลลัพธ์ไม่แน่นอน แล้วกำหนด sample space และ event เพื่อคำนวณ probability จากนั้นแปลง outcome ให้เป็นตัวเลขด้วย random variable และอธิบายพฤติกรรมของตัวแปรผ่าน probability distribution เมื่อเปลี่ยนจากตัวแปรหนึ่งค่าไปเป็น statistic ที่คำนวณจาก sample เช่น sample mean จะเข้าสู่แนวคิด sampling distribution ซึ่งนำไปสู่ Standard Error, Central Limit Theorem, Confidence Interval และ Hypothesis Testing ในบทถัดไป
