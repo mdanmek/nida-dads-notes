@@ -184,14 +184,14 @@ p\mathrm{-value}\le\alpha
 \mathrm{Reject\ }H_0
 $$
 
-หาก (p\mathrm{-value}>\alpha) ให้ fail to reject $H_0$
+หาก $p\mathrm{-value}>\alpha$ ให้ fail to reject $H_0$
 
 ### 10.1 การเลือกพื้นที่หาง
 
-ถ้า (T) คือ test statistic ที่สังเกตได้เป็น (t_{obs}):
+ถ้า $T$ คือ test statistic ที่สังเกตได้เป็น $t_{obs}$:
 
-- Right-tailed: พื้นที่ตั้งแต่ (t_{obs}) ไปทางขวา
-- Left-tailed: พื้นที่ตั้งแต่ (t_{obs}) ไปทางซ้าย
+- Right-tailed: พื้นที่ตั้งแต่ $t_{obs}$ ไปทางขวา
+- Left-tailed: พื้นที่ตั้งแต่ $t_{obs}$ ไปทางซ้าย
 - Two-sided: รวมความสุดโต่งทั้งสองด้านตาม null distribution
 
 สูตร “สองเท่าของพื้นที่หางเดียว” ใช้ตรงไปตรงมาเมื่อ null distribution สมมาตรและวัดความสุดโต่งด้วยค่าสัมบูรณ์ สำหรับการแจกแจงไม่สมมาตรหรือ discrete exact test ต้องใช้คำนิยามของวิธีนั้น ไม่ควรคูณสองโดยอัตโนมัติ
