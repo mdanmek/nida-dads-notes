@@ -123,8 +123,7 @@ $$
 Test statistic คือฟังก์ชันของข้อมูลที่วัดว่าค่าประมาณห่างจากค่าภายใต้ $H_0$ กี่ standard errors โครงสร้างทั่วไปคือ
 
 $$
-\mathrm{Test\ statistic}
-=
+\mathrm{Test\ statistic} =
 \frac{\mathrm{Estimate}-\mathrm{Null\ value}}
 {\mathrm{SE\ under\ }H_0}
 $$
@@ -171,8 +170,7 @@ Power คือโอกาสที่ test จะตรวจพบ effect ข
 p-value คือ probability ภายใต้ $H_0$ ที่จะได้ test statistic อย่างน้อยสุดโต่งเท่าค่าที่สังเกต ในทิศทางที่ $H_1$ กำหนด เขียนเชิงแนวคิดได้ว่า
 
 $$
-p\mathrm{-value}
-=
+p\mathrm{-value} =
 \mathrm{P}(\mathrm{result\ at\ least\ as\ extreme\ as\ observed}\mid H_0)
 $$
 
