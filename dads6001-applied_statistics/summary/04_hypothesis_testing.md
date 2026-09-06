@@ -707,6 +707,264 @@ Hypothesis testing เปรียบเทียบ observed effect กับ s
 | Effect size | ขนาดของความแตกต่างหรือความสัมพันธ์ |
 | Paired data | observations ที่เชื่อมโยงกันเป็นคู่ |
 
+## Lab Supplement: Hypothesis Testing ด้วย R และรูปแบบคำตอบข้อสอบ
+
+ส่วนนี้รวมโจทย์และ solution จาก Lab 04 สองชุด รวม 6 สถานการณ์ จุดประสงค์คือฝึกวงจรครบตั้งแต่กำหนด parameter และ hypotheses ตรวจ assumptions เลือก test อ่าน R output ไปจนถึงสรุปผลในบริบท
+
+### 1. โครงคำตอบมาตรฐาน 7 ขั้น
+
+คำตอบข้อสอบ Hypothesis Testing ที่ครบควรเรียงดังนี้:
+
+1. **Variable และ parameter:** บอกว่าข้อมูลวัดอะไร หน่วยอะไร และ parameter ของ population คืออะไร
+2. **Hypotheses:** เขียน (H_0/H_1) ด้วย parameter ไม่ใช้ sample statistic
+3. **Test และ assumptions:** ระบุ one-sample, independent หรือ paired test พร้อมเงื่อนไข
+4. **Test statistic:** รายงานค่า statistic และ degrees of freedom พร้อมอธิบายทิศทาง
+5. **p-value และ decision:** เปรียบเทียบกับ α แล้วใช้ reject/fail to reject
+6. **Contextual conclusion:** ตอบคำถามวิจัยโดยไม่ใช้คำว่าพิสูจน์
+7. **Effect/uncertainty:** รายงาน sample estimate, CI และ limitation ที่สำคัญ
+
+Template ประโยค:
+
+> ใช้ [ชื่อ test] เพื่อทดสอบ $H_0$: [parameter] เทียบกับ $H_1$: [parameter] ที่ระดับนัยสำคัญ 0.05 ได้ [statistic, df] และ p-value [ค่า] เนื่องจาก p-value [มากกว่า/น้อยกว่า] 0.05 จึง [ไม่ปฏิเสธ/ปฏิเสธ] $H_0$ ข้อมูล [ยังไม่ให้/ให้] หลักฐานเพียงพอว่า [ข้อสรุปในบริบท] ภายใต้ assumptions ของการสุ่ม ความเป็นอิสระ และ distribution ที่กำหนด
+
+### 2. Lab Test 1.1: เวลาใช้ StatCrunch
+
+โจทย์ถามว่า mean weekly usage ของนักเรียนทั้งชั้นแตกต่างจาก 7 ชั่วโมงหรือไม่ จึงเป็น two-sided one-sample t test
+
+$$
+H_0:\mu=7
+$$
+
+$$
+H_1:\mu\ne7
+$$
+
+Solution ให้ $\bar{x}=5.9$, $t=-0.85377$, $df=14$, p-value 0.4076 และ 95% CI $(3.1366,8.6634)$ ค่า t ติดลบเพราะ sample mean ต่ำกว่า null value แต่ค่าสัมบูรณ์ไม่มากเมื่อเทียบกับ SE
+
+> ที่ระดับ 0.05 p-value 0.4076 มากกว่า 0.05 จึง fail to reject $H_0$ ข้อมูลจากนักเรียน 15 คนยังไม่ให้หลักฐานเพียงพอว่า mean weekly StatCrunch usage ของนักเรียนทั้งชั้นแตกต่างจาก 7 ชั่วโมง ทั้งนี้ไม่ได้แปลว่า mean เท่ากับ 7 แน่นอน เพราะ CI ยังครอบคลุมค่ากว้างตั้งแต่ประมาณ 3.14 ถึง 8.66 ชั่วโมง
+
+```r
+time <- c(6.5, 4, 3.5, 0, 12, 5, 12, 15, 12, 0, 1, 8, 0.5, 2, 7)
+
+boxplot(time)
+shapiro.test(time)
+t.test(time, mu = 7, alternative = 'two.sided')
+
+qt(0.975, df = 14)
+2 * pt(-abs(-0.85377), df = 14)
+```
+
+`mu=7` กำหนด null mean ส่วน `alternative='two.sided'` เป็นค่า default แต่เขียนไว้ช่วยให้เจตนาชัด `qt()` คืน critical value และ `pt()` คืน cumulative probability การคูณสองใช้กับ symmetric t distribution ใน two-sided test
+
+### 3. Lab Test 1.2: Waiting Time
+
+โจทย์ถามว่า population mean waiting time ต่ำกว่า 5 นาทีหรือไม่ จึงใช้ left-tailed one-sample t test
+
+$$
+H_0:\mu\ge5
+$$
+
+$$
+H_1:\mu<5
+$$
+
+Solution ให้ $\bar{x}=4.2867$, $t=-1.6867$, $df=14$, p-value 0.05691 และ one-sided 95% CI $(-\infty,5.0316)$
+
+> แม้ sample mean ต่ำกว่า 5 นาที แต่ p-value 0.0569 ยังมากกว่า 0.05 เล็กน้อย จึง fail to reject $H_0$ และยังไม่มีหลักฐานเพียงพอว่า population mean ต่ำกว่า 5 นาทีที่ระดับ 0.05
+
+Shapiro–Wilk ให้ p-value 0.5085 และกราฟไม่แสดง departure รุนแรง จึงถือว่า Normality assumption สมเหตุสมผลสำหรับ sample เล็กนี้ แต่คำกล่าวของผู้จัดการว่า “ลูกค้าแทบจะแน่นอนว่ารอน้อยกว่า 5 นาที” ยังผิดสองชั้น: test ไม่ significant และโจทย์ทดสอบ population mean ไม่ใช่ probability ที่ลูกค้าแต่ละคนจะรอต่ำกว่า 5 นาที
+
+```r
+waiting_time <- c(
+  4.21,5.55,3.02,5.13,4.77,2.34,3.54,3.20,
+  4.50,6.10,0.38,5.12,6.46,6.19,3.79
+)
+
+boxplot(waiting_time)
+qqnorm(waiting_time)
+qqline(waiting_time, col = 'steelblue')
+shapiro.test(waiting_time)
+t.test(waiting_time, mu = 5, alternative = 'less')
+```
+
+### 4. Lab Test 1.3: Strength of Insulators
+
+โจทย์ต้องการหลักฐานว่า mean breaking force มากกว่า 1,500 pounds:
+
+$$
+H_0:\mu\le1500
+$$
+
+$$
+H_1:\mu>1500
+$$
+
+Solution ให้ $\bar{x}=1723.4$, $t=13.664$, $df=29$ และ p-value $1.816\times10^{-14}$ จึงปฏิเสธ $H_0$ อย่างชัดเจน Shapiro–Wilk p-value 0.622 และ Q–Q plot สนับสนุนว่า Normality assumption สมเหตุสมผล
+
+> ข้อมูลให้หลักฐานอย่างมากว่า population mean force ที่ทำให้ insulator แตกสูงกว่า 1,500 pounds อย่างไรก็ตามข้อสรุปเรื่องความปลอดภัยยังต้องพิจารณา lower-tail failure, specification limits และ defect probability ไม่ใช่ mean เพียงค่าเดียว
+
+```r
+force <- c(
+  1870,1764,1774,1680,1728,1734,1550,1810,1656,1662,
+  1756,1652,1610,1734,1762,1736,1634,1866,1784,1820,
+  1522,1744,1696,1788,1592,1688,1662,1810,1866,1752
+)
+
+qqnorm(force)
+qqline(force, col = 'steelblue')
+shapiro.test(force)
+t.test(force, mu = 1500, alternative = 'greater')
+```
+
+### 5. Lab Test 2.1: Weight Change in Anorexic Girls
+
+น้ำหนักวัดก่อนและหลังในคนเดิม จึงเป็น paired design และตัวแปรที่วิเคราะห์คือ $d_i=after_i-before_i$
+
+$$
+H_0:\mu_d\le0
+$$
+
+$$
+H_1:\mu_d>0
+$$
+
+Solution ให้ mean change 2.5586, $t=2.4686$, $df=28$, p-value 0.009966 และ one-sided lower confidence bound 0.7955 จึงมีหลักฐานว่าการรักษาสัมพันธ์กับ positive mean weight change ภายในกลุ่มที่ได้รับ therapy
+
+```r
+after <- c(
+  85.2,88.6,86.4,81.9,76.4,93.6,98.4,89.4,71.4,82.1,
+  100.5,95.3,87.6,72.5,78.1,71.3,89.4,92.1,83.9,82.7,
+  81.6,75.7,82.6,95.4,85.2,83.6,88.6,86.2,86.7
+)
+
+before <- c(
+  80.5,84.9,81.5,82.6,79.9,88.7,94.9,76.3,81.0,80.5,
+  85.0,89.2,81.3,76.5,70.0,80.6,83.3,87.7,84.2,86.4,
+  83.0,76.5,80.2,87.8,83.3,79.7,84.5,80.8,87.4
+)
+
+weight_change <- after - before
+shapiro.test(weight_change)
+t.test(weight_change, alternative = 'greater', conf.level = 0.95)
+
+# Equivalent paired syntax
+t.test(after, before,
+       paired = TRUE,
+       alternative = 'greater',
+       conf.level = 0.95)
+```
+
+> **แก้ typo จากเอกสาร:** ใช้ `conf.level` ไม่ใช่ `con.level` และค่า `83.3` ใน vector `before` ต้องไม่ถูกตัดด้วย line break
+
+คำว่า “effective” ต้องใช้ระมัดระวัง หากไม่มี randomized control group ผล before–after อาจได้รับอิทธิพลจาก time trend, regression to the mean หรือ intervention อื่น จึงสรุป association กับ change ได้มั่นใจกว่า causal effect
+
+### 6. Lab Test 2.2: Gum Flavor Longevity
+
+Female และ male เป็นคนละกลุ่ม จึงเป็น independent two-sample comparison โจทย์เป็น two-sided:
+
+$$
+H_0:\mu_F-\mu_M=0
+$$
+
+$$
+H_1:\mu_F-\mu_M\ne0
+$$
+
+Solution ใช้ pooled t test และได้ means 23.625 กับ 22.286 นาที, $t=0.41924$, $df=13$, p-value 0.6819 และ 95% CI $(-5.562,8.241)$ จึง fail to reject equality null
+
+```r
+female <- c(15, 21, 29, 22, 19, 25, 35, 23)
+male <- c(22, 24, 23, 30, 12, 17, 28)
+
+shapiro.test(female)
+shapiro.test(male)
+
+t.test(
+  female,
+  male,
+  alternative = 'two.sided',
+  var.equal = TRUE
+)
+
+# Welch sensitivity analysis
+t.test(female, male, alternative = 'two.sided')
+```
+
+> **แก้ typo จากเอกสาร:** ต้องเขียน `male <- c(...)` ไม่ใช่ `m< -c(...)` เพราะช่องว่างเปลี่ยน `<-` เป็นเครื่องหมายน้อยกว่าและ unary minus ทำให้ assignment ไม่เกิด
+
+เอกสารตรวจ equal variance ด้วย `var.test()` และ Levene's test แต่ F test ไวต่อ non-Normality และ preliminary variance testing ไม่ควรเป็นเหตุผลเดียวในการเลือก pooled test สำหรับงานจริงควรรายงาน Welch เป็น default/sensitivity analysis และใช้ pooled เมื่อมีเหตุผลรองรับ common variance
+
+### 7. Lab Test 2.3: Pizza Advertising Claim
+
+Local และ Chain เป็น independent groups และ claim มีทิศทางว่า Local เร็วกว่า จึงตั้ง
+
+$$
+H_0:\mu_L-\mu_C\ge0
+$$
+
+$$
+H_1:\mu_L-\mu_C<0
+$$
+
+Solution ใช้ pooled t test ได้ means 16.70 กับ 18.88 นาที, observed difference -2.18 นาที, $t=-1.6341$, $df=18$, p-value 0.0598 และ one-sided upper bound 0.1334
+
+> ที่ระดับ 0.05 p-value 0.0598 มากกว่า 0.05 จึง fail to reject $H_0$ แม้ sample mean ของ Local ต่ำกว่า 2.18 นาที แต่ข้อมูล 10 orders ต่อกลุ่มยังไม่ให้หลักฐานเพียงพอที่จะยืนยัน claim ว่า Local มี population mean delivery time ต่ำกว่า Chain
+
+```r
+local <- c(16.8,11.7,15.6,16.7,17.5,18.1,14.1,21.8,13.9,20.8)
+chain <- c(22.0,15.2,18.7,15.6,20.8,19.5,17.0,19.5,16.5,24.0)
+
+shapiro.test(local)
+shapiro.test(chain)
+
+t.test(
+  local,
+  chain,
+  var.equal = TRUE,
+  alternative = 'less'
+)
+
+# Welch sensitivity analysis
+t.test(local, chain, alternative = 'less')
+```
+
+การใช้ one-tailed test สมเหตุสมผลเมื่อ claim ถูกกำหนดก่อนเห็นข้อมูล หาก Local กลับช้ากว่าอย่างมาก one-tailed p-value ด้านซ้ายจะไม่ถือเป็นหลักฐานสนับสนุน claim
+
+### 8. วิธีอ่าน R `t.test()` output
+
+| Output | คำถามที่ตอบ |
+|---|---|
+| `t` | estimate ห่างจาก null กี่ estimated SE และทิศทางใด |
+| `df` | reference t distribution ใช้ degrees of freedom เท่าใด |
+| `p-value` | ภายใต้ null ผลที่อย่างน้อยสุดโต่งเท่านี้มี probability เท่าใด |
+| `alternative hypothesis` | R ใช้ tail ตรงกับโจทย์หรือไม่ |
+| `confidence interval` | ช่วง parameter ที่สอดคล้องกับข้อมูลตาม confidence level |
+| `mean of x/y` | sample estimates; ไม่ใช่ population parameters ที่รู้แน่นอน |
+
+`t.test(x, mu=...)` ใช้กับ one sample, `t.test(x, y)` ใช้กับ independent samples โดย default เป็น Welch และ `t.test(x, y, paired=TRUE)` ใช้กับ pairs การระบุ `alternative='less'` หมายถึง parameter ของ `x` ลบ parameter ของ `y` ต่ำกว่าศูนย์ ลำดับ argument จึงมีผลต่อเครื่องหมายและข้อสรุป
+
+### 9. Exam Decision Table จาก Lab
+
+| สถานการณ์ | Design | Tail | คำสั่งหลัก |
+|---|---|---|---|
+| StatCrunch เทียบ 7 | One sample | Two-sided | `t.test(time, mu=7)` |
+| Waiting time ต่ำกว่า 5 | One sample | Left | `t.test(wt, mu=5, alternative='less')` |
+| Insulator มากกว่า 1500 | One sample | Right | `t.test(force, mu=1500, alternative='greater')` |
+| Before/after weight | Paired | Right | `t.test(after, before, paired=TRUE, alternative='greater')` |
+| Female vs male gum | Independent | Two-sided | `t.test(female, male)` |
+| Local faster than Chain | Independent | Left | `t.test(local, chain, alternative='less')` |
+
+### 10. Common R errors จาก Lab
+
+- เขียน `< -` แทน `<-`: assignment ไม่ทำงาน
+- ใช้ `con.level`: R แจ้ง unused argument; ต้องเป็น `conf.level`
+- ลืม `paired=TRUE`: เปลี่ยน estimand และ SE
+- สลับลำดับ `x, y`: เครื่องหมาย effect และทิศทาง alternative กลับด้าน
+- อ่าน Shapiro p-value สูงว่า “พิสูจน์ Normal”: เป็นเพียง fail to reject
+- ใช้ `var.equal=TRUE` โดยไม่มีเหตุผล: บังคับ pooled test โดยไม่จำเป็น
+- สรุป individual outcome จาก test ของ population mean
+- รายงานเพียง p-value โดยไม่ให้ estimate, CI และบริบท
+
 ## 33. Source Coverage Audit
 
 | Source slides | Primary teaching home |
@@ -723,9 +981,13 @@ Hypothesis testing เปรียบเทียบ observed effect กับ s
 | 18 | Matched-pair test |
 | 19 | Multiple means and ANOVA bridge |
 | 20–21 | Assumptions and tests for one/two proportions |
+| `lab_04_hypothsis_test1.pdf`, pp. 1–2 และ solution pp. 1–4 | Three one-sample t-test labs, assumption checks และ R output |
+| `lab_04_hypothsis_test2.pdf`, pp. 1–2 และ solution pp. 1–7 | Paired and independent t-test labs, corrected R code และ exam answers |
 
 ## 34. References
 
 1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_04_hypothesis_testing.pptx`, Slides 1–21.
 2. Berenson, M. L., Levine, D. M., & Krehbiel, T. C. (2012). *Basic Business Statistics: Concepts and Applications* (12th ed.). Pearson.
 3. Weiss, N. A. (2017). *Introductory Statistics* (10th ed.). Pearson.
+4. `dads6001-applied_statistics/lab/lab_04_hypothsis_test1.pdf` และ `lab_04_hypothsis_test1_solution.pdf`.
+5. `dads6001-applied_statistics/lab/lab_04_hypothsis_test2.pdf` และ `lab_04_hypothsis_test2_solution.pdf`.
