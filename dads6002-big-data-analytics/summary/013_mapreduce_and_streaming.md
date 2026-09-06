@@ -203,6 +203,21 @@ hadoop jar /opt/hadoop/share/hadoop/tools/lib/hadoop-streaming-*.jar \
 
 ตรวจผลด้วย `hadoop fs -cat /user/student/output/part-*` และจำไว้ว่า output directory ต้องยังไม่มีอยู่ก่อนเริ่ม job
 
+สำหรับ Cloudera QuickStart VM ตาม [Lab 01 Hadoop](../lab/lab_01_hadoop.pdf) ตำแหน่ง JAR มักเป็น `/usr/lib/hadoop-mapreduce/hadoop-streaming.jar` ดังนั้นคำสั่งที่สอดคล้องกับ path และชื่อไฟล์ใน Lab คือ:
+
+```bash
+hadoop jar /usr/lib/hadoop-mapreduce/hadoop-streaming.jar \
+  -files mapper.py,reducer.py \
+  -mapper 'python3 mapper.py' \
+  -reducer 'python3 reducer.py' \
+  -input /user/cloudera/test.txt \
+  -output /user/cloudera/wc
+
+hadoop fs -cat /user/cloudera/wc/part-*
+```
+
+ถ้า distribution เก่าไม่รู้จัก `-files` ให้ตรวจ `hadoop jar ... -help` และใช้ syntax ที่ installation นั้นรองรับ เช่น `-file` ทีละไฟล์ ประเด็นที่ต้องคงไว้คือ worker ต้องได้รับ scripts และรู้ว่าจะเรียกด้วย interpreter ใด ไม่ควรเดา path/JAR จากเครื่องอื่น
+
 ## Combiner และการลด network traffic
 
 ### Combiner
@@ -237,7 +252,9 @@ MapReduce job หนึ่งงานมีขอบเขตชัด: อ่�
 3. เปลี่ยน mapper ให้ emit (word, len(word)) แล้ว reducer หาผลรวมความยาว อธิบายว่าคำตอบหมายถึงอะไร
 4. ลองใช้ average เป็น Combiner แล้วสร้าง counterexample เพื่อพิสูจน์ว่า average-of-averages ผิด
 
-## Guided Lab: Copy, Run, Break, Repair
+## Lab จากชั้นเรียน: Copy, Run, Break, Repair
+
+ส่วนนี้ผสาน [Lab 01 Hadoop หน้า 4–5](../lab/lab_01_hadoop.pdf), [mapper ต้นฉบับ](../lab/lab_01_hadoop_mapper.py) และ [reducer ต้นฉบับ](../lab/lab_01_hadoop_reducer.py) เข้ากับกลไกที่อธิบายด้านบน ไฟล์ของอาจารย์แสดงแก่นของ Streaming ได้ถูกต้องคือ mapper เขียน `word<TAB>1` และ reducer รวมค่าของ key ที่เรียงติดกัน แต่มี `itemgetter` ที่ไม่ได้ใช้, ใช้ `python` ซึ่งขึ้นกับ environment และ reducer เดิมจะพิมพ์ `None<TAB>0` เมื่อ input ว่าง ตัวอย่างที่แก้ไว้ในบทนี้ใช้ `python3`, ตัด import ที่ไม่ใช้ และ guard final output เพื่อให้ behavior ชัดเจน
 
 ### Input และคำสั่ง
 
@@ -271,6 +288,7 @@ wears   1
 2. เปลี่ยน mapper ให้พิมพ์ space แทน tab: reducer เกิด `ValueError`
 3. เอา final flush ออก: key สุดท้ายหาย
 4. ส่ง job ไป output directory เดิม: Hadoop ปฏิเสธเพื่อไม่ overwrite โดยไม่ตั้งใจ
+5. ส่ง input ว่างเข้า reducer ต้นฉบับจาก Lab: จะเห็น `None` กับ `0`; รุ่นที่แก้แล้วไม่ควรสร้าง record หลอก
 
 หลังซ่อมต้อง rerun ได้ผลเดิมทุกครั้ง นี่คือหลักฐาน reproducibility ขั้นต่ำ
 
@@ -302,6 +320,7 @@ wears   1
 
 - [ ] trace record ผ่าน Map → partition → shuffle/sort → Reduce ได้
 - [ ] reproduce Word Count และ validate total tokens ได้
+- [ ] อธิบายความต่างระหว่าง scripts ต้นฉบับของ Lab กับรุ่นแก้ไข และเลือกคำสั่ง Streaming ให้ตรง environment ได้
 - [ ] อธิบาย reducer state/final flush จาก trace table ได้
 - [ ] ออกแบบ canonical key ของ Shared Friendship ได้
 - [ ] repair malformed/unsorted Streaming pipeline ได้
@@ -317,7 +336,7 @@ wears   1
 | Combiner | local pre-aggregation ที่อาจรันศูนย์หรือหลายครั้ง |
 | Final flush | การ emit state กลุ่มสุดท้ายหลัง input จบ |
 
-ครอบคลุม PDF หน้า 22–28 MapReduce/Word Count, หน้า 29–32 Shared Friendship และหน้า 33–38 Jobs/Streaming/Combiner โค้ดต้นฉบับที่ syntax ผิดถูกแยกจากฉบับแก้ไขชัดเจน
+ครอบคลุม PDF หน้า 22–28 MapReduce/Word Count, หน้า 29–32 Shared Friendship และหน้า 33–38 Jobs/Streaming/Combiner รวมทั้ง [Lab 01 Hadoop หน้า 4–5](../lab/lab_01_hadoop.pdf) และไฟล์ Python ของอาจารย์ โค้ดต้นฉบับกับฉบับแก้ไขถูกแยกชัดเจน
 
 ## References
 
