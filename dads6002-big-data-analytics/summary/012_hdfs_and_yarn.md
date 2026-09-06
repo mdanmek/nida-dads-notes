@@ -236,6 +236,49 @@ hadoop fs -rm /user/student/archive.txt
 
 Permission `664` เท่ากับ `rw-rw-r--`: owner อ่าน/เขียน, group อ่าน/เขียน, others อ่านเท่านั้น
 
+## Lab จากชั้นเรียน: ติดตามไฟล์จากเครื่องเราเข้าสู่ HDFS
+
+ส่วนนี้เรียบเรียงจาก [Lab 01 Hadoop หน้า 1–3](../lab/lab_01_hadoop.pdf) โดยคงเป้าหมายของอาจารย์ไว้ แต่เพิ่มเหตุผล ผลที่ควรเห็น และจุดตรวจสำหรับผู้เริ่มต้น Lab เดิมใช้ Cloudera QuickStart VM บน VirtualBox และแนะนำ RAM อย่างน้อย 8 GB จึงควรมอง environment นี้เป็นสภาพแวดล้อมของรายวิชา ไม่ใช่ข้อกำหนดถาวรของ Hadoop ทุกระบบ
+
+ก่อนเริ่ม ให้แยกพื้นที่สองฝั่งให้ชัดเจน: `/home/cloudera/test.txt` เป็นไฟล์ใน Linux ของ VM ส่วน `/user/cloudera/test.txt` เป็น path ใน namespace ของ HDFS คำสั่ง `ls` ของ Linux กับ `hadoop fs -ls` จึงไม่ได้ดูสถานที่เดียวกัน แม้ชื่อไฟล์เหมือนกันก็ตาม
+
+หากต้องนำไฟล์จาก host ผ่าน VirtualBox shared folder เอกสารให้สร้าง mount point แล้ว mount ชื่อ share `vbshare` ดังนี้ เครื่องหมายขีดต้องเป็น ASCII `-` ไม่ใช่ขีดยาวจากโปรแกรมทำสไลด์
+
+```bash
+mkdir -p /home/cloudera/vbshare
+sudo mount -t vboxsf vbshare /home/cloudera/vbshare
+```
+
+สร้างข้อมูลเล็กที่ตรวจด้วยตาได้ก่อน ตัวอย่างต่อไปนี้เป็นข้อมูลเสริมเพื่อให้ทำซ้ำและตรวจผลได้แน่นอน:
+
+```bash
+printf 'hadoop stores blocks\nhive reads tables\n' > /home/cloudera/test.txt
+```
+
+ก่อนรัน ให้ทำนายว่า `-put` จะสร้างสำเนาใน HDFS แต่ไฟล์ local ยังอยู่ จากนั้นทำตามลำดับของ Lab:
+
+```bash
+hadoop fs -help | more
+hadoop fs -put /home/cloudera/test.txt /user/cloudera/test.txt
+hadoop fs -ls /user/cloudera
+hadoop fs -cat /user/cloudera/test.txt
+hadoop fs -get /user/cloudera/test.txt /home/cloudera/test1.txt
+hadoop fs -mkdir -p /user/cloudera/temp
+hadoop fs -cp /user/cloudera/test.txt /user/cloudera/temp/test.txt
+hadoop fs -ls /user/cloudera/temp
+hadoop fs -rm /user/cloudera/temp/test.txt
+hadoop fs -rmdir /user/cloudera/temp
+```
+
+ผลที่ต้องสังเกตไม่ใช่หน้าตาของข้อความ status ซึ่งอาจต่างตาม version แต่เป็น invariant: หลัง `-put` ต้องเห็น `test.txt` ใน HDFS, `-cat` ต้องได้สองบรรทัดเดิม, `-get` ต้องได้ไฟล์ local ที่เนื้อหาเหมือนต้นฉบับ และ `temp` ต้องว่างก่อน `-rmdir` จึงสำเร็จ ตรวจหลักฐานด้วย:
+
+```bash
+diff /home/cloudera/test.txt /home/cloudera/test1.txt
+hadoop fs -test -e /user/cloudera/test.txt && echo 'exists'
+```
+
+`diff` ที่ไม่พิมพ์อะไรและข้อความ `exists` จาก `-test` หมายถึงผ่าน การทดลองให้พังอย่างปลอดภัยคือรัน `-put` ไปยังชื่อเดิมอีกครั้งเพื่อดู error ว่าปลายทางมีอยู่แล้ว และลอง `-rmdir` ขณะที่ directory ยังมีไฟล์ เพื่อพิสูจน์ว่า HDFS ป้องกันการเขียนทับ/ลบแบบกำกวม จากนั้นแก้ด้วยการเลือกชื่อใหม่หรือตรวจและลบเป้าหมายอย่างตั้งใจ ไม่ควรเติม `-f` หรือ `-rm -r` โดยไม่เข้าใจขอบเขต
+
 ## Hands-on Paper Lab: Store, Read, Fail, Recover
 
 ใช้ cluster จำลอง: DataNodes `D1–D4`, block size 128 MB, replication factor 3 และไฟล์ 300 MB
@@ -279,6 +322,7 @@ Lab นี้เป็น paper simulation เพราะไม่ต้อง�
 - [ ] แยก Secondary NameNode, checkpoint และ HA ได้
 - [ ] trace YARN application และ failure scopes ได้
 - [ ] ใช้ CLI โดยตรวจ path/permission ก่อน mutation ได้
+- [ ] แยก local filesystem กับ HDFS path และพิสูจน์ว่า `put/get` รักษาเนื้อหาได้
 
 ## Glossary และ Source Coverage
 
@@ -290,7 +334,7 @@ Lab นี้เป็น paper simulation เพราะไม่ต้อง�
 | Container | allocation ของทรัพยากรสำหรับ process ใน YARN |
 | Checkpoint | การรวม FsImage กับ EditLog เป็น metadata snapshot ใหม่ |
 
-ครอบคลุม PDF หน้า 11–16 เรื่อง ecosystem/requirements/architecture และหน้า 17–21 เรื่อง HDFS, YARN, blocks และ CLI โดยแก้ขีดยาวในคำสั่งเป็น ASCII hyphen เพื่อให้รันได้จริง
+ครอบคลุม PDF หน้า 11–16 เรื่อง ecosystem/requirements/architecture และหน้า 17–21 เรื่อง HDFS, YARN, blocks และ CLI รวมทั้ง [Lab 01 Hadoop หน้า 1–3](../lab/lab_01_hadoop.pdf) เรื่อง VirtualBox shared folder และ HDFS file operations โดยแก้ขีดยาวในคำสั่งเป็น ASCII hyphen เพื่อให้รันได้จริง
 
 ## References
 
