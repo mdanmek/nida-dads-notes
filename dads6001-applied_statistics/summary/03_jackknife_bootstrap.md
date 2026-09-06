@@ -781,6 +781,160 @@ $$
 | Monte Carlo error | ความผันผวนจากจำนวนการจำลองที่มีขอบเขตจำกัด |
 | Smooth estimator | Estimator ที่เปลี่ยนอย่างค่อยเป็นค่อยไปเมื่อ empirical distribution เปลี่ยนเล็กน้อย |
 
+## Lab Supplement: Jackknife และ Bootstrap ด้วย R
+
+ส่วนนี้อธิบาย `lab_03_jackknife_bootstrap_solution.pdf` ซึ่งมีสามกรณี ได้แก่ Jackknife sample mean ของ fuel efficiency, Bootstrap mean/CI ของ family income และ Bootstrap mean/CI ของ complaint resolution time จุดสำคัญคือเข้าใจ contract ของฟังก์ชัน R ไม่ใช่เพียงจำชื่อ package
+
+### 1. R มีสอง package ที่ทำหน้าที่ต่างกัน
+
+Lab ใช้ `bootstrap::jackknife()` สำหรับ leave-one-out calculation และใช้ `boot::boot()` กับ `boot::boot.ci()` สำหรับ nonparametric Bootstrap เครื่องหมาย `::` ระบุ package อย่างชัดเจนและช่วยลดปัญหาชื่อฟังก์ชันชนกัน
+
+| Function | Input หลัก | Output หลัก |
+|---|---|---|
+| `jackknife(x, theta)` | vector และฟังก์ชัน statistic | `jack.values`, `jack.bias`, `jack.se` |
+| `boot(data, statistic, R)` | data, function ที่รับ index และจำนวน replicates | original statistic, bias, standard error และ replicates |
+| `boot.ci(boot.out, type)` | object จาก `boot()` | confidence intervals ตามชนิดที่เลือก |
+
+### 2. Lab 1: Fuel Efficiency และ Jackknife Mean
+
+```r
+fuel <- c(26, 23, 21, 23, 19, 29, 15, 26, 19, 26)
+
+mean(fuel)
+
+library(bootstrap)
+jack_mean <- jackknife(fuel, mean)
+jack_mean
+
+mean_jack_corrected <- mean(fuel) - jack_mean[['jack.bias']]
+mean_jack_corrected
+```
+
+`jackknife(fuel, mean)` ลบ observation ทีละหนึ่งค่าแล้วเรียก `mean()` กับข้อมูลที่เหลือ จึงได้ leave-one-out estimates 10 ค่า ส่วน `jack_mean[['jack.se']]` ใช้ดึง component จาก list object
+
+Lab ให้ sample mean 22.7, Jackknife bias 0 และ Jackknife SE 1.342055 สำหรับ sample mean การที่ estimated bias เท่ากับศูนย์สอดคล้องกับทฤษฎีว่า sample mean เป็น unbiased estimator ของ population mean ภายใต้ random sampling แต่ไม่ได้แปลว่า sample estimate ต้องเท่ากับ population mean ใน sample นี้
+
+#### วิธีเขียนคำตอบข้อสอบ
+
+> สร้าง Jackknife samples จำนวน (n=10) โดยตัดข้อมูลออกทีละหนึ่งค่า คำนวณ mean ของแต่ละ sample แล้วใช้ความกระจายของ leave-one-out estimates ประมาณ SE ผลได้ (hat{\theta}=22.7), estimated bias 0 และ (SE_{jack}=1.3421) ดังนั้น bias-corrected estimate ยังเท่ากับ 22.7
+
+ต้องอธิบายด้วยว่า leave-one-out values ไม่ใช่ข้อมูลใหม่ แต่เป็น estimates ที่เกิดจาก perturb sample เดิมอย่างเป็นระบบ
+
+### 3. Lab 2: Family Income และ Bootstrap Mean
+
+```r
+family_income <- c(
+  90,77,100,83,64,78,92,73,122,96,
+  60,85,86,108,70,139,56,94,84,111,
+  93,120,70,92,100,124,59,112,79
+)
+
+boxplot(family_income)
+t.test(family_income)
+
+library(boot)
+set.seed(11)
+
+mean_stat <- function(data, index) {
+  mean(data[index])
+}
+
+boot_family <- boot(
+  data = family_income,
+  statistic = mean_stat,
+  R = 2000
+)
+
+boot_family
+plot(boot_family)
+boot.ci(
+  boot.out = boot_family,
+  conf = 0.95,
+  type = c('norm', 'perc', 'bca')
+)
+```
+
+ฟังก์ชัน `mean_stat(data, index)` เป็นส่วนสำคัญที่สุด `boot()` สร้าง index vector ที่มีการสุ่มซ้ำแบบคืนที่ แล้วส่ง index เข้า function; คำสั่ง `data[index]` จึงเป็น Bootstrap sample ส่วน `mean(data[index])` คือ replicate statistic หนึ่งค่า หากเขียน `mean(data)` แทน ทุก replicate จะเท่ากันและ Bootstrap SE จะเป็นศูนย์
+
+`R=2000` หมายถึงสร้าง replicates 2,000 ค่า และ `set.seed(11)` ทำให้ pseudo-random sequence ทำซ้ำได้ ค่า (R) สูงขึ้นลด Monte Carlo noise แต่ไม่แก้ sample bias
+
+Lab รายงาน original mean 90.24138, Bootstrap bias ประมาณ -0.08084 และ SE 3.93596 ช่วง 95% คือ Normal ((82.61,98.04)), Percentile ((82.52,97.90)) และ BCa ((82.90,98.33)) ความใกล้กันของสามช่วงบอกว่า skewness/bias correction ไม่เปลี่ยนข้อสรุปมากในกรณีนี้
+
+### 4. Lab 3: Complaint Resolution Time
+
+ข้อมูล 50 ค่าเบ้ขวาและมีค่ามากหลายค่า classical t interval จาก `t.test(x)` เท่ากับประมาณ ((31.125,54.955)) ส่วน Bootstrap ให้ original mean 43.04, bias 0.04051 และ SE 5.69829
+
+```r
+complaints <- c(
+  54,5,35,137,31,27,152,2,123,81,74,27,11,19,126,110,110,
+  29,61,35,94,31,26,5,12,4,165,32,29,28,29,26,25,1,14,13,
+  13,10,5,27,4,52,30,22,36,26,20,23,33,68
+)
+
+set.seed(11)
+boot_complaints <- boot(
+  data = complaints,
+  statistic = mean_stat,
+  R = 2000
+)
+
+boot.ci(
+  boot.out = boot_complaints,
+  conf = 0.95,
+  type = c('norm', 'perc', 'bca')
+)
+```
+
+ผลใน Lab คือ Normal ((31.83,54.17)), Percentile ((32.32,54.68)) และ BCa ((32.81,55.12)) การที่ BCa เลื่อนไปทางขวาเล็กน้อยสอดคล้องกับข้อมูลที่เบ้ขวา แต่การเปรียบเทียบควรดูทั้ง shape, method assumptions และ coverage ไม่ใช่เลือกช่วงที่แคบที่สุด
+
+> **แก้ typo จากเอกสาร:** สำหรับข้อมูล complaints ต้องใช้ `boot.ci(boot_complaints, ...)` หรือ object `b2` ตามชื่อใน Lab ไม่ใช่ส่ง object `b` ของ family income เข้าไป มิฉะนั้นจะได้ CI ของชุดข้อมูลผิดชุดแม้คำสั่งรันผ่าน
+
+### 5. Trace การทำงานของ `boot()` หนึ่งรอบ
+
+| State | ตัวอย่าง |
+|---|---|
+| Original data | `c(10, 20, 30)` |
+| Index ที่สุ่มได้ | `c(2, 2, 1)` |
+| `data[index]` | `c(20, 20, 10)` |
+| Statistic | mean เท่ากับ 16.667 |
+| เก็บผล | replicate หนึ่งค่าใน `boot_result[['t']]` |
+
+กระบวนการนี้ทำซ้ำ (R) รอบ การกระจายของ replicates ประมาณ sampling distribution ของ estimator ภายใต้ empirical distribution
+
+### 6. อ่าน `boot` output อย่างไร
+
+- `original` คือ statistic จาก sample เดิม
+- `bias` คือ mean ของ Bootstrap replicates ลบ original statistic
+- `std. error` คือ SD ของ Bootstrap replicates
+- `t0` ใน object คือ original statistic
+- `t` เป็น matrix ของ replicate statistics
+- `boot.ci()` แปลง distribution นี้เป็นช่วงตามวิธีที่เลือก
+
+อย่าสับสน `t` ใน `boot` object กับ Student's t statistic ชื่อนี้เป็นโครงสร้างของ package ไม่ได้หมายความว่า Bootstrap ใช้ t distribution เสมอ
+
+### 7. Template คำตอบข้อสอบ Resampling
+
+1. นิยาม estimator และคำนวณจาก sample เดิม
+2. ระบุ resampling scheme: leave-one-out หรือ sampling with replacement
+3. ระบุจำนวน replicates และหน่วยที่ resample
+4. อธิบายว่าแต่ละ replicate คำนวณ statistic อย่างไร
+5. รายงาน bias, SE หรือ CI พร้อมตัวเลข
+6. ตีความในบริบทและแยก Monte Carlo error จาก sampling uncertainty
+7. ตรวจ assumptions: IID, sample representativeness และ dependence structure
+
+ตัวอย่างคำตอบ Bootstrap CI:
+
+> สุ่มข้อมูลขนาด (n) แบบคืนที่จาก empirical distribution จำนวน 2,000 รอบ คำนวณ sample mean ทุกครั้ง แล้วใช้ quantiles ของ 2,000 replicates สร้าง percentile CI ผลได้ช่วง 82.52 ถึง 97.90 หน่วย ช่วงนี้ประมาณ uncertainty ของ population mean ภายใต้เงื่อนไขว่า sample เป็นตัวแทนและ observations มีโครงสร้างอิสระตามที่ resample
+
+### 8. R debugging ที่ควรรู้
+
+- `could not find function 'boot'`: ยังไม่ได้ `library(boot)` หรือใช้ `boot::boot()`
+- `unused argument`: function statistic มี signature ไม่ตรง `function(data, index)`
+- SE เท่ากับ 0: function ไม่ได้ใช้ `index`
+- ผลไม่เหมือน solution: seed, (R), quantile convention หรือ package version ต่างกัน
+- CI ของข้อมูลผิดชุด: ส่ง `boot.out` ผิด object
+- Missing values: ใช้ `mean(data[index], na.rm=TRUE)` เมื่อมีเหตุผลให้ตัด NA และรายงาน missing-data decision
+
 ## 25. Source Coverage Audit
 
 | เนื้อหาในสไลด์ | ตำแหน่งใน Master Note |
@@ -794,6 +948,7 @@ $$
 | Exercise 2: Family income | §10 |
 | Exercise 3: Skewed data | §11 |
 | การใช้ software และการเปรียบเทียบ | §§12–15 |
+| `lab_03_jackknife_bootstrap_solution.pdf`, pp. 1–9 | R Jackknife/Bootstrap, three worked labs, output interpretation และ debugging |
 
 ## 26. References
 
@@ -809,3 +964,7 @@ $$
 ### คำอธิบายเพิ่มเติมและการคำนวณ
 
 ตัวเลขใน Worked Examples ตรวจสอบซ้ำด้วย Python/NumPy และ SciPy โดยกำหนด seed = 2026 สำหรับ Bootstrap simulation ผล Bootstrap อาจต่างเล็กน้อยตาม seed, จำนวน resamples และ quantile convention ของ software
+
+### Lab source
+
+1. `dads6001-applied_statistics/lab/lab_03_jackknife_bootstrap_solution.pdf`, pp. 1–9.
