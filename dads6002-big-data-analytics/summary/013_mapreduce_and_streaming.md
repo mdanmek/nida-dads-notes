@@ -1,6 +1,6 @@
 # บทที่ 01.3: MapReduce, Hadoop Streaming และการปรับประสิทธิภาพ
 
-> **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 22–38  
+> **จากเอกสาร:** [dads6002_01_hadoop.pdf](../lecture/dads6002_01_hadoop.pdf) หน้า 22–38 และ [lab_01_hadoop.pdf](../lab/lab_01_hadoop.pdf) หน้า 4–5  
 > **Core:** Map → partition/shuffle/sort → Reduce, Word Count, Shared Friendship, Python Streaming และ Combiner
 
 > [← บทที่ 01.2](012_hdfs_and_yarn.md) | [สารบัญ](000_readme.md) | [บทที่ 01.4 →](014_workflow_orchestration.md)
@@ -35,6 +35,8 @@
 สมมติมีกระดาษสองแผ่น: `cat runs` และ `cat sleeps` ให้คนสองคนอ่านคนละแผ่นและเขียนบัตรคำ `cat:1`, `runs:1` หรือ `sleeps:1` จากนั้นเจ้าหน้าที่รวบบัตรชื่อเดียวกันไว้กองเดียว แล้วบวกเลขในแต่ละกอง ผลคือ `cat:2`, `runs:1`, `sleeps:1`
 
 นี่คือเรื่องทั้งหมดในภาพกว้าง: **กระจายการอ่านและสร้างหลักฐานย่อย → รวมหลักฐานที่มีชื่อเดียวกัน → สรุปแต่ละกลุ่ม** อุปมานี้ช่วยอธิบายการไหลของข้อมูล แต่ในระบบจริงไม่มีเจ้าหน้าที่คนเดียว; framework กระจายทั้งการอ่าน การส่ง และการสรุปไปหลายเครื่อง
+
+จากตัวอย่างนี้ให้แยกสิ่งที่ผู้เขียนโปรแกรมกำหนดออกจากสิ่งที่ระบบทำให้ ผู้เขียนกำหนดวิธีอ่านหนึ่ง record แล้วสร้างบัตรคำ และกำหนดวิธีรวมตัวเลขของบัตรคำชื่อเดียวกัน ส่วน framework รับผิดชอบแบ่ง input เป็นงานย่อย เริ่ม process บน worker รวบรวมบัตรคำจากหลายเครื่อง จัดบัตรชื่อเดียวกันไปยังปลายทางเดียว และเริ่มงานใหม่เมื่อ task ล้ม หากจำเพียงว่า “Map ก่อน Reduce” เราจะยังไม่เห็นว่าคุณค่าหลักของ MapReduce อยู่ที่การจัดการงานกระจายและ failure รอบฟังก์ชันสองตัวนี้
 
 ### ศัพท์พื้นฐานตามลำดับที่ต้องใช้
 
@@ -315,6 +317,16 @@ wears   1
 
 **Evaluate:** Mapper เขียนลงฐานข้อมูลโดยตรงแล้ว task ถูก retry มีความเสี่ยงอะไร?  
 **เฉลย:** side effect อาจเกิดซ้ำ แม้ MapReduce มอง task attempt ใหม่ว่าถูกต้อง ต้องใช้ idempotent key/transactional sink หรือเขียน output ผ่าน commit protocol แทน
+
+### Objective-to-Assessment Map
+
+| Objective | หลักฐานการเรียนรู้ |
+|---|---|
+| Trace MapReduce pipeline | Word Count table และคำถามเรื่อง key เดียวกัน |
+| ออกแบบ key | Shared Friendship และโจทย์ยอดขายวัน-สาขา |
+| เขียนและ debug Streaming | Local pipeline กับ deliberate failures ห้ากรณี |
+| เลือก Combiner | Counterexample ของ average-of-averages |
+| ตรวจ output | Token reconciliation, malformed tab และ final flush trace |
 
 ## Mastery Checklist
 
