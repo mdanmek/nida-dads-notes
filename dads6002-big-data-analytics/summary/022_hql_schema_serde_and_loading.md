@@ -1,21 +1,25 @@
 # บทที่ 02.2: HQL, Schema, SerDe and Loading
 
-> **จากเอกสาร:** `dads6002_02_hive.pdf` หน้า 6–15  
+> **จากเอกสาร:** [dads6002_02_hive.pdf หน้า 6–15](../lecture/dads6002_02_hive.pdf) และ [lab_02_hive.pdf หน้า 1–5](../lab/lab_02_hive.pdf)  
 > [← บทที่ 02.1](021_hive_foundations_and_storage.md) | [สารบัญ](000_readme.md) | [บทที่ 02.3 →](023_hive_analytics_and_joins.md)
 
-## Learning Objectives
+## เป้าหมายของบทเรียน
 
-สร้าง database/table, เลือก managed หรือ external, อธิบาย SerDe และ schema-on-read, เลือก data types และออกแบบ load/validation workflow ได้
+บทก่อนอธิบายว่า Hive ใช้ metadata ทำให้ไฟล์ถูกมองเป็นตาราง บทนี้จะตอบคำถามถัดไปว่าเราสร้างคำอธิบายนั้นอย่างไร และจะเกิดอะไรขึ้นเมื่อโครงสร้างที่ประกาศไม่ตรงกับข้อมูลจริง หลังอ่านจบ เราควรสร้าง database และ table ได้ เลือก managed หรือ external table จากผู้ที่เป็นเจ้าของไฟล์ อธิบาย schema-on-read และ SerDe ด้วยตัวอย่างหนึ่งบรรทัด ตลอดจนโหลดและตรวจข้อมูลโดยไม่สรุปว่า “คำสั่งรันผ่านเท่ากับข้อมูลถูกต้อง”
 
 ## พื้นฐานเชิงตารางก่อนเขียน HQL
 
-ก่อนอ่าน syntax ให้กำหนดความหมายของข้อมูลก่อน **table** คือมุมมองเชิงแถวและคอลัมน์ของชุดข้อมูล หนึ่ง **row** แทนหนึ่งหน่วยตาม grain เช่นหนึ่งรายการ PO ไม่ใช่หนึ่ง vendor ส่วน **column** แทนคุณลักษณะของหน่วยนั้น เช่น `po_id`, `vendor_id` และ `amount` คอลัมน์ที่ใช้ระบุหน่วยโดยไม่ซ้ำเรียก key และจำนวนค่าที่แตกต่างกันเรียก cardinality หากเราไม่รู้ว่า “หนึ่งแถวแทนอะไร” เราจะเลือก type, partition และการตรวจจำนวนแถวไม่ได้
+ก่อนอ่าน syntax ต้องรู้ก่อนว่าเรากำลังอธิบายข้อมูลแบบใด **ตาราง (table)** คือมุมมองข้อมูลเป็นแถวและคอลัมน์ **แถว (row หรือ record)** หนึ่งแถวต้องแทนหน่วยบางอย่างที่ชัดเจน เช่นหนึ่งบรรทัดของใบสั่งซื้อ ไม่ใช่หนึ่ง vendor ขณะที่ **คอลัมน์ (column)** เก็บคุณลักษณะของหน่วยนั้น เช่นรหัสใบสั่งซื้อ รหัส vendor และจำนวนเงิน
 
-ใช้ตัวอย่างเดียวตลอดบท: ไฟล์ `po_202608.csv` มีหนึ่ง row ต่อหนึ่ง PO line โดย `po_line_id` ควรไม่ซ้ำ, `vendor_id` เป็นรหัส และ `amount` เป็นมูลค่า Hive ไม่ได้บังคับความเป็นเอกลักษณ์นี้แทนเราโดยอัตโนมัติ มันอ่านไฟล์ตาม schema ที่ประกาศ ดังนั้น key และ grain เป็น data contract ที่ pipeline ต้องตรวจเอง
+คำว่า **grain** หมายถึงระดับรายละเอียดของหนึ่งแถว หากไฟล์มีหนึ่งแถวต่อ PO line แต่เราคิดว่าเป็นหนึ่งแถวต่อ PO ยอดรวมและจำนวนรายการจะถูกตีความผิดตั้งแต่ต้น **Key** คือคอลัมน์หรือชุดคอลัมน์ที่ใช้ระบุหรือเชื่อม records ส่วน **cardinality** ในบริบทนี้ช่วยบอกว่าคอลัมน์มีค่าที่แตกต่างกันมากน้อยเพียงใด ความหมายเหล่านี้ไม่ใช่ศัพท์เสริม แต่เป็นพื้นฐานสำหรับเลือก data type, partition และวิธีตรวจข้อมูล
+
+ใช้ตัวอย่างเดียวตลอดบท: ไฟล์ `po_202608.csv` มีหนึ่งแถวต่อหนึ่ง PO line โดย `po_line_id` ควรไม่ซ้ำ, `vendor_id` เป็นรหัส และ `amount` เป็นมูลค่า ข้อตกลงว่าแต่ละคอลัมน์หมายถึงอะไรและยอมรับค่าแบบใดเรียกว่า **สัญญาข้อมูล (data contract)** Hive อ่านไฟล์ตาม schema ที่ประกาศ แต่ไม่ได้บังคับความเป็นเอกลักษณ์ของ `po_line_id` แทนเราโดยอัตโนมัติ Pipeline จึงต้องตรวจ grain, key และคุณภาพข้อมูลเอง
 
 ## 1. จาก CLI สู่ HQL
 
-สไลด์ใช้ Hive CLI เช่น `hive`, `hive -e` และ `hive -f` เพื่อสอน interactive, inline และ script execution แนวคิดสำคัญยังใช้ได้ แต่ระบบใช้งานจริงมักเชื่อม HiveServer2 ผ่าน Beeline เพื่อแยก client จาก service และรองรับ authentication/authorization
+**HQL** คือภาษาที่ใช้บอก Hive ว่าต้องการสร้างโครงสร้าง เปลี่ยนข้อมูล หรืออ่านคำตอบ ส่วน **Command Line Interface (CLI)** เป็นเพียงช่องทางหนึ่งสำหรับส่งภาษา HQL เข้าไป สองสิ่งนี้ไม่ใช่เรื่องเดียวกัน เช่นเดียวกับภาษา SQL ที่สามารถส่งผ่านหลายโปรแกรมได้
+
+สไลด์หน้า 6 ใช้ Hive CLI สามรูปแบบ การพิมพ์ `hive` เปิดหน้าจอ interactive สำหรับส่งคำสั่งทีละชุด `hive -e` ส่งคำสั่งสั้นจาก shell โดยไม่เปิดหน้าจอ และ `hive -f` รันคำสั่งหลายบรรทัดจากไฟล์ `.hql` แนวคิดเรื่อง interactive, inline และ script ยังสำคัญ แม้ระบบใหม่มักเชื่อม HiveServer2 ผ่าน Beeline แทน Hive CLI แบบเก่า
 
 ```sql
 CREATE DATABASE IF NOT EXISTS log_data;
@@ -24,13 +28,17 @@ SHOW TABLES;
 DESCRIBE apache_log;
 ```
 
-DDL เปลี่ยน metadata ส่วน `SELECT` อ่านข้อมูล และ `INSERT`/`LOAD` เปลี่ยนสิ่งที่ table อ้างถึงหรือเก็บ การ run สำเร็จไม่ได้ยืนยันว่า row ถูก parse ถูกต้อง จึงต้องมี validation หลัง load
+คำสั่ง `CREATE DATABASE` และ `CREATE TABLE` อยู่ในกลุ่ม **Data Definition Language (DDL)** เพราะสร้างหรือเปลี่ยนคำอธิบายโครงสร้าง `SELECT` อ่านข้อมูล ส่วน `INSERT` และ `LOAD` ทำให้ตารางมีข้อมูลให้อ่าน จุดสำคัญคือการสร้าง table สำเร็จยืนยันเพียงว่า metadata ถูกสร้าง ไม่ได้ยืนยันว่าไฟล์มีโครงสร้างตรงกับ schema และการ load สำเร็จก็ยังไม่ได้พิสูจน์ว่าแต่ละ row ถูกแยกคอลัมน์ถูกต้อง
 
 ให้แยก “ภาษา” ออกจาก “ช่องทางส่งภาษา” HQL คือภาษาที่บอกสิ่งที่ต้องการ ส่วน Hive CLI, Beeline หรือ application client เป็นช่องทางส่งคำสั่ง สไลด์ใช้ Hive CLI เพื่อสาธิตได้ง่าย แต่ความรู้ที่ควรนำไปใช้คือ DDL/DML และ query semantics ไม่ใช่การยึดติดว่าต้องพิมพ์ผ่านคำสั่ง `hive` เท่านั้น ระบบจริงมักส่งคำสั่งผ่าน HiveServer2 และ Beeline เพื่อจัดการ session, authentication และหลายผู้ใช้ [Apache Hive documentation](https://hive.apache.org/docs/latest/)
 
 ## 2. Managed Table กับ External Table
 
-Managed table หมายถึง Hive เป็นเจ้าของ lifecycle ของ metadata และ data โดยปกติ `DROP TABLE` ลบทั้งคู่ External table หมายถึง Hiveจัดการ metadata แต่ไฟล์ถูกจัดการจากภายนอก เมื่อ drop จะลบ metadata แต่เก็บไฟล์ไว้ พฤติกรรมละเอียดขึ้นกับ version/configuration จึงควรทดสอบใน environment และไม่ใช้ `DROP` เป็นการทดลองกับ production data
+ก่อนเลือกชนิด table ให้ถามว่า **ใครเป็นเจ้าของวงจรชีวิตของไฟล์** คำว่า “เจ้าของ” ในที่นี้ไม่ได้หมายถึง Linux user แต่หมายถึงระบบใดมีสิทธิ์ตัดสินใจสร้าง ย้าย เก็บรักษา และลบไฟล์เหล่านั้น
+
+ถ้าเป็น **managed table** Hive เป็นผู้จัดการทั้ง metadata และข้อมูลของ table เมื่อเราสร้าง table แล้ว load ข้อมูล Hive จะนำไฟล์ไปอยู่ในพื้นที่ที่ Hive ดูแล โดยทั่วไปการ `DROP TABLE` จึงอาจลบทั้งคำอธิบายและข้อมูล วิธีนี้เหมาะกับ intermediate หรือ curated data ที่ Hive เป็นผู้สร้างและรับผิดชอบตลอดวงจรชีวิต
+
+ถ้าเป็น **external table** Hive ดูแลเฉพาะ metadata ที่ชี้ไปยังตำแหน่งไฟล์ แต่ไฟล์มีเจ้าของหรือผู้ใช้อื่นอยู่แล้ว เช่น raw data ที่ pipeline นำเข้าหรือไฟล์ที่ Spark ต้องใช้ร่วมกัน เมื่อ drop external table โดยหลัก Hive จะลบคำอธิบายของตารางแต่ปล่อยไฟล์ไว้ การเลือก external จึงไม่ใช่เรื่องความเร็ว แต่เป็นการป้องกันไม่ให้การจัดการ metadata ของ Hive ลบข้อมูลร่วมโดยไม่ตั้งใจ รายละเอียดบางอย่างขึ้นกับ version และ configuration จึงไม่ควรทดลอง `DROP` กับข้อมูล production
 
 | คำถาม | Managed | External |
 |---|---|---|
@@ -59,11 +67,13 @@ STORED AS TEXTFILE
 LOCATION '/user/student/external_table';
 ```
 
-การเลือกสองแบบนี้คือการตัดสิน “ownership” มากกว่าการตัดสิน “ความเร็ว” ถ้า pipeline อื่นเป็นผู้สร้าง raw files และ Spark/Hive ต้องใช้ร่วมกัน การให้ Hive ลบไฟล์เมื่อ drop metadata เป็นความเสี่ยง External table จึงเหมาะกว่า ในทางกลับกัน ถ้า Hive สร้าง intermediate result และรับผิดชอบวงจรชีวิตทั้งหมด managed table ทำให้ cleanup เป็นระบบกว่า ก่อนใช้ `DROP TABLE` ต้องตอบให้ได้ว่าใครเป็นเจ้าของ data และมีระบบใดอ้าง path เดียวกันอยู่บ้าง
+ตัวอย่างเช่นไฟล์ raw PO ถูกวางไว้ที่ `/data/raw/po/` โดยระบบ ingestion และทั้ง Hive กับ Spark ต้องอ่าน path นี้ การสร้าง external table ทำให้ Hive เพิ่มมุมมองแบบตารางโดยไม่รับสิทธิ์ลบไฟล์ร่วม แต่ถ้า Hive สร้างตารางสรุปชั่วคราวสำหรับงานหนึ่งและไม่มีระบบอื่นใช้ managed table จะช่วยให้การ cleanup อยู่ภายใต้ Hive อย่างเป็นระบบ ก่อนใช้ `DROP TABLE` จึงต้องตอบให้ได้ว่าไฟล์เป็นของใครและมีระบบใดอ้าง path เดียวกันอยู่บ้าง
 
 ## 3. Schema-on-read คืออะไร
 
-Hive ผูก schema ตอนอ่าน ไม่ได้ตรวจทุก field แบบ transactional database ตอน `LOAD DATA` หาก type หรือจำนวน fields ไม่ตรง query อาจคืน `NULL` แทน การโหลดสำเร็จจึงหมายถึงไฟล์ถูกย้าย/อ้างถึงสำเร็จ ไม่ได้หมายถึงข้อมูลมีคุณภาพ
+คำว่า **schema** หมายถึงคำอธิบายโครงสร้าง เช่นมีคอลัมน์อะไร เรียงอย่างไร และแต่ละคอลัมน์เป็นชนิดใด ส่วน **schema-on-read** หมายถึงระบบนำ schema มาใช้ตีความข้อมูลตอนอ่าน ไม่ได้ตรวจและแปลงทุกค่าจนผ่านกฎทั้งหมดตั้งแต่ตอนนำไฟล์เข้ามา
+
+ลองนึกถึงไฟล์ที่มีข้อความ `1001|250.50` เราอาจประกาศว่าค่าแรกคือ `po_id INT` และค่าที่สองคือ `amount DECIMAL` เมื่อ query อ่านบรรทัดนี้ Hive จึงแยก fields แล้วพยายามแปลงชนิดตาม schema หากไฟล์จริงมี `ABC|300.00` ค่า `ABC` ไม่สามารถเป็น integer ได้ จึงอาจกลายเป็น `NULL` ตอนอ่าน ทั้งที่คำสั่งนำไฟล์เข้า table ก่อนหน้านั้นไม่ได้รายงานข้อผิดพลาด
 
 ตัวอย่าง input ที่คาดว่า `po_id INT, amount DOUBLE`:
 
@@ -75,21 +85,31 @@ ABC	300.00
 
 แถวสองมี `po_id` ผิดชนิดและแถวสามมี `amount` ผิดชนิด ผลลัพธ์อาจมี `NULL` การตรวจขั้นต่ำคือ total rows, null-by-column, rejected-pattern count และยอดรวมเทียบ source
 
-คำว่า schema-on-read ไม่ได้แปลว่า “ไม่มี schema” แต่แปลว่า schema ถูกนำมาใช้ตีความเมื่ออ่าน ข้อดีคือรับไฟล์ดิบได้เร็วและเปลี่ยนมุมมองได้ยืดหยุ่น ข้อเสียคือความผิดพลาดอาจถูกค้นพบช้า เช่น load เสร็จโดยไม่ error แต่เดือนถัดมาคอลัมน์สลับตำแหน่งจน `amount` กลายเป็น `NULL` ถ้า dashboard ใช้ `SUM(amount)` โดยไม่ตรวจ null ยอดอาจต่ำลงอย่างเงียบ ๆ ดังนั้น staging table ควรเก็บค่าดิบเป็น string แล้ว curated step ค่อยตรวจรูปแบบ cast และแยก rejected rows
+ดังนั้น schema-on-read ไม่ได้แปลว่า “ไม่มี schema” แต่หมายถึงจุดที่ schema ถูกบังคับใช้ต่างจากระบบที่ตรวจเข้มตอนเขียน ข้อดีคือรับไฟล์ดิบได้รวดเร็วและเปลี่ยนวิธีมองข้อมูลได้ยืดหยุ่น ข้อเสียคือความผิดพลาดอาจถูกค้นพบช้า หากเดือนถัดมาผู้ส่งไฟล์สลับลำดับคอลัมน์ Query อาจยังรันแต่ `amount` กลายเป็น `NULL` และ `SUM(amount)` ต่ำกว่าความจริงโดยไม่มีข้อความแจ้งข้อผิดพลาดที่ชัดเจน
+
+วิธีที่ปลอดภัยคือสร้าง **staging table** ซึ่งเก็บ fields ดิบเป็น `STRING` ก่อน แล้วใช้ขั้น **curated** ตรวจรูปแบบ แปลงชนิด และแยก rejected rows วิธีนี้ทำให้เรายังเห็นค่าต้นฉบับเมื่อ cast ไม่ผ่านและอธิบายได้ว่าข้อมูลใดถูกตัดออก
 
 ## 4. SerDe: สะพานระหว่าง bytes กับ columns
 
-SerDe ย่อจาก Serializer/Deserializer ฝั่งอ่าน Deserializer แปล record ในไฟล์เป็น fields ที่ Hive เข้าใจ ฝั่งเขียน Serializer แปลง row กลับเป็นรูปแบบจัดเก็บ SerDe ไม่ใช่เพียง delimiter แต่สามารถ parse format ที่ซับซ้อน เช่น web log ด้วย regular expression
+แม้ Hive จะมี schema แล้ว ระบบยังต้องรู้ว่าจะเปลี่ยนข้อความหนึ่งบรรทัดให้เป็นหลายคอลัมน์อย่างไร หน้าที่นี้เป็นของ **Serializer/Deserializer หรือ SerDe**
+
+ฝั่งอ่านใช้ **Deserializer** รับ record จากไฟล์แล้วแยกออกเป็น fields ที่ Hive เข้าใจ เช่นรับ `H001|V020|1250.50` แล้วแยกเป็น `H001`, `V020` และ `1250.50` จากนั้น Hive จึงนำแต่ละ field ไปตีความตามชนิดคอลัมน์ ฝั่งเขียนใช้ **Serializer** ทำทางกลับกัน คือแปลง row ภายใน Hive ให้อยู่ในรูปที่บันทึกเป็นไฟล์ได้ เอกสาร Apache อธิบายว่า SerDe เป็นส่วนติดต่อด้าน input/output และสามารถรองรับรูปแบบที่กำหนดเองได้ [Apache Hive SerDe](https://hive.apache.org/docs/latest/user/serde/)
+
+SerDe จึงไม่ใช่เพียงเครื่องหมายคั่นคอลัมน์ สำหรับไฟล์ง่ายอาจใช้ delimiter แต่ log ที่มีช่องว่างและข้อความอยู่ในเครื่องหมาย quote ต้องใช้กติกาซับซ้อนกว่า เช่น regular expression อย่างไรก็ตาม SerDe ทำหน้าที่แปล representation ไม่ได้ตรวจ business rule เช่นจำนวนเงินต้องมากกว่าศูนย์หรือ vendor ต้องมีอยู่ใน master
 
 คำศัพท์ต้องอ่านตามลำดับ: raw line → record boundary → pattern/delimiter → fields → type conversion → Hive row หาก regex จับกลุ่มไม่ครบ column mapping จะเลื่อนหรือกลายเป็น `NULL`
 
 สไลด์แสดง `RegSerde` แต่ class ที่ใช้จริงควรตรวจจาก Hive distribution และมักพบ `RegexSerDe` การคัดลอก class name จากสไลด์โดยไม่ตรวจ JAR/version เป็น failure mode สำคัญ
 
-ลองตาม raw line `PO1001|V020|1250.50` ทีละขั้น InputFormat/record reader กำหนดว่าหนึ่งบรรทัดคือหนึ่ง record จากนั้น Deserializer แยกสาม fields ด้วย delimiter หรือ regex แล้ว Hive แปลง field ที่สามเป็นชนิดตัวเลขตาม schema ผลคือ row `(PO1001, V020, 1250.50)` ที่ operators ใช้ต่อได้ หาก regex จับได้เพียงสอง groups คอลัมน์ที่สามไม่มีค่า หากจับ groups เกินหรือเรียงผิด ค่าจะไปอยู่ผิด column แม้ query ยังรันได้ การทดสอบ SerDe จึงต้องเทียบ raw sample กับผลลัพธ์ทีละ field ไม่ใช่ดูเฉพาะ `COUNT(*)`
+ลองติดตาม raw line `PO1001|V020|1250.50` ทีละขั้น ระบบอ่านหนึ่งบรรทัดเป็นหนึ่ง record จากนั้น Deserializer ใช้ `|` แยกเป็นสาม fields แล้ว Hive แปลง field ที่สามเป็นชนิดตัวเลขตาม schema ผลคือ row `(PO1001, V020, 1250.50)` ที่คำสั่งถัดไปนำไปกรองหรือรวมยอดได้ หากกติกาจับได้เพียงสอง fields คอลัมน์ที่สามจะไม่มีค่า และหากลำดับกติกาผิด ค่าจะไปอยู่ผิดคอลัมน์แม้ query ยังรันได้ การทดสอบ SerDe จึงต้องเทียบ raw sample กับผลลัพธ์ทีละ field ไม่ใช่ดูเฉพาะ `COUNT(*)`
 
 Serializer ทำเส้นทางกลับกันเมื่อต้องเขียน row ออกเป็นไฟล์ แต่ไม่ควรเหมารวมว่า SerDe เป็นตัวตรวจ business rules มันแปล representation เท่านั้น กฎอย่าง `amount >= 0`, vendor ต้องมีใน master หรือ `po_line_id` ต้อง unique อยู่ในชั้น validation/curation
 
 ## 5. Regex ที่จำเป็นต่อการอ่าน log
+
+**Regular expression หรือ regex** คือภาษาขนาดเล็กสำหรับบรรยายรูปแบบของข้อความ ใน Lab web log หนึ่งบรรทัดมี host, object ที่อยู่ในเครื่องหมาย quote และตัวเลขเวลา ช่องว่างทั่วไปจึงไม่สามารถใช้เป็น delimiter อย่างตรงไปตรงมา เพราะ object เองอาจมีรูปแบบเฉพาะ Regex ช่วยระบุว่าแต่ละส่วนเริ่มและจบตรงไหน
+
+อย่าเริ่มจากการท่องสัญลักษณ์ทั้งหมด ให้อ่าน pattern `([^ ]+) "([^"]+)" ([0-9]+)` เป็นสามกลุ่ม กลุ่มแรกเก็บอักขระที่ไม่ใช่ช่องว่างตั้งแต่หนึ่งตัวขึ้นไป กลุ่มที่สองเก็บอักขระภายใน quote และกลุ่มที่สามเก็บตัวเลขตั้งแต่หนึ่งหลักขึ้นไป วงเล็บแต่ละคู่สร้าง capture group ซึ่งจะถูกส่งให้คอลัมน์ตามลำดับ
 
 | สัญลักษณ์ | ความหมาย | ตัวอย่าง |
 |---|---|---|
@@ -106,7 +126,7 @@ Serializer ทำเส้นทางกลับกันเมื่อต้
 
 ## 6. Data Types
 
-Primitive types ในสไลด์มี integer, floating point, boolean, string และ timestamp คำว่า `bint` ในสไลด์ควรแก้เป็น `BIGINT` ใน HQL และ precision ของ timestamp ต้องตรวจตาม version
+Data type บอก Hive ว่าควรตีความ field และอนุญาตการคำนวณแบบใด `INT` และ `BIGINT` ใช้กับจำนวนเต็ม `FLOAT` และ `DOUBLE` ใช้กับเลขทศนิยมแบบประมาณค่า `BOOLEAN` ใช้กับจริง/เท็จ `STRING` ใช้กับข้อความ และ `TIMESTAMP` ใช้กับวันเวลา คำว่า `bint` ในสไลด์เป็นการเขียนคลาดเคลื่อน ชนิดที่ถูกต้องใน HQL คือ `BIGINT`
 
 Complex types ช่วยรักษาโครงสร้างซ้อน:
 
@@ -116,7 +136,7 @@ MAP<STRING, INT>
 STRUCT<name:STRING, age:INT>
 ```
 
-เลือก type ให้สอดคล้องกับ semantics ไม่ใช่เพียงให้ load ผ่าน เช่นรหัส vendor ที่มี leading zero ควรเป็น `STRING` ไม่ใช่ integer และเงินควรใช้ `DECIMAL(precision, scale)` เมื่อความแม่นยำสำคัญ มากกว่า FLOAT
+เลือกชนิดจากความหมาย ไม่ใช่จากหน้าตาว่ามีแต่ตัวเลข เช่น zipcode `00125` และ vendor `0007` เป็นรหัส ไม่ได้ใช้บวกหรือลบ และเลขศูนย์นำหน้ามีความหมาย จึงควรเป็น `STRING` ส่วนจำนวนเงินต้องรักษาความแม่นยำ จึงควรพิจารณา `DECIMAL(precision, scale)` มากกว่า floating point ที่เป็นค่าประมาณ
 
 ## 7. Loading Data
 
@@ -125,7 +145,11 @@ LOAD DATA INPATH '/user/student/apache.log'
 OVERWRITE INTO TABLE apache_log;
 ```
 
-`OVERWRITE` แทนข้อมูลเดิมใน target scope จึงต้องตรวจ path และ partition อย่างเข้มงวด ส่วน `INSERT OVERWRITE ... SELECT` สร้างข้อมูลจาก query และเหมาะกับ transformation ที่ต้อง parse/clean
+`LOAD DATA` ไม่ใช่กระบวนการ ETL ที่อ่านแต่ละแถว ตรวจ schema แล้วเขียนใหม่ เอกสาร Apache ระบุว่าโดยหลักเป็นการ copy หรือ move ไฟล์ไปยังตำแหน่งของ table และไม่ได้ทำ transformation ระหว่าง load [Apache Hive DML](https://hive.apache.org/docs/latest/language/languagemanual-dml/) ด้วยเหตุนี้ไฟล์ที่ผิด delimiter หรือผิดชนิดอาจเข้ามาอยู่ใน table ได้ แล้วปัญหาจึงปรากฏตอน query ตามหลัก schema-on-read
+
+คำว่า `INPATH` โดยไม่มี `LOCAL` อ้างถึง path ใน filesystem ที่ Hive ใช้ เช่น HDFS และการ load อาจย้ายไฟล์ต้นทาง ส่วน `LOCAL INPATH` อ่านจาก local filesystem ของเครื่องที่บริการ Hive มองเห็น คำว่า `OVERWRITE` ให้แทนข้อมูลเดิมในขอบเขตเป้าหมาย จึงต้องตรวจ table, partition และ path ให้ถูกก่อนรัน
+
+ต่างจาก `LOAD DATA`, คำสั่ง `INSERT ... SELECT` นำผลจาก query ไปเขียนใน table ปลายทาง จึงเหมาะกับการแปลง staging data ให้เป็น curated data เช่นกรองค่าที่ผิด cast และเลือกคอลัมน์ใหม่ ความแตกต่างสั้น ๆ คือ LOAD จัดวางไฟล์ ส่วน INSERT สร้างข้อมูลผลลัพธ์จากการประมวลผล
 
 ### Safe loading workflow
 
@@ -257,7 +281,18 @@ FROM weblog
 WHERE host IS NULL OR object IS NULL OR time IS NULL;
 ```
 
+Lab ต้นฉบับโหลด `wlog` จาก `/user/cloudera/weblog/wlog` เข้า managed table `weblogtest` แล้วจึงสร้าง external table ให้ชี้กลับไปที่ `/user/cloudera/weblog` ขั้นนี้อาจทำให้ external table ไม่พบไฟล์ เพราะ `LOAD DATA INPATH` อาจย้าย `wlog` ออกจาก raw path ไปยังพื้นที่ของ managed table วิธีที่ทำซ้ำได้คือเก็บ raw copy แยกสำหรับ external table หรือสร้าง external table ให้ชี้ raw path ก่อน แล้วใช้ `INSERT ... SELECT` สร้าง managed/curated table ภายหลัง
+
 การทดลอง failure ที่ให้ความรู้ที่สุดคือเปลี่ยน delimiter ของ `users` จาก `|` เป็น `,` หรือเอาเครื่องหมาย quote ออกจาก regex แล้วเปรียบเทียบ sample rows กับ null counts จากนั้นคืน DDL ให้ถูกต้อง หลักฐานว่าซ่อมสำเร็จคือจำนวนแถวตรง source, fields ไม่เลื่อน และ parse failures เป็นศูนย์สำหรับข้อมูลที่ตรง contract
+
+## แผนผังการประเมินความเข้าใจ
+
+| เป้าหมาย | หลักฐานในบท | คำถาม/กิจกรรมตรวจความเข้าใจ |
+|---|---|---|
+| เลือก managed/external จาก ownership | ตัวอย่าง raw PO ที่ Hive/Spark ใช้ร่วมกัน | อธิบายผลของ `DROP TABLE` และผู้ที่ควรควบคุมไฟล์ |
+| อธิบาย schema-on-read | ตัวอย่าง `ABC|300.00` | ทำนายค่าเมื่อ cast ไม่ผ่านและออกแบบ null check |
+| trace SerDe | `PO1001|V020|1250.50` และ web log | จับคู่ raw text กับ capture groups และ typed columns |
+| แยก LOAD กับ INSERT | Safe loading workflow และ Lab MovieLens | ตรวจ path ก่อน/หลัง load และ reconcile source/target/reject |
 
 ## สะพานจาก rows ที่อ่านได้ไปสู่ analytics
 
@@ -277,7 +312,7 @@ WHERE host IS NULL OR object IS NULL OR time IS NULL;
 
 **1. ทำไม load สำเร็จยังไม่พอ?** เพราะ schema-on-read อาจยังไม่ parse/type-check จน query ทำงาน
 
-**2. Raw files ถูกใช้ร่วมกับ Spark ควรเลือก table ใด?** External table เหมาะกว่าเพราะ Hiveไม่ควรเป็นเจ้าของ lifecycle เพียงระบบเดียว
+**2. Raw files ถูกใช้ร่วมกับ Spark ควรเลือก table ใด?** External table เหมาะกว่า เพราะไม่ควรให้ Hive เป็นเจ้าของวงจรชีวิตของไฟล์ที่หลายระบบใช้ร่วมกันเพียงระบบเดียว
 
 **3. รหัส `00125` ควรเป็น INT หรือ STRING?** STRING เพราะเลขศูนย์นำหน้าเป็นส่วนของ identifier ไม่ใช่ปริมาณ
 
@@ -305,3 +340,5 @@ WHERE host IS NULL OR object IS NULL OR time IS NULL;
 - [Apache Hive DDL](https://hive.apache.org/docs/latest/language/languagemanual-ddl/)
 - [Managed vs. External Tables](https://hive.apache.org/docs/latest/language/managed-vs--external-tables/)
 - [Apache Hive Tutorial](https://hive.apache.org/docs/latest/user/tutorial/)
+- [Apache Hive DML](https://hive.apache.org/docs/latest/language/languagemanual-dml/)
+- [Apache Hive SerDe](https://hive.apache.org/docs/latest/user/serde/)
