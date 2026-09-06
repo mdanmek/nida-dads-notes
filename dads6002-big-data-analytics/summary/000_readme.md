@@ -95,6 +95,19 @@ flowchart TD
 
 ลำดับนี้เริ่มจากเหตุผลที่ต้องใช้ distributed system ต่อด้วย storage/resource management, distributed processing และ workflow ก่อนยกระดับสู่ SQL-based analytics ด้วย Hive
 
+## เส้นทาง Theory → Lab → Validation
+
+Lab ไม่ได้แยกเป็นบทใหม่ เพราะควรอ่านทันทีหลังเข้าใจกลไกที่มันพิสูจน์ แต่ละกิจกรรมจึงถูกผสานไว้ในบ้านหลักดังนี้:
+
+| Lab source | อ่านทฤษฎีก่อน | สิ่งที่ลงมือทำ | หลักฐานว่าผ่าน |
+|---|---|---|---|
+| [Lab 01 Hadoop หน้า 1–3](../lab/lab_01_hadoop.pdf) | [01.2 HDFS และ YARN](012_hdfs_and_yarn.md) | local file ↔ HDFS, `put/get/cp/rm` | `diff`, HDFS path และเนื้อหาตรงกัน |
+| [Lab 01 Hadoop หน้า 4–5](../lab/lab_01_hadoop.pdf) + [mapper](../lab/lab_01_hadoop_mapper.py) / [reducer](../lab/lab_01_hadoop_reducer.py) | [01.3 MapReduce และ Streaming](013_mapreduce_and_streaming.md) | local pipeline และ Hadoop Streaming Word Count | key counts และผลรวม tokens ตรง input |
+| [Lab 02 Hive หน้า 1–4](../lab/lab_02_hive.pdf) | [02.2 HQL, Schema, SerDe และ Loading](022_hql_schema_serde_and_loading.md) | DDL, MovieLens, managed/external, RegexSerDe | row count, sample fields และ null checks ผ่าน |
+| [Lab 02 Hive หน้า 3–5](../lab/lab_02_hive.pdf) | [02.3 Analytics และ Joins](023_hive_analytics_and_joins.md) | aggregate users และ web logs | group grain และผลรวม counts reconcile |
+
+วิธีอ่านที่แนะนำคืออ่านคำอธิบายจนตอบได้ว่า input → mechanism → output คืออะไร จากนั้นทำนายผลก่อนรัน Lab เก็บผลตรวจสอบ และจงใจทำ failure ที่กำหนดไว้หนึ่งครั้ง การจำคำสั่งโดยไม่ทำสามขั้นนี้อาจช่วยให้พิมพ์ตามได้ แต่ยังไม่พอสำหรับการสอบวิเคราะห์หรือวินิจฉัยระบบจริง
+
 ### สะพานเชื่อมแนวคิดระหว่างเอกสาร 01 และ 02
 
 ชุด Hadoop อธิบายกลไกด้านล่าง: HDFS เก็บไฟล์, YARN จัดสรรทรัพยากร, MapReduce แบ่งและรวมงาน และ orchestrator ควบคุมหลาย jobs เมื่อเข้าสู่ Hive เราไม่ได้ทิ้งกลไกเหล่านั้น แต่เพิ่ม abstraction แบบตาราง Hive ใช้ metadata อธิบายไฟล์และแปล HQL เป็น execution plan ทำให้นักวิเคราะห์ระบุผลที่ต้องการโดยไม่เขียน Mapper/Reducer ทุกครั้ง
@@ -110,6 +123,7 @@ flowchart TD
 - อธิบาย Hive, Metastore, tables, partitions และ buckets
 - สร้าง HQL schema, SerDe และ staging-to-curated load flow
 - เขียน aggregation และ joins พร้อมตรวจ grain, unmatched keys และ totals
+- รัน Lab Hadoop/Hive พร้อมแยก local/HDFS, ตรวจ data contract และอธิบาย failure ได้
 
 ## Numbering Standard
 
@@ -145,12 +159,15 @@ flowchart TD
 - [ ] อธิบาย schema-on-read และ SerDe ได้
 - [ ] ตรวจ row multiplication และ unmatched keys หลัง join ได้
 - [ ] ออกแบบ retry, validation และ reconciliation สำหรับ pipeline ได้
+- [ ] ทำ Lab 01–02 โดยทำนายผล เก็บหลักฐาน และซ่อม deliberate failure ได้
 
 ## Source Coverage
 
 - `dads6002_00_course_syllabus.pdf` หน้า 1–7 ครอบคลุมข้อมูลรายวิชา เป้าหมาย คำอธิบาย ผลการเรียนรู้ แผนสัปดาห์ การประเมิน และเอกสารหลักในไฟล์นี้
 - `dads6002_01_hadoop.pdf` หน้า 1–43 ครอบคลุมในบท 01.1–01.4
 - `dads6002_02_hive.pdf` หน้า 1–21 ครอบคลุมในบท 02.1–02.3
+- `lab_01_hadoop.pdf` หน้า 1–5 และ Python mapper/reducer ครอบคลุมในบท 01.2–01.3
+- `lab_02_hive.pdf` หน้า 1–5 ครอบคลุมในบท 02.2–02.3
 
 ## Suite Review
 
@@ -158,6 +175,7 @@ flowchart TD
 - ทุกบทมี source range, prerequisites, teaching layer, practice, exam focus และ mastery checks
 - Hadoop → Hive เชื่อมผ่าน HDFS, MapReduce, metadata และ SQL abstraction
 - Hive หน้า 1–5 มีบ้านหลักใน 02.1, หน้า 6–15 ใน 02.2 และหน้า 16–21 ใน 02.3 โดยไม่มีช่วงหน้าตกหล่น
+- Lab ทุกชุดมีบ้านหลักตามแนวคิด ไม่สร้างไฟล์ซ้ำ และเพิ่ม prediction, expected evidence, deliberate failure กับ validation แล้ว
 - โฟลเดอร์ `02_hive/` ไม่ใช่ canonical suite และคงไว้เฉพาะ backward compatibility
 
 ## References
