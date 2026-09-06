@@ -163,6 +163,50 @@ LEFT JOIN vendor v ON p.vendor_id = v.vendor_id
 WHERE v.vendor_id IS NULL;
 ```
 
+## Lab จากชั้นเรียน: Aggregation บน MovieLens และ Web Log
+
+ส่วนนี้ต่อจากการสร้าง `users` และ `weblog` ใน [บท 02.2](022_hql_schema_serde_and_loading.md) และมาจาก [Lab 02 Hive หน้า 3–5](../lab/lab_02_hive.pdf) จุดประสงค์ไม่ใช่เพียงให้ query รัน แต่ให้เห็นว่า `GROUP BY` เปลี่ยน grain อย่างไร
+
+ตัวอย่างแรกเปลี่ยนจากหนึ่ง row ต่อผู้ใช้เป็นหนึ่ง row ต่อรหัสไปรษณีย์:
+
+```sql
+SELECT
+    zipcode,
+    COUNT(*) AS user_count,
+    AVG(age) AS avg_age
+FROM users
+GROUP BY zipcode
+ORDER BY user_count DESC;
+```
+
+ก่อนรัน ให้ทำนายว่า output rows จะเท่ากับจำนวน `zipcode` ที่แตกต่างกัน ไม่ใช่จำนวน users แล้วตรวจด้วย:
+
+```sql
+SELECT COUNT(*) AS source_rows FROM users;
+SELECT COUNT(DISTINCT zipcode) AS expected_group_rows FROM users;
+SELECT SUM(user_count) AS reconciled_rows
+FROM (
+    SELECT zipcode, COUNT(*) AS user_count
+    FROM users
+    GROUP BY zipcode
+) g;
+```
+
+`reconciled_rows` ต้องเท่ากับ `source_rows` หากไม่มี row ถูก filter ส่วน `AVG(age)` เป็นค่าเฉลี่ยต่อคนในแต่ละกลุ่ม ไม่ควรนำค่าเฉลี่ยของแต่ละ zipcode ไปเฉลี่ยต่ออีกครั้งโดยไม่ถ่วงด้วย `user_count`
+
+ตัวอย่างที่สองเปลี่ยนจากหนึ่ง row ต่อ log event เป็นหนึ่ง row ต่อ object:
+
+```sql
+SELECT object, COUNT(*) AS hit_count
+FROM weblog
+GROUP BY object
+ORDER BY hit_count DESC;
+```
+
+ตรวจยอดรวมของ `hit_count` เทียบกับ `COUNT(*)` จาก `weblog` และตรวจ `parse_failures` จากบทก่อนก่อนเชื่อผล หาก regex ทำให้ `object` เป็น `NULL` การ aggregate อาจสร้างกลุ่ม `NULL` ขนาดใหญ่ ซึ่งเป็นสัญญาณ data quality ไม่ใช่ object ที่ได้รับความนิยมจริง
+
+ทดลองให้พังโดยแก้ DDL delimiter/regex ในบท 02.2 แล้วรัน query เดิม สังเกตว่า SQL ยังอาจจบโดยไม่ error แต่ grain และค่ากลุ่มผิด จากนั้นซ่อม SerDe และพิสูจน์ด้วย row reconciliation นี่เชื่อมบทเรียนสำคัญว่า query syntax ถูกไม่ได้รับประกันคำตอบธุรกิจถูก
+
 ## Troubleshooting
 
 | อาการ | สาเหตุที่น่าจะเป็น | การตรวจ |
@@ -197,10 +241,11 @@ WHERE v.vendor_id IS NULL;
 - trace join ทั้งห้าชนิดโดยไม่เดาจากชื่ออย่างเดียว
 - ตรวจ uniqueness, unmatched keys, row count และ totals ได้
 - ใช้ `EXPLAIN` และ key distribution ตั้งสมมติฐานเรื่อง performance ได้
+- รันและ reconcile aggregation จาก MovieLens/web log โดยตรวจ grain และ parse failures ก่อนตีความได้
 
 ## Source Coverage และ References
 
-ครอบคลุม PDF หน้า 16–21: grouping, aggregate functions, map-side aggregation, CTAS, inner/outer/semi joins และ join diagram
+ครอบคลุม PDF หน้า 16–21: grouping, aggregate functions, map-side aggregation, CTAS, inner/outer/semi joins และ join diagram รวมทั้ง aggregation exercises ใน [Lab 02 Hive หน้า 3–5](../lab/lab_02_hive.pdf)
 
 - [Apache Hive Language Manual](https://hive.apache.org/docs/latest/language/)
 - [Apache Hive Cost-Based Optimization](https://hive.apache.org/docs/latest/user/cost-based-optimization-in-hive/)
