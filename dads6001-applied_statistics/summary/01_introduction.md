@@ -881,6 +881,91 @@ $$\frac{(n-1)S^2}{\sigma^2}\sim\chi^2_{n-1}$$
 | P–P plot | กราฟเปรียบเทียบ cumulative probabilities |
 | Q–Q plot | กราฟเปรียบเทียบ quantiles |
 
+## Lab Supplement: สำรวจข้อมูลและตรวจ Normality ด้วย R
+
+ส่วนนี้อธิบาย `lab_01_introduction_solution.pdf` ซึ่งใช้ข้อมูลค่าใช้จ่าย `ecost` จำนวน 50 ค่าเพื่อเชื่อม descriptive statistics, outlier checking และการประเมิน Normality เข้าด้วยกัน เป้าหมายของ Lab ไม่ใช่กดคำสั่งให้ได้ p-value แต่ต้องสามารถอธิบายว่าแต่ละผลลัพธ์ตอบคำถามคนละส่วนอย่างไร
+
+### 1. โจทย์ต้องการพิสูจน์อะไร
+
+ก่อนใช้วิธีอนุมานที่อาศัย Normality เราต้องสำรวจข้อมูลในสามมุม ได้แก่ ตำแหน่งและการกระจาย รูปร่างและ outliers และความสอดคล้องกับ Normal distribution ไม่มีเครื่องมือชิ้นเดียวตอบครบทั้งสามมุม จึงต้องอ่าน summary statistics, boxplot, histogram, Q–Q/P–P plot และ Shapiro–Wilk test ร่วมกัน
+
+### 2. R workflow ฉบับรันได้
+
+```r
+ecost <- c(
+  96, 171, 202, 178, 147, 102, 153, 197, 127, 82,
+  157, 185, 90, 116, 172, 111, 148, 213, 130, 165,
+  141, 149, 206, 175, 123, 128, 144, 168, 109, 167,
+  95, 163, 150, 154, 130, 143, 187, 166, 139, 149,
+  108, 119, 183, 151, 114, 135, 191, 137, 129, 158
+)
+
+length(ecost)
+mean(ecost)
+sd(ecost)
+summary(ecost)
+
+cv <- sd(ecost) / mean(ecost) * 100
+cv
+
+quant_ec <- quantile(ecost)
+lower_fence <- quant_ec[2] - 1.5 * IQR(ecost)
+upper_fence <- quant_ec[4] + 1.5 * IQR(ecost)
+
+boxplot(ecost)
+hist(ecost)
+qqnorm(ecost)
+qqline(ecost, col = 'steelblue')
+shapiro.test(ecost)
+
+pnorm(-1.645)
+```
+
+### 3. อธิบายโค้ด R ทีละส่วน
+
+| Code | Input | สิ่งที่ R ทำ | Output/ความหมาย |
+|---|---|---|---|
+| `c(...)` | ตัวเลขหลายค่า | รวมเป็น numeric vector | `ecost` มี observation 50 ค่า |
+| `length(ecost)` | vector | นับจำนวนสมาชิก | (n=50) |
+| `mean()` | vector | คำนวณ arithmetic mean | 147.06 |
+| `sd()` | vector | คำนวณ sample SD โดยใช้ตัวหาร (n-1) | 31.69 |
+| `summary()` | vector | สรุป min, quartiles, median, mean และ max | เห็นตำแหน่งและช่วงข้อมูล |
+| `IQR()` | vector | คำนวณ (Q_3-Q_1) | ใช้สร้าง outlier fences |
+| `qqnorm()` | vector | เทียบ sample quantiles กับ Normal quantiles | จุดใกล้เส้นตรงสนับสนุน Normality |
+| `shapiro.test()` | vector | ทดสอบ (H_0): ข้อมูลมาจาก Normal population | รายงาน (W) และ p-value |
+| `pnorm(-1.645)` | z score | หาพื้นที่สะสมด้านซ้ายใต้ Standard Normal | ประมาณ 0.05 |
+
+เครื่องหมาย `<-` คือ assignment operator: นำค่าด้านขวามาเก็บในชื่อตัวแปรด้านซ้าย ส่วน `library(psych)` หรือ `library(qqconf)` เป็นการโหลด package ก่อนเรียกฟังก์ชันที่ไม่ได้อยู่ใน base R
+
+### 4. อ่านผลลัพธ์จาก Lab
+
+Lab รายงาน mean 147.06, median 148.5 และ skewness 0.01 ซึ่งอยู่ใกล้กันมาก จึงไม่เห็นความเบ้เด่นชัด SD เท่ากับ 31.69 และ coefficient of variation เท่ากับ 21.55% หมายความว่า SD มีขนาดประมาณหนึ่งในห้าของ mean แต่ CV เหมาะกับข้อมูล ratio scale ที่ศูนย์มีความหมายและ mean ไม่ใกล้ศูนย์
+
+Quartiles คือ (Q_1=127.25) และ (Q_3=167.75) จึงได้ (IQR=40.50), lower fence 66.50 และ upper fence 228.50 ข้อมูลต่ำสุด 82 และสูงสุด 213 ยังอยู่ภายใน fences จึงไม่ถูก flag เป็น outlier ตามกฎ 1.5 IQR อย่างไรก็ตาม “ไม่ถูก flag” ไม่ได้พิสูจน์ว่าทุกค่าถูกต้อง ต้องตรวจบริบทและกระบวนการเก็บข้อมูลด้วย
+
+Shapiro–Wilk test ให้ (W=0.98977) และ p-value 0.9408 ที่ระดับ 0.05 เราจึง fail to reject Normality null ข้อนี้หมายถึงข้อมูลไม่แสดงหลักฐานชัดว่าผิดจาก Normal distribution ไม่ใช่พิสูจน์ว่าข้อมูล Normal แน่นอน ควรยืนยันกับ histogram, Q–Q plot และ outlier analysis
+
+### 5. วิธีเขียนคำตอบข้อสอบเรื่อง Normality
+
+คำตอบที่ครบควรมีสี่ชั้น:
+
+1. **ตั้งเกณฑ์:** กำหนด α และอธิบาย (H_0/H_1) ของ Shapiro–Wilk
+2. **รายงานตัวเลข:** ระบุ (W) และ p-value
+3. **ตัดสินใจ:** p-value มากกว่า α จึง fail to reject (H_0)
+4. **สรุปอย่างไม่เกินหลักฐาน:** ผลทดสอบและกราฟไม่พบการเบี่ยงเบนจาก Normality อย่างมีนัยสำคัญ จึงถือว่า Normality assumption สมเหตุสมผลสำหรับการวิเคราะห์ขั้นถัดไป
+
+ตัวอย่างคำตอบ:
+
+> ที่ระดับนัยสำคัญ 0.05 ผล Shapiro–Wilk ให้ (W=0.9898) และ p-value 0.9408 ซึ่งมากกว่า 0.05 จึงไม่ปฏิเสธสมมุติฐานว่าข้อมูลมาจากประชากร Normal เมื่อพิจารณาร่วมกับ Q–Q plot ที่จุดอยู่ใกล้เส้นตรงและไม่พบ outlier ตามกฎ 1.5 IQR จึงถือว่า Normality assumption มีความสมเหตุสมผล อย่างไรก็ตามผลนี้ไม่ใช่การพิสูจน์ว่า population เป็น Normal อย่างสมบูรณ์
+
+### 6. จุดผิดพลาดที่พบบ่อย
+
+- สรุปว่า p-value สูง “ยืนยันว่าข้อมูล Normal” แทนการใช้คำว่าไม่มีหลักฐานพอที่จะปฏิเสธ
+- ใช้เกณฑ์ skewness เพียงตัวเดียวโดยไม่ตรวจกราฟและ outliers
+- สับสน Q–Q plot กับกราฟของ raw values ตามลำดับเวลา
+- ตีความ `pnorm(-1.645)` เป็นค่า z ทั้งที่ output คือ cumulative probability
+- ตั้งชื่อตัวแปร `sd` แล้วภายหลังเรียก `sd()` ไม่ได้ เพราะชื่อ object บังชื่อฟังก์ชัน ควรใช้ `sd_ecost`
+
 ## 25. Source Coverage Audit
 
 | Source slides | Primary teaching home |
@@ -893,6 +978,7 @@ $$\frac{(n-1)S^2}{\sigma^2}\sim\chi^2_{n-1}$$
 | 31 | Central Limit Theorem |
 | 32–40 | Distribution checking, P–P plot และ Q–Q plot |
 | 41 | Utility-data normality exercise |
+| `lab_01_introduction_solution.pdf`, pp. 1–5 | Lab Supplement: descriptive statistics, outlier fences, plots, Shapiro–Wilk และ R walkthrough |
 
 บทนี้เป็น prerequisite โดยตรงของ [02 Interval Estimation](02_interval_estimation.md) โดยเฉพาะ sampling distribution, Standard Error, Normal, Student's t, Chi-square และ CLT
 
@@ -901,3 +987,4 @@ $$\frac{(n-1)S^2}{\sigma^2}\sim\chi^2_{n-1}$$
 1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_01_introduction.pptx`, Slides 1–41.
 2. Berenson, M., Levine, D. M., & Krehbiel, T. C. (2012). *Basic Business Statistics: Concepts and Applications* (12th ed.). Pearson. อ้างถึงใน Slide 41.
 3. แหล่งข้อมูลประกอบที่ระบุไว้ในสไลด์: Wikipedia pages for Binomial, Normal, Student's t, Chi-square, P–P plot และ Q–Q plot. ใช้เพื่อชี้แหล่งเดิมของภาพ/คำอธิบายในเอกสาร ไม่ได้ใช้แทนเนื้อหาหลักของรายวิชา
+4. เอกสาร Lab `dads6001-applied_statistics/lab/lab_01_introduction_solution.pdf`, pp. 1–5.
