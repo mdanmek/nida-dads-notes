@@ -136,7 +136,7 @@ OVERWRITE INTO TABLE apache_log;
 5. reconcile count และ business totals
 6. เก็บ query/version เพื่อ reproducibility
 
-## Guided Lab
+## Guided Lab: Staging-to-curated
 
 ใช้ไฟล์ตัวอย่าง:
 
@@ -159,6 +159,105 @@ WHERE po_id = '' OR po_id RLIKE '[^0-9]';
 ```
 
 สมการ reconciliation เชิงแนวคิดคือ `source_rows = valid_rows + rejected_rows` หากไม่เท่าต้องหาข้อมูลซ้ำ สูญหาย หรือ classification overlap
+
+## Lab จากชั้นเรียน: Hive DDL, MovieLens และ Web Log
+
+ส่วนนี้เรียบเรียงจาก [Lab 02 Hive หน้า 1–5](../lab/lab_02_hive.pdf) Lab ใช้ Hive CLI และ Cloudera QuickStart VM ซึ่งเหมาะกับการเห็นกลไกพื้นฐาน แต่คำสั่งเดียวกันอาจต้องส่งผ่าน Beeline ในระบบใหม่ ก่อนรันทุกช่วงให้ถามว่า “คำสั่งนี้เปลี่ยนเฉพาะ metadata, ย้ายไฟล์ หรืออ่านไฟล์” เพื่อเชื่อม syntax กับความหมาย
+
+### ช่วง A — Database และ table แรก
+
+```sql
+CREATE DATABASE IF NOT EXISTS my_db;
+USE my_db;
+
+CREATE TABLE test (
+    id INT,
+    name STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+SHOW TABLES;
+DESCRIBE test;
+ALTER TABLE test ADD COLUMNS (address STRING);
+DESCRIBE test;
+```
+
+ก่อน `ALTER` ให้ทำนายว่าไฟล์เก่าจะไม่ได้ถูก rewrite เพราะคำสั่งเปลี่ยน metadata เมื่ออ่านแถวเก่าซึ่งมีเพียงสอง fields คอลัมน์ `address` จึงอาจเป็น `NULL` อย่ารัน `DROP TABLE test` เพียงเพื่อทดลองจนกว่าจะยืนยันว่า table นี้ไม่มีข้อมูลที่ต้องเก็บ เพราะ managed table อาจลบทั้ง metadata และข้อมูล
+
+### ช่วง B — MovieLens `u.user`: delimiter ทำให้ bytes กลายเป็น columns
+
+หลังแตกไฟล์ MovieLens ให้ตรวจ raw sample และจำนวนบรรทัดก่อนส่งเข้า HDFS:
+
+```bash
+head ml-100k/u.user
+wc -l ml-100k/u.user
+hadoop fs -mkdir -p /user/cloudera/movielens
+hadoop fs -put ml-100k/u.user /user/cloudera/movielens/u.user
+hadoop fs -cat /user/cloudera/movielens/u.user | head
+```
+
+หนึ่งบรรทัดใช้ `|` คั่นห้า fields จึงประกาศ schema ตามลำดับจริง:
+
+```sql
+CREATE TABLE users (
+    userid INT,
+    age INT,
+    gender STRING,
+    occupation STRING,
+    zipcode STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '|';
+
+LOAD DATA INPATH '/user/cloudera/movielens/u.user'
+OVERWRITE INTO TABLE users;
+
+SELECT * FROM users LIMIT 10;
+SELECT COUNT(*) AS user_rows FROM users;
+SELECT COUNT(*) AS invalid_rows
+FROM users
+WHERE userid IS NULL OR age IS NULL;
+```
+
+อย่าจำจำนวนผลลัพธ์โดยไม่ตรวจไฟล์ที่ใช้ หลักฐานที่แข็งแรงกว่าคือ `user_rows` ต้องเท่ากับจำนวนบรรทัดของ source และ sample fields ต้องไม่เลื่อน `zipcode` ใช้ `STRING` เพราะเป็นรหัสที่อาจมีเลขศูนย์นำหน้า ไม่ใช่ปริมาณสำหรับคำนวณ
+
+จุดที่มักทำให้ผู้เริ่มต้นสับสนคือ `LOAD DATA INPATH` อาจย้ายไฟล์ใน filesystem เข้า location ของ managed table ไม่ใช่ parse แล้ว copy แบบ database loader ทั่วไป หากต้องใช้ raw path เดิมสร้าง external table อีกครั้ง ให้เก็บสำเนาแยกหรือเลือก external staging ตั้งแต่ต้น และตรวจ path หลัง `LOAD` ด้วย `hadoop fs -ls`
+
+### ช่วง C — RegexSerDe: จาก log หนึ่งบรรทัดสู่สามคอลัมน์
+
+Lab กำหนดรูปแบบหนึ่งบรรทัดเป็น `host "object" time` เช่น:
+
+```text
+client01 "GET_/index.html" 1470000000
+```
+
+Regex `([^ ]+) "([^"]+)" ([0-9]+)` จับสาม groups ตามลำดับคือ `host`, `object`, `time` ดังนั้นจำนวนและลำดับ groups ต้องตรงกับ columns:
+
+```sql
+CREATE EXTERNAL TABLE weblog (
+    host STRING,
+    object STRING,
+    time STRING
+)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.RegexSerDe'
+WITH SERDEPROPERTIES (
+    'input.regex' = '([^ ]+) "([^"]+)" ([0-9]+)'
+)
+LOCATION '/user/cloudera/weblog';
+```
+
+class `contrib` นี้ขึ้นกับ JAR ของ environment หากหา class ไม่พบ ต้องตรวจ Hive distribution ไม่ควรเปลี่ยน regex แบบสุ่ม หาก query ได้ `NULL` ให้ย้อนตรวจ raw line → แต่ละ capture group → ชนิดคอลัมน์ ด้วย:
+
+```sql
+SELECT * FROM weblog LIMIT 10;
+SELECT COUNT(*) AS parsed_rows FROM weblog;
+SELECT COUNT(*) AS parse_failures
+FROM weblog
+WHERE host IS NULL OR object IS NULL OR time IS NULL;
+```
+
+การทดลอง failure ที่ให้ความรู้ที่สุดคือเปลี่ยน delimiter ของ `users` จาก `|` เป็น `,` หรือเอาเครื่องหมาย quote ออกจาก regex แล้วเปรียบเทียบ sample rows กับ null counts จากนั้นคืน DDL ให้ถูกต้อง หลักฐานว่าซ่อมสำเร็จคือจำนวนแถวตรง source, fields ไม่เลื่อน และ parse failures เป็นศูนย์สำหรับข้อมูลที่ตรง contract
 
 ## สะพานจาก rows ที่อ่านได้ไปสู่ analytics
 
@@ -197,10 +296,11 @@ WHERE po_id = '' OR po_id RLIKE '[^0-9]';
 - trace raw line ผ่าน SerDe สู่ typed row ได้
 - ออกแบบ staging-to-curated workflow พร้อม reject table ได้
 - พิสูจน์ reconciliation ด้วย count และ business totals ได้
+- ทำ Lab MovieLens/RegexSerDe พร้อมอธิบายผลของ delimiter, `LOAD DATA` และ table ownership ได้
 
 ## Source Coverage และ References
 
-ครอบคลุม PDF หน้า 6–15: CLI/HQL DDL, managed/external, RegexSerDe, regex, types, schema-on-read และ loading
+ครอบคลุม PDF หน้า 6–15: CLI/HQL DDL, managed/external, RegexSerDe, regex, types, schema-on-read และ loading รวมทั้ง [Lab 02 Hive หน้า 1–5](../lab/lab_02_hive.pdf) ช่วง DDL, MovieLens loading และ web-log tables
 
 - [Apache Hive DDL](https://hive.apache.org/docs/latest/language/languagemanual-ddl/)
 - [Managed vs. External Tables](https://hive.apache.org/docs/latest/language/managed-vs--external-tables/)
