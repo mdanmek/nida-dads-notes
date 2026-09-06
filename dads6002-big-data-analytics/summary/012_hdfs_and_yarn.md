@@ -1,6 +1,6 @@
 # บทที่ 01.2: Hadoop Architecture, HDFS และ YARN
 
-> **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 11–21  
+> **จากเอกสาร:** [dads6002_01_hadoop.pdf](../lecture/dads6002_01_hadoop.pdf) หน้า 11–21 และ [lab_01_hadoop.pdf](../lab/lab_01_hadoop.pdf) หน้า 1–3  
 > **Core:** distributed-system requirements, HDFS read/write/failure recovery, blocks/replication และ YARN application lifecycle
 
 > [← บทที่ 01.1](011_big_data_foundations.md) | [สารบัญ](000_readme.md) | [บทที่ 01.3 →](013_mapreduce_and_streaming.md)
@@ -155,6 +155,8 @@ HDFS แลก low latency และ POSIX semantics บางส่วนกั
 ### Blocks, replication และ erasure coding
 
 **จากเอกสาร (หน้า 12–14, 19–20)** ใช้ block ขนาดตัวอย่าง 128 MB และทำ replication เพื่อความทนทาน; เอกสารกล่าวถึง erasure coding ใน Hadoop 3
+
+คำว่า **block size** คือขนาดเป้าหมายที่ HDFS ใช้แบ่งไฟล์เชิงตรรกะเพื่อจัดวางและประมวลผล ไม่ได้หมายความว่าการอ่านไฟล์หนึ่งครั้งต้องดึงครบ 128 MB เสมอ หรือไฟล์ขนาด 1 MB ต้องใช้พื้นที่ payload 128 MB เต็มก้อน Client ยังอ่านเป็น buffer ย่อยได้ และ block สุดท้ายใช้เท่าข้อมูลที่เหลือ การแยกความหมายนี้ช่วยแก้ข้อความย่อในสไลด์ที่เรียก block size ว่า “minimum amount of data that can be read or written” ซึ่งอาจทำให้ผู้เริ่มต้นตีความเป็นหน่วย I/O ทางกายภาพขั้นต่ำ
 
 จำนวน logical blocks คำนวณได้จาก
 
@@ -313,6 +315,16 @@ Lab นี้เป็น paper simulation เพราะไม่ต้อง�
 
 **Evaluate:** ควรใช้ erasure coding กับไฟล์ที่ถูกอ่านบ่อยและเขียนใหม่ระหว่างวันหรือไม่?  
 **แนวคำตอบ:** มักเริ่มจาก replication เพราะ recovery/read path ง่ายกว่าและเหมาะกับ hot data; erasure coding เหมาะกับ cold/large data ที่ต้องลด storage overhead แต่แลก CPU/network reconstruction ต้องตัดสินจาก SLA และ workload ไม่ใช่ version ของ Hadoop
+
+### Objective-to-Assessment Map
+
+| Objective | หลักฐานการเรียนรู้ |
+|---|---|
+| Distributed storage และ failure detection | Paper Lab ขั้น placement, DataNode failure และ re-replication |
+| HDFS write/read flow | Trace ไฟล์ 300 MB พร้อม metadata, packets และ acknowledgements |
+| Blocks และ storage overhead | แบบฝึกไฟล์ 1,050 MB และ replication factor 3 |
+| NameNode/DataNode/HA | คำถามวิเคราะห์ failure scope |
+| YARN และ HDFS CLI | Application lifecycle และ Lab `put/get/diff` |
 
 ## Mastery Checklist
 
