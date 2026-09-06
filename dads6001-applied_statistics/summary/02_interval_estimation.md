@@ -825,6 +825,182 @@ $$
 | Paired sample | Observations ที่เชื่อมโยงเป็นคู่ |
 | Coverage probability | สัดส่วนระยะยาวของ intervals ที่ครอบคลุม parameter |
 
+## Lab Supplement: Confidence Interval และการเขียนคำตอบด้วย R
+
+ส่วนนี้รวมโจทย์จาก `lab_02_interval_estimation.pdf` และ solution สองฉบับ โจทย์ทั้งหกข้อไม่ได้ทดสอบเพียงการแทนสูตร แต่ทดสอบการระบุ parameter, เลือก sampling design, คำนวณ standard error และตีความ interval ในบริบท
+
+### 1. แผนที่โจทย์ Lab
+
+| ข้อ | Estimand | Design | วิธี |
+|---|---|---|---|
+| Fast Food | (mu) ของยอดใช้จ่าย | One sample | One-mean t interval |
+| Complaints | (mu) ของวันแก้ complaint | One sample | One-mean t interval |
+| Flu shot | (p) ของผู้ฉีดแล้วเป็นไข้หวัด | One sample binary | One-proportion interval |
+| Basic life support | (p_{bio}-p_{nonbio}) | Two independent groups | Difference in proportions |
+| Study time | $\mu_{plan}-\mu_{no}$ | Two independent groups | Two-mean t interval |
+| Multiple myeloma | $\mu_d$, before minus after | Paired measurements | Paired-mean t interval |
+
+การเลือกวิธีจึงเริ่มจากคำถามว่า outcome เป็น quantitative หรือ binary และ observations เป็น independent หรือ paired ไม่ใช่เริ่มจากดูว่ามีข้อมูลกี่คอลัมน์
+
+### 2. Lab 1: Fast Food แบบครบขั้นตอน
+
+ข้อมูลลูกค้า 15 คนให้ $\bar{x}=7.0933$, $s\approx1.4061$, $SE=0.3630$ และ degrees of freedom 14
+
+$$
+E=t_{0.975,14}\frac{s}{\sqrt{15}}
+=2.1448(0.3630)
+=0.7786
+$$
+
+$$
+CI=7.0933\pm0.7786=(6.3147,7.8720)
+$$
+
+คำตอบข้อสอบควรระบุ population parameter และหน่วย:
+
+> เรามั่นใจ 95% ว่าช่วง 6.315 ถึง 7.872 USD ครอบคลุมค่าเฉลี่ยยอดใช้จ่ายมื้อกลางวันของประชากรลูกค้าร้าน fast-food ภายใต้ sampling method และ assumptions ที่กำหนด
+
+อย่าเขียนว่า “95% ของลูกค้าจ่ายอยู่ในช่วงนี้” เพราะ CI ประมาณ population mean ไม่ใช่ช่วงของ individual observations
+
+```r
+food <- c(
+  7.42, 6.29, 5.83, 6.50, 8.34,
+  9.51, 7.10, 6.80, 5.90, 4.89,
+  6.50, 5.52, 7.90, 8.30, 9.60
+)
+
+n <- length(food)
+mean_food <- mean(food)
+sd_food <- sd(food)
+se_food <- sd_food / sqrt(n)
+margin_error <- qt(0.975, df = n - 1) * se_food
+c(lower = mean_food - margin_error,
+  upper = mean_food + margin_error)
+
+food_test <- t.test(food, conf.level = 0.95)
+food_test[['conf.int']]
+```
+
+`qt(0.975, df=14)` คืนค่า t critical ไม่ใช่ probability ส่วน `t.test()` คำนวณ one-sample t interval ให้อัตโนมัติ การตั้งชื่อ `sd_food` ดีกว่า `sd <- sd(food)` ในเอกสาร เพราะไม่บังฟังก์ชัน `sd()`
+
+### 3. Lab 2: Complaint Resolution Time
+
+จาก 50 complaints ได้ mean 43.04 วัน และ 95% CI ((31.125,54.955)) ข้อมูลมี right skew และค่ามากหลายค่า การใช้ t interval อาศัยความทนทานของ sample mean เมื่อ (n=50) แต่ควรรายงาน distribution และตรวจ sensitivity ด้วย median/Bootstrap เพิ่มเติม
+
+```r
+complaints <- c(
+  54,5,35,137,31,27,152,2,123,81,74,27,11,19,126,110,110,
+  29,61,35,94,31,26,5,12,4,165,32,29,28,29,26,25,1,14,13,
+  13,10,5,27,4,52,30,22,36,26,20,23,33,68
+)
+t.test(complaints, conf.level = 0.95)
+```
+
+คำตอบควรกล่าวว่า CI กว้างเพราะข้อมูลกระจายมาก ไม่ควรตีความ upper limit 54.955 เป็นเวลารอสูงสุดของ complaint รายหนึ่ง
+
+### 4. Lab 3: Flu Shot Proportion
+
+พบไข้หวัด 24 คนจาก 3,900 คน จึงได้
+
+$$
+\hat{p}=\frac{24}{3900}=0.00615
+$$
+
+Solution ให้ (SE\approx0.00125), margin of error ประมาณ 0.0025 และ 95% CI ประมาณ ((0.0037,0.00861)) เพราะ upper limit ต่ำกว่า 0.01 ข้อมูลจึงสนับสนุนข้อสรุปว่า population proportion ต่ำกว่า 1% ภายใต้วิธีประมาณช่วงที่ใช้
+
+```r
+x <- 24
+n <- 3900
+p_hat <- x / n
+se_hat <- sqrt(p_hat * (1 - p_hat) / n)
+
+prop.test(
+  x = x,
+  n = n,
+  conf.level = 0.95,
+  correct = FALSE
+)
+```
+
+`prop.test()` อาจให้ช่วงต่างจาก Wald calculation เล็กน้อย เพราะใช้ score-type approximation จึงต้องระบุวิธีเมื่อเทียบคำตอบจาก software กับการคำนวณมือ
+
+### 5. Lab 4: Basic Life Support
+
+กำหนด estimand เป็น (p_{bio}-p_{nonbio}):
+
+$$
+\hat{p}_{bio}=\frac{391}{637}=0.61381
+$$
+
+$$
+\hat{p}_{nonbio}=\frac{306}{564}=0.54255
+$$
+
+ดังนั้น estimated difference เท่ากับประมาณ 0.07126 หรือกลุ่ม biological sciences สูงกว่า 7.13 percentage points หากเรียงกลุ่มใน R เป็น non-biological ก่อน biological ผลต่างและ CI จะติดลบตาม output ใน solution คือประมาณ ((-0.12879,-0.01373)) เครื่องหมายต่างกันเพราะลำดับการลบ ไม่ใช่คำตอบขัดกัน
+
+```r
+prop.test(
+  x = c(nonbio = 306, bio = 391),
+  n = c(nonbio = 564, bio = 637),
+  conf.level = 0.95
+)
+```
+
+CI ไม่ครอบคลุมศูนย์ จึงสอดคล้องกับ two-sided test ที่ปฏิเสธ equality null ที่ระดับ 0.05 แต่ควรรายงาน magnitude ร่วมด้วย
+
+### 6. Lab 5: Study Time ของ Independent Groups
+
+กลุ่มที่วางแผนเรียนต่อมี mean 11.667 ชั่วโมง ส่วนกลุ่มที่ไม่วางแผนมี mean 9.100 ชั่วโมง point estimate ของ $\mu_{plan}-\mu_{no}$ คือ 2.567 ชั่วโมง Solution ใช้ pooled t interval และได้ 95% CI $(-3.110,8.244)$
+
+```r
+plan <- c(15,7,15,10,5,5,2,3,12,16,15,37,8,14,10,18,3,25,15,5,5)
+no_plan <- c(6,8,15,6,5,14,10,10,12,5)
+
+t.test(
+  plan,
+  no_plan,
+  conf.level = 0.95,
+  var.equal = TRUE
+)
+```
+
+`var.equal=TRUE` บังคับ pooled-variance method หากไม่มีเหตุผลรองรับ equal variances ให้ใช้ Welch default โดยตัด argument นี้ออก ช่วงใน solution ครอบคลุมศูนย์ จึงยังสรุปไม่ได้ว่า population means ต่างกันที่ระดับ 0.05 ไม่ควรเขียนว่า means “เท่ากัน”
+
+### 7. Lab 6: Multiple Myeloma แบบ Paired
+
+ข้อมูลก่อนและหลังมาจากผู้ป่วยคนเดิม 7 คน จึงต้องคำนวณ $d_i=before_i-after_i$ แล้วประมาณ $\mu_d$ Solution ได้ $\bar{d}=86.143$ และ 95% CI $(-28.261,200.547)$
+
+```r
+before <- c(158, 189, 202, 353, 416, 426, 441)
+after <- c(284, 214, 101, 227, 290, 176, 290)
+
+difference <- before - after
+mean(difference)
+
+t.test(
+  before,
+  after,
+  paired = TRUE,
+  conf.level = 0.95
+)
+```
+
+`paired=TRUE` บอก R ให้สร้าง within-patient differences การใช้ independent two-sample test จะทิ้ง pairing information ช่วงครอบคลุมศูนย์ จึงไม่มีหลักฐานเพียงพอว่าค่าเฉลี่ยก่อนและหลังต่างกัน แต่ช่วงกว้างมากสะท้อน sample เพียง 7 คู่ จึงไม่ใช่หลักฐานว่าการเปลี่ยนแปลงมีขนาดศูนย์
+
+### 8. Template สำหรับเขียนคำตอบ CI ในข้อสอบ
+
+1. **Parameter:** นิยาม $\mu$, $p$, $\mu_1-\mu_2$, $p_1-p_2$ หรือ $\mu_d$ พร้อมหน่วย
+2. **Design:** ระบุ one sample, independent groups หรือ paired data
+3. **Conditions:** random/independent, distribution หรือ success-failure counts
+4. **Calculation:** แสดง point estimate, SE, critical value, margin of error และ interval
+5. **Interpretation:** ระบุ confidence level, population parameter, lower/upper limits และบริบท
+6. **Decision:** หากเปรียบเทียบ null value ให้บอกว่าช่วงครอบคลุม 0 หรือค่าที่กำหนดหรือไม่
+7. **Limitation:** กล่าวถึง sample representativeness, small sample, skewness หรือ assumption ที่สำคัญ
+
+ตัวอย่างประโยคปิดที่ปลอดภัย:
+
+> ช่วงความเชื่อมั่น 95% สำหรับ population mean difference ครอบคลุมศูนย์ จึงยังไม่มีหลักฐานเพียงพอของความแตกต่างแบบสองด้านที่ระดับ 0.05 อย่างไรก็ตามช่วงค่อนข้างกว้าง จึงยังรองรับได้ทั้งผลลบและผลบวกขนาดที่อาจมีความสำคัญ
+
 ## 27. Source Coverage Audit
 
 | Source slides | Primary teaching home |
@@ -838,6 +1014,8 @@ $$
 | 14 | Pooled interval under equal-variance assumption |
 | 15 | Paired-mean interval |
 | 16–17 | Binomial review และ CI for difference between two proportions |
+| `lab_02_interval_estimation.pdf`, pp. 1–4 | โจทย์ CI ทั้ง 6 สถานการณ์ |
+| `lab_02_confident_interval_solution.pdf`, pp. 1–4 และ `lab_02_interval_estimation_solution.pdf`, pp. 1–4 | ผลลัพธ์, R code, interpretation และ Lab Supplement |
 
 บทนี้ใช้ [01 Introduction](01_introduction.md) เป็น prerequisite โดยตรง และเป็นฐานสำหรับ Jackknife/Bootstrap ซึ่งใช้ resampling เพื่อประมาณ Standard Error และ Confidence Interval เมื่อ classical derivation ทำได้ยาก
 
@@ -846,3 +1024,5 @@ $$
 1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_02_interval_estimation.pptx`, Slides 1–17.
 2. Reilly et al. *Robbing Banks*. *Significance*, Vol. 9, Issue 3, pp. 17–21. อ้างถึงในสไลด์กรณีศึกษา Bank Robberies.
 3. ตัวเลข CI ใน Bank Robberies เป็นคำอธิบายเพิ่มเติมที่คำนวณจาก summary statistics ใน Slides 5–6 โดยใช้ $t_{0.025,363}\approx1.966$.
+4. เอกสาร Lab `dads6001-applied_statistics/lab/lab_02_interval_estimation.pdf`, pp. 1–4.
+5. เอกสารเฉลย `lab_02_confident_interval_solution.pdf` และ `lab_02_interval_estimation_solution.pdf`, pp. 1–4.
