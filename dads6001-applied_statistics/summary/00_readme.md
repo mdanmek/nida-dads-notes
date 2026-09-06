@@ -29,6 +29,17 @@
 | 03 | [Jackknife and Bootstrap](03_jackknife_bootstrap.md) | ประมาณ bias, standard error และ CI ด้วย resampling พร้อมตรวจ assumptions และโครงสร้างข้อมูล | Chapters 01–02 |
 | 04 | [Hypothesis Testing](04_hypothesis_testing.md) | ตั้งสมมุติฐาน คำนวณและตีความ tests สำหรับ means/proportions พร้อมวิเคราะห์ errors และ power | Chapters 01–03 |
 
+Master Notes แต่ละบทผสาน Lecture กับ Lab/Solution ที่เกี่ยวข้องแล้ว โดยอธิบายโค้ด R, วิธีอ่าน output, จุดพิมพ์ผิดในเอกสาร และรูปแบบคำตอบข้อสอบ ไม่จำเป็นต้องเปิด solution แยกเพื่อทำความเข้าใจกระบวนการหลัก
+
+### Lab และ R learning path
+
+| Lab source | อ่านร่วมกับ | ทักษะปฏิบัติ |
+|---|---|---|
+| `lab_01_introduction_solution.pdf` | [Chapter 01](01_introduction.md) | descriptive statistics, outlier fences, plots และ Shapiro–Wilk ใน R |
+| `lab_02_interval_estimation.pdf` และ solutions | [Chapter 02](02_interval_estimation.md) | CI สำหรับ mean/proportion, independent/paired designs และ `t.test()`/`prop.test()` |
+| `lab_03_jackknife_bootstrap_solution.pdf` | [Chapter 03](03_jackknife_bootstrap.md) | `bootstrap::jackknife()`, `boot::boot()` และ `boot.ci()` |
+| `lab_04_hypothsis_test1/2.pdf` และ solutions | [Chapter 04](04_hypothesis_testing.md) | one-sample, paired, independent t tests, assumption checks และ exam conclusions |
+
 ### ลำดับการอ่านที่แนะนำ
 
 ```mermaid
@@ -63,6 +74,7 @@ flowchart TD
 5. เปรียบเทียบ classical, Jackknife และ Bootstrap ทั้งด้าน assumptions, computation และข้อจำกัด
 6. ตรวจผลด้วยเหตุผลเชิงสถิติ การคำนวณซ้ำ และ sensitivity analysis
 7. ตั้ง $H_0/H_1$ เลือก test ตาม parameter/design และตีความ p-value, errors และ power อย่างถูกต้อง
+8. อ่าน อธิบาย แก้ไข และตรวจสอบ R code ของ Lab โดยเชื่อม argument และ output กลับสู่แนวคิดทางสถิติ
 
 ## 5. ตารางสอนจาก Syllabus
 
@@ -103,6 +115,7 @@ flowchart TD
 7. อธิบายว่าควร resample ผู้ป่วย แถวข้อมูล หรือ cluster ใด โดยอิงหน่วยอิสระจริง
 8. สรุปข้อค้นพบ ข้อจำกัด และสิ่งที่ข้อมูลชุดนี้ยังตอบไม่ได้
 9. ตั้ง hypothesis เทียบกับ SLA คำนวณ p-value และอธิบาย Type I/II errors ในบริบทการตัดสินใจ
+10. เขียน R workflow ที่ทำซ้ำได้ พร้อมตรวจ data structure, assumptions และความสอดคล้องของผลคำนวณมือกับ software
 
 ### เกณฑ์ตรวจงานย่อ
 
@@ -139,6 +152,8 @@ Blueprint นี้เป็นแผนทบทวนจากเนื้อ�
 - [ ] ตั้ง $H_0/H_1$ เลือก tail และอธิบาย Type I/II errors กับ power ได้
 - [ ] ตีความ p-value โดยไม่กล่าวว่าเป็น probability ที่ $H_0$ จริง
 - [ ] แยก statistical significance จาก effect size และ practical significance
+- [ ] อธิบายว่า `<-`, `c()`, `t.test()`, `prop.test()`, `shapiro.test()`, `boot()` และ `boot.ci()` รับ input และคืน output อะไร
+- [ ] ตรวจ typo ใน R เช่น `< -`, `con.level`, object ผิดชุด และการลืม `paired=TRUE` ได้
 - [ ] ตรวจ Markdown equations ใน profile `github` ก่อนเผยแพร่
 
 ## 9. Source Coverage and Review Status
@@ -150,6 +165,7 @@ Blueprint นี้เป็นแผนทบทวนจากเนื้อ�
 | `dads6001_02_interval_estimation.pptx`, Slides 1–17 | Chapter 02 และ source coverage audit ภายในบท |
 | `dads6001_03_jackknife_bootstrap.pptx`, Slides 1–14 | Chapter 03 และ source coverage audit ภายในบท |
 | `dads6001_04_hypothesis_testing.pptx`, Slides 1–21 | Chapter 04 และ source coverage audit ภายในบท |
+| Lab/Solution PDFs 9 ไฟล์ใน `dads6001-applied_statistics/lab/` | ผสานเป็น Lab Supplement และ R walkthrough ใน Chapters 01–04 |
 
 Master Notes Chapters 01–04 ผ่านตัวตรวจ GitHub Markdown ตาม conservative profile ซึ่งตรวจ delimiter, braces และ macros ที่ GitHub renderer ไม่รองรับ
 
