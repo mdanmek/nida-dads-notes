@@ -1,6 +1,6 @@
 # บทที่ 01.4: Partitioner, Job Chaining และ Workflow Orchestration
 
-> **จากเอกสาร:** dads6002_01_hadoop.pdf หน้า 39–43  
+> **จากเอกสาร:** [dads6002_01_hadoop.pdf](../lecture/dads6002_01_hadoop.pdf) หน้า 39–43  
 > **Core:** data skew, การเชื่อม jobs เป็น DAG, Oozie fork/join และ Airflow workflows as code
 
 > [← บทที่ 01.3](013_mapreduce_and_streaming.md) | [สารบัญ](000_readme.md)
@@ -77,6 +77,37 @@ Oozie มี **action nodes** สำหรับลงมือทำงาน �
 
 Airflow เป็น **orchestrator ไม่ใช่ processing engine** Task อาจสั่ง SQL, Spark, shell, API หรือ container อีกที Scheduler ตรวจ DAG runs และ task instances ที่ dependency ครบ แล้วส่งงานให้ executor ตาม [Airflow Scheduler documentation](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/scheduler.html) ดังนั้น Airflow ไม่ได้ทำ SQL หรือ Spark ให้เร็วขึ้นโดยตรง แต่ทำให้การประสานงาน ตรวจสถานะ retry และ backfill เป็นระบบ
 
+สไลด์หน้า 42 แสดง DAG ชื่อ `demo` ที่มีงาน shell พิมพ์ `hello` แล้วจึงเรียกฟังก์ชัน Python ตัวอย่างต่อไปนี้รักษาความหมายเดิม แต่จัด indentation, timezone และ imports ตาม [Airflow tutorial รุ่นปัจจุบัน](https://airflow.apache.org/docs/apache-airflow/stable/tutorial/fundamentals.html) เพื่อแยก “แนวคิดที่อาจารย์สอน” ออกจาก “syntax ที่นำไปทดลอง”
+
+```python
+import pendulum
+from airflow.providers.standard.operators.bash import BashOperator
+from airflow.sdk import DAG, task
+
+with DAG(
+    dag_id='demo',
+    start_date=pendulum.datetime(2022, 1, 1, tz='Asia/Bangkok'),
+    schedule='0 0 * * *',
+    catchup=False,
+) as dag:
+    hello = BashOperator(
+        task_id='hello',
+        bash_command='echo hello',
+    )
+
+    @task()
+    def show_airflow():
+        print('airflow')
+
+    hello >> show_airflow()
+```
+
+เมื่อ Python อ่านไฟล์นี้ `DAG(...)` สร้างคำอธิบาย workflow ไม่ได้เริ่มงานทันที `BashOperator(...)` สร้าง task ชื่อ `hello` และการเรียก `show_airflow()` สร้าง task จากฟังก์ชันที่ตกแต่งด้วย `@task` สัญลักษณ์ `>>` จึงไม่ได้ส่งข้อความ `hello` เข้า Python แต่ประกาศ dependency ว่า task ด้านขวารอ task ด้านซ้ายสำเร็จก่อน Scheduler จึงมองเห็น task สองตัวและ edge หนึ่งเส้น แล้วสร้าง task instances แยกกันในแต่ละ DAG run
+
+ถ้า `hello` ล้ม `show_airflow` จะยังไม่พร้อมรันตาม trigger rule ปกติ แต่ถ้า `hello` สำเร็จแล้ว task ที่สองล้ม การ retry task ที่สองไม่จำเป็นต้องรัน shell ใหม่ทุกครั้ง นี่คือประโยชน์ของการแยกงานเป็น task boundaries อย่างไรก็ตาม boundary ที่เล็กเกินไปก็เพิ่ม scheduling overhead จึงควรแยกเมื่อมีความหมายด้าน dependency, retry, ownership หรือหลักฐานตรวจสอบ ไม่ใช่แยกทุกบรรทัดเป็น task
+
+Imports ข้างต้นอ้างอิง Airflow 3 หากเครื่องเรียนใช้ Airflow 2 หรือรุ่นเก่ากว่า path ของ `DAG`, `task` และ `BashOperator` อาจต่างกัน จึงต้องตรวจ version และ documentation ของ environment ก่อนแก้ import เอง แนวคิด DAG, task และ dependency ยังคงเดิมแม้ตำแหน่ง package เปลี่ยน
+
 ### 5.1 อ่าน cron expression
 
 0 0 * * * มีห้าช่อง: minute, hour, day-of-month, month, day-of-week จึงหมายถึงเวลา 00:00 ทุกวันตาม timezone ที่ DAG/environment กำหนด แต่ schedule เวลาเที่ยงคืนไม่ได้แปลว่า data พร้อมแล้ว ต้องพิจารณา upstream SLA และ data interval
@@ -143,6 +174,16 @@ Retry ช่วย transient failure แต่ task ต้อง **idempotent** 
 
 **Evaluate:** ควรย้าย Oozie workflow ที่เสถียรไป Airflow ทันทีหรือไม่?  
 **แนวคำตอบ:** ไม่ตัดสินจากความใหม่ ต้องเทียบ integration, SLA, skills, test/backfill coverage, security, observability และ migration risk ถ้า workflow ยัง Hadoop-native และดูแลได้ Oozie อาจคุ้มกว่า; หากต้องเชื่อมหลาย platforms และทีมพร้อม Python Airflow อาจให้ประโยชน์มากกว่า
+
+### Objective-to-Assessment Map
+
+| Objective | หลักฐานการเรียนรู้ |
+|---|---|
+| วิเคราะห์ skew | โจทย์ `UNKNOWN` 70% และทางเลือก salting/pre-aggregation |
+| วาด DAG และตรวจ cycle | Guided Design Lab ที่มี checks ขนานและ join |
+| อธิบาย Oozie/Airflow lifecycle | Fork/join narrative และ trace โค้ด `demo` |
+| Cron, retry และ idempotency | กรณี publish สำเร็จแต่สถานะล้ม |
+| เลือกเครื่องมือ | คำถาม Evaluate พร้อมเกณฑ์ migration |
 
 ## 9. Validation, Failure Behavior และ Troubleshooting
 
