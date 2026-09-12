@@ -533,8 +533,7 @@ Class ที่เขียนใน notebook เก็บข้อมูลส�
 
 $$
 \hat{y}
-=
-\underset{c}{\mathrm{argmax}}
+=\underset{c}{\mathrm{argmax}}
 [
 P(c)\prod_j P(x_j \mid c)
 ]
