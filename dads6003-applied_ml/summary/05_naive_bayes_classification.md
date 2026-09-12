@@ -711,10 +711,8 @@ Accuracy คำนวณจาก:
 
 $$
 Accuracy
-=
-\frac{TN+TP}{TN+FP+FN+TP}
-=
-\frac{861+273}{1146}
+=\frac{TN+TP}{TN+FP+FN+TP}
+=\frac{861+273}{1146}
 \approx 0.9895
 $$
 
