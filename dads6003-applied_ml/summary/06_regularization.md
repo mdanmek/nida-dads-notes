@@ -32,19 +32,13 @@ Regularization คือการเพิ่มข้อจำกัดให�
 โมเดล regression รับ features \(X\) แล้วสร้างค่าทำนาย \(\hat{y}\) จาก coefficients เช่น polynomial degree 4:
 
 $$
-\hat{y}
-=
-\beta_0+\beta_1x+\beta_2x^2+\beta_3x^3+\beta_4x^4
+\hat{y} = \beta_0+\beta_1x+\beta_2x^2+\beta_3x^3+\beta_4x^4
 $$
 
 การ fit คือการหาค่า \(\beta\) ที่ลด loss ใน training data สำหรับ Mean Squared Error:
 
 $$
-MSE
-=
-\frac{1}{N}
-\sum_{i=1}^{N}
-(y_i-\hat{y}_i)^2
+MSE = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2
 $$
 
 แต่โมเดลที่ fit training data ดีไม่ได้แปลว่าจะทำนายข้อมูลใหม่ดี ความสามารถกับข้อมูลใหม่เรียกว่า generalization
@@ -79,23 +73,13 @@ Regularization ไม่ใช่การรับประกันว่า t
 Linear regression ปกติลด prediction loss:
 
 $$
-J(\beta)
-=
-\frac{1}{N}
-\sum_{i=1}^{N}
-(y_i-\hat{y}_i)^2
+J(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2
 $$
 
 Regularized regression เพิ่ม penalty:
 
 $$
-J_{reg}(\beta)
-=
-\frac{1}{N}
-\sum_{i=1}^{N}
-(y_i-\hat{y}_i)^2
-+
-\lambda P(\beta)
+J_{reg}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda P(\beta)
 $$
 
 โดย \(P(\beta)\) คือรูปแบบ penalty และ \(\lambda \geq 0\) ควบคุมความแรง เมื่อ \(\lambda=0\) จะกลับเป็น regression ที่ไม่มี penalty เมื่อ \(\lambda\) สูงขึ้น โมเดลยอมเสีย training fit มากขึ้นเพื่อให้ coefficients เล็กลง โดยทั่วไป intercept \(\beta_0\) ไม่ถูก penalize
@@ -111,19 +95,11 @@ $$
 Ridge ใช้ผลรวมกำลังสองของ coefficients:
 
 $$
-\lVert\beta\rVert_2^2
-=
-\sum_{j=1}^{d}\beta_j^2
+\lVert\beta\rVert_2^2 = \sum_{j=1}^{d}\beta_j^2
 $$
 
 $$
-J_{Ridge}(\beta)
-=
-\frac{1}{N}
-\sum_{i=1}^{N}
-(y_i-\hat{y}_i)^2
-+
-\lambda\sum_{j=1}^{d}\beta_j^2
+J_{Ridge}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda\sum_{j=1}^{d}\beta_j^2
 $$
 
 coefficients \([2,1]\) มี L2 penalty \(2^2+1^2=5\) ส่วน \([1.5,1.5]\) มีค่า 4.5 เมื่อสอง features ให้ข้อมูลคล้ายกัน Ridge จึงมักกระจายน้ำหนักแทนเลือกตัวเดียว เพราะการแบ่ง coefficient ใหญ่เป็นสองค่าเล็กลดผลรวมกำลังสอง
@@ -145,19 +121,11 @@ Coefficient path แสดง coefficient แต่ละตัวเมื่�
 Lasso ย่อมาจาก **Least Absolute Shrinkage and Selection Operator** และใช้ผลรวมค่าสัมบูรณ์:
 
 $$
-\lVert\beta\rVert_1
-=
-\sum_{j=1}^{d}|\beta_j|
+\lVert\beta\rVert_1 = \sum_{j=1}^{d}|\beta_j|
 $$
 
 $$
-J_{Lasso}(\beta)
-=
-\frac{1}{N}
-\sum_{i=1}^{N}
-(y_i-\hat{y}_i)^2
-+
-\lambda\sum_{j=1}^{d}|\beta_j|
+J_{Lasso}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda\sum_{j=1}^{d}|\beta_j|
 $$
 
 L1 constraint มีมุมบนแกน coefficients จุดเหมาะที่สุดจึงมีโอกาสอยู่ที่มุมและทำให้บาง coefficient เป็นศูนย์พอดี โมเดลที่มี coefficients ศูนย์จำนวนมากเรียกว่า **sparse model** Lasso จึงทำ shrinkage และ embedded feature selection พร้อมกัน
@@ -171,16 +139,7 @@ Lasso เหมาะเมื่อคาดว่ามี useful features เ
 Elastic Net ใช้ทั้ง L1 และ L2:
 
 $$
-J_{EN}(\beta)
-=
-Loss(\beta)
-+
-\lambda
-[
-r\lVert\beta\rVert_1
-+
-(1-r)\lVert\beta\rVert_2^2
-]
+J_{EN}(\beta) = Loss(\beta) + \lambda [ r\lVert\beta\rVert_1 + (1-r)\lVert\beta\rVert_2^2 ]
 $$
 
 เมื่อ \(r=1\) เหลือ L1 แบบ Lasso เมื่อ \(r=0\) เหลือ L2 แบบ Ridge จึงได้ทั้ง sparsity และความเสถียรกับ correlated features
@@ -214,16 +173,7 @@ Ridge เป็นจุดเริ่มต้นที่ปลอดภั�
 สไลด์แสดง Stochastic Gradient Descent ซึ่งสุ่มหนึ่ง observation แล้วขยับ coefficient ทวนทิศ gradient สำหรับ Ridge:
 
 $$
-\beta_j^{(t+1)}
-=
-\beta_j^{(t)}
--
-\eta
-[
-\nabla_j Loss
-+
-2\lambda\beta_j^{(t)}
-]
+\beta_j^{(t+1)} = \beta_j^{(t)} - \eta [ \nabla_j Loss + 2\lambda\beta_j^{(t)} ]
 $$
 
 \(\eta\) คือ learning rate ถ้าสูงเกินอาจแกว่ง ถ้าต่ำเกิน convergence ช้า
@@ -231,13 +181,7 @@ $$
 L1 ไม่ differentiable ที่ศูนย์ จึงใช้ subgradient:
 
 $$
-sign(\beta_j)
-=
-\begin{cases}
--1, & \beta_j<0 \\
-s, & \beta_j=0,\quad s\in[-1,1] \\
-1, & \beta_j>0
-\end{cases}
+sign(\beta_j) = \begin{cases} -1, & \beta_j<0 \\ s, & \beta_j=0,\quad s\in[-1,1] \\ 1, & \beta_j>0 \end{cases}
 $$
 
 ที่ศูนย์มี subgradient ได้หลายค่า ไม่ได้แปลว่า optimize ไม่ได้ แต่ต้องใช้ solver ที่รองรับ nonsmooth objective เช่น coordinate descent
