@@ -720,19 +720,15 @@ $$
 
 $$
 Precision_{spam}
-=
-\frac{TP}{TP+FP}
-=
-\frac{273}{273+11}
+=\frac{TP}{TP+FP}
+=\frac{273}{273+11}
 \approx 0.9613
 $$
 
 $$
 Recall_{spam}
-=
-\frac{TP}{TP+FN}
-=
-\frac{273}{273+1}
+=\frac{TP}{TP+FN}
+=\frac{273}{273+1}
 \approx 0.9964
 $$
 
