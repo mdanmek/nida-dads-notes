@@ -4,12 +4,13 @@
 
 - รายวิชา: DADS6003 Applied Machine Learning
 - เอกสาร: `dads6003_05_naive_bayes_classification.pdf`
+- Lab notebooks: `naive_bayes.ipynb` และ `naive_bayes_spam_email_classifier.ipynb`
 - หัวข้อในสไลด์: Classification, Bayes' Rule, Naive Bayes assumption, categorical and continuous features, Laplace correction
 - ขอบเขตเอกสาร: 15 หน้า
 
 > **จากเอกสาร:** บทนี้เริ่มจากการทบทวนโจทย์ classification อธิบาย Bayes' Rule แล้วลดความซับซ้อนของ joint likelihood ด้วยสมมติฐาน conditional independence ก่อนต่อยอดไปยัง Gaussian density และ Laplace correction
 >
-> **คำอธิบายเพิ่มเติม:** Master Note นี้เติมที่มาของสูตร วิธีเลือกชนิดของ Naive Bayes การคำนวณใน log space การประเมินโมเดล และตัวอย่าง Python ที่รันได้ รวมทั้งตรวจแก้ตัวเลขในตัวอย่างหลายตัวแปรของสไลด์
+> **คำอธิบายเพิ่มเติม:** Master Note นี้เติมที่มาของสูตร วิธีเลือกชนิดของ Naive Bayes การคำนวณใน log space การประเมินโมเดล และตัวอย่าง Python ที่รันได้ รวมทั้งตรวจแก้ตัวเลขในตัวอย่างหลายตัวแปรของสไลด์ และอธิบาย lab เรื่อง Play Tennis กับ Spam Email ทีละขั้น
 
 ## ภาพรวมและ Learning Objectives
 
@@ -22,8 +23,10 @@ Naive Bayes เป็นโมเดล classification ที่ใช้คว�
 3. อธิบายว่าเหตุใดสมมติฐานแบบ naive จึงลดความซับซ้อนของโมเดล
 4. จำแนกความแตกต่างระหว่าง Gaussian, Multinomial, Bernoulli และ Categorical Naive Bayes ได้
 5. อธิบาย zero-frequency problem และใช้ Laplace smoothing ได้
-6. สร้างและประเมิน `GaussianNB` ด้วย train-test split ได้
-7. ตรวจจับการตีความผลลัพธ์ที่ผิด รวมถึงกรณีที่ค่าความน่าจะเป็นไม่น่าเชื่อถือ
+6. สร้างและประเมิน `GaussianNB` และ `BernoulliNB` ได้
+7. แปลงข้อความเป็น word-count features และสร้าง `MultinomialNB` ได้โดยไม่เกิด data leakage
+8. แปลผล confusion matrix, precision, recall และ F1-score ในโจทย์ spam ได้
+9. ตรวจจับการตีความผลลัพธ์ที่ผิด รวมถึงกรณีที่ค่าความน่าจะเป็นไม่น่าเชื่อถือ
 
 ## 1. พื้นฐานที่ต้องรู้ก่อน
 
@@ -487,7 +490,285 @@ print(model.predict_proba(X_test[:3]))
 
 `class_prior_` เก็บ prior ของแต่ละคลาส `theta_` เก็บค่าเฉลี่ย และ `var_` เก็บความแปรปรวนของทุก class-feature pair ซึ่งตรงกับ parameters ใน Gaussian likelihood ตามเอกสาร [GaussianNB](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html)
 
-## 11. การตีความและตรวจสอบผลลัพธ์
+## 11. Hands-on Lab: Play Tennis จากการนับเองสู่ BernoulliNB
+
+### 11.1 เป้าหมายและข้อมูล
+
+> **จาก lab `naive_bayes.ipynb`:** Lab นี้ใช้ข้อมูลสภาพอากาศ 14 วันเพื่อทำนายว่าจะเล่นเทนนิสหรือไม่ ตัวแปรต้นมี 4 ตัว ได้แก่ Outlook, Temperature, Humidity และ Wind ส่วน target คือ `Play_Tennis`
+
+ตัวอย่างนี้เชื่อมสองมุมมองเข้าด้วยกัน มุมแรกคือการเขียน Naive Bayes ด้วยตัวเองเพื่อให้เห็นว่าโมเดลนับ prior และ likelihood อย่างไร มุมที่สองคือการใช้ `BernoulliNB` ของ scikit-learn หลังแปลง categorical features เป็นคอลัมน์ 0/1
+
+ฟังก์ชัน `pre_processing()` ลบคอลัมน์แรกซึ่งเป็นเลขวัน แล้วแยกคอลัมน์สุดท้ายเป็น target:
+
+```python
+def pre_processing(df):
+    df = df.drop(columns=df.columns[0])
+    X = df.drop(columns=df.columns[-1])
+    y = df[df.columns[-1]]
+    return X, y
+```
+
+หนึ่งแถวของ $X$ จึงแทนสภาพอากาศหนึ่งวัน ส่วนค่าใน $y$ คือ `Yes` หรือ `No` การลบคอลัมน์ด้วยตำแหน่งใช้ได้กับไฟล์นี้ แต่ถ้าลำดับคอลัมน์เปลี่ยน code อาจลบผิดคอลัมน์ ในงานจริงควรระบุชื่อคอลัมน์ให้ชัดเจน
+
+### 11.2 Custom NaiveBayes ทำอะไรตอน fit
+
+Class ที่เขียนใน notebook เก็บข้อมูลสำคัญสามกลุ่ม:
+
+- `class_priors` เก็บ $P(c)$ เช่น สัดส่วน `Yes` และ `No`
+- `likelihoods` เก็บ $P(x_j \mid c)$ ของแต่ละค่าตัวแปรเมื่อกำหนดคลาส
+- `pred_priors` เก็บ $P(x_j)$ หรือ evidence ราย feature
+
+เมื่อเรียก `fit(X, y)` ลำดับการทำงานคือ:
+
+| ขั้น | Input | สิ่งที่คำนวณ | ตัวอย่าง Output |
+|---|---|---|---|
+| กำหนดโครงสร้าง | ชื่อ features และค่าที่พบ | เตรียม dictionary | key เช่น `Rain_Yes` |
+| `_calc_class_prior()` | `y_train` | จำนวนแต่ละคลาสหารจำนวนแถว | $P(Yes)=9/14$ |
+| `_calc_likelihoods()` | `X_train`, `y_train` | สัดส่วนค่าของ feature ภายในคลาส | $P(Rain \mid Yes)$ |
+| `_calc_predictor_prior()` | `X_train` | สัดส่วนค่าของ feature ในข้อมูลทั้งหมด | $P(Rain)$ |
+
+เมื่อ `predict()` รับ query หนึ่งแถว code จะคูณ likelihood ของทั้ง 4 features กับ class prior ทำซ้ำสำหรับทุกคลาส แล้วเลือกคลาสที่มีคะแนนสูงสุด
+
+สำหรับการเลือกคลาสเพียงอย่างเดียว evidence เป็นตัวหารเดียวกันทุกคลาส จึงตัดออกได้โดยไม่เปลี่ยนคำตอบ:
+
+$$
+\hat{y}
+=
+\underset{c}{\mathrm{argmax}}
+[
+P(c)\prod_j P(x_j \mid c)
+]
+$$
+
+การคูณ evidence แยกราย feature ใน custom code เป็นวิธีสาธิตตาม notebook แต่ไม่ใช่สิ่งจำเป็นสำหรับ MAP classification และไม่ใช่การคำนวณ joint evidence ที่ถูกต้องเสมอไป
+
+### 11.3 Trace การทำนายและผลจาก notebook
+
+Notebook ทดลองสาม query:
+
+| Query | Outlook | Temperature | Humidity | Wind | ผลทำนาย |
+|---|---|---|---|---|---|
+| 1 | Rain | Mild | Normal | Strong | Yes |
+| 2 | Overcast | Cool | Normal | Strong | Yes |
+| 3 | Sunny | Hot | High | Strong | No |
+
+ตัวอย่าง Query 1 ได้คะแนนที่ notebook พิมพ์ออกมาเป็น `No = 0.2091` และ `Yes = 0.6453` จึงเลือก `Yes` ตัวเลขนี้ใช้เปรียบเทียบระหว่างคลาสได้ แต่ไม่ควรอ่านเป็น posterior ที่ normalize แล้ว เพราะคะแนนสองฝั่งรวมกันไม่เท่ากับ 1
+
+### 11.4 จาก categorical data สู่ BernoulliNB
+
+`BernoulliNB` ต้องการ features ที่ตีความเป็นเหตุการณ์เกิดหรือไม่เกิด Lab จึงใช้ `pd.get_dummies()` เปลี่ยนแต่ละ category เป็นคอลัมน์ 0/1 เช่น `Outlook_Rain` และ `Wind_Strong`
+
+```python
+query_data = pd.DataFrame(
+    [query1[0], query2[0], query3[0]],
+    columns=['Outlook', 'Temperature', 'Humidity', 'Wind']
+)
+
+X_with_query = pd.concat([X, query_data], ignore_index=True)
+X_encoded = pd.get_dummies(X_with_query, dtype='int')
+
+model = BernoulliNB()
+model.fit(X_encoded.iloc[:len(X)], y)
+
+query_pred = model.predict(X_encoded.iloc[len(X):])
+query_prob = model.predict_proba(X_encoded.iloc[len(X):])
+```
+
+ผลจาก notebook คือ `['Yes', 'Yes', 'No']` ซึ่งตรงกับ custom model และ probabilities ของคลาสที่ถูกเลือกเท่ากับประมาณ 0.7994, 0.9711 และ 0.9666 ตามลำดับ
+
+อย่างไรก็ตาม การรวม query ก่อนสร้าง dummy columns ทำให้ข้อมูลใหม่มีส่วนกำหนดโครงสร้าง features วิธีนี้ช่วยให้ lab สั้นและคอลัมน์ตรงกัน แต่ workflow ที่ปลอดภัยกว่าคือ fit encoder ด้วย training data เท่านั้น แล้วกำหนด `handle_unknown='ignore'`:
+
+```python
+from sklearn.compose import ColumnTransformer
+from sklearn.naive_bayes import BernoulliNB
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+
+model = Pipeline([
+    (
+        'encode',
+        ColumnTransformer([
+            (
+                'categorical',
+                OneHotEncoder(handle_unknown='ignore'),
+                X.columns
+            )
+        ])
+    ),
+    ('classifier', BernoulliNB())
+])
+
+model.fit(X, y)
+model.predict(query_data)
+```
+
+Pipeline ทำให้ขั้นแปลงข้อมูลที่เรียนจาก training data ถูกนำไปใช้กับข้อมูลใหม่แบบเดิมโดยอัตโนมัติ และลดความเสี่ยงที่ลำดับหรือจำนวนคอลัมน์จะไม่ตรงกัน
+
+### 11.5 ข้อจำกัดและแบบทดลอง
+
+Custom model ไม่มี Laplace smoothing ถ้า query มี category ที่ไม่เคยพบในคลาสหนึ่ง อาจได้ probability เป็นศูนย์ หรือเกิด `KeyError` ถ้าไม่เคยพบค่านั้นเลย นอกจากนี้การคูณ probability จำนวนมากโดยตรงเสี่ยง numerical underflow เมื่อ features เยอะ
+
+ลองเปลี่ยน query ให้มี category ใหม่ เช่น `Outlook='Foggy'` แล้วทำนายผลลัพธ์ก่อนรัน:
+
+- Custom model มีแนวโน้มเกิด `KeyError`
+- Pipeline ที่ใช้ `OneHotEncoder(handle_unknown='ignore')` ยังทำนายได้
+- การทำนายได้ไม่ได้แปลว่า category ใหม่นั้นมีข้อมูลเพียงพอ ควรบันทึกอัตรา unknown categories เพื่อเฝ้าระวัง dataset shift
+
+## 12. Hands-on Lab: Spam Email Classifier
+
+### 12.1 ปัญหา ข้อมูล และ class balance
+
+> **จาก lab `naive_bayes_spam_email_classifier.ipynb`:** Dataset มีอีเมล 5,728 ฉบับและ 2 คอลัมน์ คือข้อความ `text` กับ label `spam` โดย `1` หมายถึง spam และ `0` หมายถึง ham หรืออีเมลปกติ ทั้งสองคอลัมน์ไม่มี missing value
+
+Class distribution คือ ham 4,360 ฉบับและ spam 1,368 ฉบับ หรือประมาณ 76.1% ต่อ 23.9% ถ้าทายทุกฉบับเป็น ham จะได้ accuracy ประมาณ 76.1% อยู่แล้ว ดังนั้นต้องดู confusion matrix, precision และ recall ของ spam เพิ่ม ไม่ควรสรุปจาก accuracy เพียงค่าเดียว
+
+### 12.2 CountVectorizer เปลี่ยนข้อความเป็นตัวเลขอย่างไร
+
+โมเดลไม่สามารถรับประโยคดิบโดยตรง `CountVectorizer` จึงสร้าง vocabulary จากคำที่พบ แล้วเปลี่ยนอีเมลแต่ละฉบับเป็นเวกเตอร์จำนวนครั้งที่แต่ละคำปรากฏ
+
+สมมติมีข้อความสั้นสองฉบับ:
+
+```text
+free prize
+project meeting
+```
+
+ถ้า vocabulary คือ `free`, `meeting`, `prize`, `project` แถวแรกจะกลายเป็น `[1, 0, 1, 0]` และแถวที่สองเป็น `[0, 1, 0, 1]` นี่คือ input แบบ non-negative count ที่สอดคล้องกับ `MultinomialNB`
+
+ใน notebook:
+
+```python
+vectorizer = CountVectorizer()
+data_vec = vectorizer.fit_transform(spam_df['text'])
+```
+
+ได้ sparse matrix shape `(5728, 37303)` หมายถึงอีเมล 5,728 แถวและคำ 37,303 features มีค่าที่ไม่เป็นศูนย์ 708,380 จุด การใช้ sparse matrix สำคัญเพราะเมทริกซ์ข้อความส่วนใหญ่เป็นศูนย์ จึงไม่ควรแปลงเป็น dense array โดยไม่จำเป็น ค่าสูงสุดในเมทริกซ์คือคำว่า `the` ซึ่งปรากฏ 596 ครั้งในอีเมลหนึ่งฉบับ
+
+### 12.3 จุดที่ควรแก้: split ก่อน fit vectorizer
+
+Notebook ต้นฉบับเรียก `fit_transform()` กับข้อความทั้งหมดก่อน `train_test_split()` แม้ label ไม่ได้รั่วเข้าไป แต่ vocabulary ได้เห็นคำจาก test set แล้ว จึงเป็น **preprocessing leakage** และอาจทำให้การประเมินมองโลกดีเกินจริง
+
+ลำดับที่ควรใช้คือ:
+
+1. แบ่งข้อความดิบและ label เป็น train/test
+2. fit `CountVectorizer` ด้วยข้อความ train เท่านั้น
+3. transform ข้อความ test ด้วย vocabulary เดิม
+4. fit `MultinomialNB` ด้วย train matrix
+5. predict และ evaluate test matrix
+
+Pipeline รวมลำดับทั้งหมดและช่วยป้องกันการ fit ผิดชุด:
+
+```python
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+
+X_train, X_test, y_train, y_test = train_test_split(
+    spam_df['text'],
+    spam_df['spam'],
+    test_size=0.20,
+    stratify=spam_df['spam'],
+    random_state=123
+)
+
+spam_model = Pipeline([
+    ('vectorizer', CountVectorizer()),
+    ('classifier', MultinomialNB())
+])
+
+spam_model.fit(X_train, y_train)
+y_pred = spam_model.predict(X_test)
+
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred, digits=3))
+```
+
+เพราะ workflow นี้แก้ leakage ผลตัวเลขอาจต่างจาก output เดิมเล็กน้อย ความต่างดังกล่าวเป็นสิ่งที่ควรยอมรับเพื่อให้การประเมินสะท้อนข้อมูลที่ไม่เคยเห็นจริง
+
+### 12.4 ทำไมเลือก MultinomialNB
+
+Notebook แสดงชื่อ Gaussian, Multinomial, Bernoulli และ Categorical Naive Bayes แต่ model ที่ fit จริงคือ `MultinomialNB()` ซึ่งเหมาะกับ word counts:
+
+- `MultinomialNB` ใช้จำนวนครั้งของคำและต้องการค่าไม่ติดลบ
+- `BernoulliNB` เหมาะเมื่อสนใจเพียงมีหรือไม่มีคำ ไม่สนจำนวนครั้ง
+- `ComplementNB` เป็นอีกทางเลือกที่ควรทดลองเมื่อ class distribution ไม่สมดุล
+- `GaussianNB` สมมติ continuous features แบบ Gaussian และไม่เหมาะกับ sparse word counts โดยตรง
+- `CategoricalNB` ใช้กับ categorical feature แต่ละคอลัมน์ ไม่ใช่ vocabulary counts จำนวนมาก
+
+การ import หลายโมเดลไม่ได้หมายความว่า notebook ได้ทดลองทุกโมเดล ต้องดูบรรทัดที่สร้าง object และ `fit()` จริงเสมอ
+
+### 12.5 ผลจาก notebook และการคำนวณ metrics
+
+> **ผลที่บันทึกใน notebook:** Test set มี 1,146 ฉบับ และ confusion matrix ให้ค่า TN = 861, FP = 11, FN = 1, TP = 273
+
+| ค่าจริง / ค่าทำนาย | Ham | Spam |
+|---|---:|---:|
+| Ham | TN = 861 | FP = 11 |
+| Spam | FN = 1 | TP = 273 |
+
+Accuracy คำนวณจาก:
+
+$$
+Accuracy
+=
+\frac{TN+TP}{TN+FP+FN+TP}
+=
+\frac{861+273}{1146}
+\approx 0.9895
+$$
+
+สำหรับ spam class:
+
+$$
+Precision_{spam}
+=
+\frac{TP}{TP+FP}
+=
+\frac{273}{273+11}
+\approx 0.9613
+$$
+
+$$
+Recall_{spam}
+=
+\frac{TP}{TP+FN}
+=
+\frac{273}{273+1}
+\approx 0.9964
+$$
+
+Precision ประมาณ 0.96 หมายความว่า ในอีเมลที่โมเดลแจ้งว่าเป็น spam มีประมาณ 96% ที่เป็น spam จริง ส่วน recall ใกล้ 1.00 หมายความว่าโมเดลพลาด spam จริงเพียง 1 ฉบับจาก 274 ฉบับ
+
+ผลนี้ดูดีมาก แต่ต้องอ่านตามผลกระทบของข้อผิดพลาดด้วย FP 11 ฉบับคืออีเมลปกติที่ถูกส่งไป spam folder ซึ่งอาจสร้างความเสียหายมากกว่า FN ในบางองค์กร การเลือกโมเดลหรือ threshold จึงขึ้นกับต้นทุนของสองความผิดพลาด ไม่ใช่ดู accuracy สูงสุดเพียงอย่างเดียว
+
+### 12.6 Validation และ troubleshooting
+
+| อาการ | สาเหตุที่เป็นไปได้ | วิธีตรวจและแก้ |
+|---|---|---|
+| `ValueError: Negative values in data` | ส่ง standardized features เข้า `MultinomialNB` | ใช้ non-negative counts หรือเลือกโมเดลที่ตรงชนิดข้อมูล |
+| Train/test มีจำนวน features ไม่เท่ากัน | fit vectorizer แยกกันสองชุด | fit บน train แล้วใช้ `transform()` กับ test หรือใช้ Pipeline |
+| Memory เต็ม | แปลง sparse matrix เป็น dense | คง sparse matrix และอย่าเรียก `.toarray()` กับข้อมูลใหญ่ |
+| Accuracy สูงแต่จับ spam ไม่ได้ | class imbalance | ดู recall, F1 และ confusion matrix ของ spam |
+| ผลเปลี่ยนทุกครั้ง | split ไม่คงที่ | กำหนด `random_state` และใช้ `stratify` |
+| คำใหม่ทั้งหมดถูกมองข้าม | vocabulary ไม่มีคำเหล่านั้น | ตรวจ out-of-vocabulary rate และ retrain เมื่อข้อมูลเปลี่ยน |
+
+ก่อนเชื่อผล ควรตรวจอย่างน้อยว่า train/test ไม่ทับกัน, vectorizer fit เฉพาะ train, class proportions ใกล้เคียงกัน, จำนวน prediction เท่ากับจำนวน test labels และ confusion matrix รวมกันได้เท่ากับ test size
+
+### 12.7 แบบทดลองต่อยอด
+
+ทดลองเปลี่ยน `CountVectorizer()` เป็นแต่ละตัวเลือกต่อไปนี้ โดยคง split เดิม แล้วคาดการณ์ก่อนรันว่าค่า precision และ recall จะเปลี่ยนอย่างไร:
+
+1. `CountVectorizer(binary=True)` เพื่อเปรียบเทียบ count กับ word presence
+2. `CountVectorizer(stop_words='english')` เพื่อตัดคำทั่วไป เช่น `the`
+3. `CountVectorizer(ngram_range=(1, 2), min_df=2)` เพื่อเพิ่มวลีสองคำแต่ลดคำที่พบครั้งเดียว
+4. `TfidfVectorizer()` เพื่อให้น้ำหนักคำที่พบเฉพาะบางเอกสารมากขึ้น
+5. `ComplementNB()` เพื่อเปรียบเทียบกับ MultinomialNB ในข้อมูลไม่สมดุล
+
+เปรียบเทียบด้วย precision, recall และ F1 ของ spam พร้อมบันทึกจำนวน features และเวลา fit การเพิ่ม features ไม่ได้รับประกันว่าจะดีขึ้น เพราะอาจเพิ่ม noise, memory และความเสี่ยง overfitting
+
+## 13. การตีความและตรวจสอบผลลัพธ์
 
 ### 11.1 Accuracy ไม่เพียงพอเสมอไป
 
@@ -503,7 +784,7 @@ Accuracy เหมาะเมื่อความผิดพลาดทุ�
 - ถ้าจะใช้ probability ตั้ง threshold หรือคำนวณความเสี่ยง ต้องตรวจ calibration เพิ่ม
 - ถ้าค่า probability มีผลต่อการตัดสินใจสูง ควรใช้ calibration curve และพิจารณา probability calibration บนข้อมูลที่แยกจากชุดฝึก
 
-## 12. ข้อดี ข้อจำกัด และ failure modes
+## 14. ข้อดี ข้อจำกัด และ failure modes
 
 ### ข้อดี
 
@@ -532,7 +813,7 @@ Accuracy เหมาะเมื่อความผิดพลาดทุ�
 | GaussianNB ทำงานไม่ดี | distribution ไม่ใกล้ Gaussian | histogram แยก class และ feature | transform feature หรือเลือกโมเดลอื่น |
 | ผล test สูงผิดปกติ | data leakage | ตรวจลำดับ split, preprocessing, duplicate entities | split ก่อนเรียน parameters และใช้ pipeline |
 
-## 13. Decision Framework
+## 15. Decision Framework
 
 เลือก Naive Bayes เมื่อข้อมูลตรงกับ likelihood ที่โมเดลสมมติ ต้องการโมเดลเร็ว หรืออยากได้ baseline ที่แข็งแรง โดยเฉพาะข้อมูลข้อความที่มี dimensions สูง แต่ไม่ควรเลือกเพียงเพราะชื่อโมเดลง่าย
 
@@ -546,25 +827,25 @@ Accuracy เหมาะเมื่อความผิดพลาดทุ�
 | Features สัมพันธ์กันมากและต้องการ probability ที่น่าเชื่อถือ | เปรียบเทียบ Logistic Regression และ calibration | Naive independence อาจทำให้ confidence สูงเกินจริง |
 | ต้องอธิบาย interaction ซับซ้อน | Tree-based model หรือโมเดลที่รองรับ interaction | Naive Bayes ไม่จำลอง dependency โดยตรง |
 
-## 14. Critical Discussion ระดับปริญญาโท
+## 16. Critical Discussion ระดับปริญญาโท
 
-### 14.1 สมมติฐานผิดแล้วเหตุใดยังทำนายได้ดี
+### 16.1 สมมติฐานผิดแล้วเหตุใดยังทำนายได้ดี
 
 Classifier ต้องเลือกคลาสที่มี score สูงสุด ไม่จำเป็นต้องประมาณ joint distribution ได้ถูกต้องทุกจุด แม้ likelihood ของแต่ละคลาสคลาดเคลื่อน แต่ถ้าลำดับคะแนนยังถูก decision boundary ก็ยังจำแนกได้ดี นี่อธิบายว่าทำไม Naive Bayes อาจมี accuracy ดีแม้ probability calibration ไม่ดี
 
-### 14.2 Prediction ไม่ใช่ causation
+### 16.2 Prediction ไม่ใช่ causation
 
 Feature ที่ช่วยจำแนกไม่จำเป็นต้องเป็นสาเหตุของคลาส ตัวอย่างชื่อกับเพศในสไลด์เป็น association ในข้อมูลขนาดเล็ก และยังเสี่ยงสร้าง bias หากนำไปใช้กับคนจริง การเลือก features ต้องพิจารณาความชอบธรรม ความเป็นส่วนตัว ผลกระทบต่อกลุ่ม และการเปลี่ยนแปลงของ population
 
-### 14.3 Dataset shift
+### 16.3 Dataset shift
 
 Prior และ likelihood เรียนจากอดีต ถ้าสัดส่วนคลาสหรือรูปแบบ features เปลี่ยน posterior ที่คำนวณย่อมไม่แทนสถานการณ์ปัจจุบัน ระบบ production จึงต้องติดตาม class distribution, feature distribution, performance และ calibration ตามเวลา
 
-### 14.4 Independence ต้องตรวจในเงื่อนไขของคลาส
+### 16.4 Independence ต้องตรวจในเงื่อนไขของคลาส
 
 การดู correlation ของข้อมูลทั้งหมดไม่เท่ากับตรวจ conditional independence ควรสำรวจความสัมพันธ์ของ features ภายในแต่ละ class อย่างไรก็ตาม correlation วัดเพียงความสัมพันธ์เชิงเส้นและไม่พิสูจน์ independence การตรวจนี้จึงเป็น diagnostic ไม่ใช่ข้อพิสูจน์สมมติฐาน
 
-## 15. Common Misconceptions
+## 17. Common Misconceptions
 
 1. **Naive Bayes ต้องการให้ features เป็นอิสระโดยไม่มีเงื่อนไข** - ไม่ถูก ต้องเป็นอิสระเมื่อกำหนด class แล้ว
 2. **Evidence ต้องคำนวณเสมอ** - ไม่จำเป็นสำหรับการเลือก class เพราะเป็นตัวหารร่วม แต่จำเป็นเมื่อ normalize เป็น posterior
@@ -574,7 +855,7 @@ Prior และ likelihood เรียนจากอดีต ถ้าสั�
 6. **Naive Bayes ใช้ได้เฉพาะสองคลาส** - ไม่จริง สามารถคำนวณคะแนนทุกคลาสและเลือกค่าสูงสุดได้
 7. **ชื่อ Laplacian correction หมายถึง Laplacian distribution** - ในบริบทสไลด์หมายถึง Laplace additive smoothing ไม่เกี่ยวกับ Laplace distribution
 
-## 16. Likely Exam Focus
+## 18. Likely Exam Focus
 
 > ส่วนนี้เป็นการอนุมานจากหัวข้อ สมการ และตัวอย่างที่เน้นในเอกสาร ไม่ใช่ข้อมูลข้อสอบจริง
 
@@ -587,7 +868,7 @@ Prior และ likelihood เรียนจากอดีต ถ้าสั�
 - อธิบาย zero-frequency problem และคำนวณ Laplace smoothing
 - เปรียบเทียบข้อดี ข้อจำกัด และสถานการณ์ที่ควรใช้ Naive Bayes
 
-## 17. Progressive Practice พร้อมเฉลย
+## 19. Progressive Practice พร้อมเฉลย
 
 ### ข้อ 1: Recall
 
@@ -651,7 +932,7 @@ $$
 
 **เฉลย:** เพราะข้อมูลจาก test set จะมีอิทธิพลต่อ parameters ที่ใช้สร้างโมเดล ทำให้ test set ไม่เป็น unseen data และ metric สูงเกินความสามารถจริง ต้อง split ก่อน แล้วเรียน preprocessing parameters และ model parameters จาก training data เท่านั้น
 
-## 18. Mini-project: Spam Message Classifier
+## 20. Mini-project: Spam Message Classifier
 
 สร้างตัวจำแนกข้อความเป็น Spam หรือ Not Spam โดย:
 
@@ -675,7 +956,7 @@ $$
 | Experiment | เปรียบเทียบ `alpha` โดยใช้ข้อมูลแบ่งแบบเดียวกัน |
 | Critical thinking | อธิบาย assumption, bias และ deployment risk |
 
-## 19. Mastery Checklist
+## 21. Mastery Checklist
 
 - [ ] อธิบาย classification input และ output ได้
 - [ ] แยก prior, likelihood, evidence และ posterior ได้
@@ -686,17 +967,20 @@ $$
 - [ ] เลือก Naive Bayes variant ตามชนิด feature ได้
 - [ ] คำนวณ Laplace smoothing และอธิบายตัวส่วนได้
 - [ ] สร้าง `GaussianNB` ด้วย train-test split โดยไม่มี leakage ได้
+- [ ] อธิบาย custom Naive Bayes และเปรียบเทียบผลกับ `BernoulliNB` ได้
+- [ ] แปลงข้อความด้วย `CountVectorizer` โดย fit เฉพาะ training data ได้
+- [ ] สร้าง `MultinomialNB` และตีความ FP/FN ในบริบท spam ได้
 - [ ] ตีความ confusion matrix และข้อจำกัดของ accuracy ได้
 - [ ] แยก classification performance ออกจาก probability calibration ได้
 - [ ] อธิบายข้อจำกัดด้าน bias, privacy และ dataset shift ได้
 
-## 20. Key Takeaways
+## 22. Key Takeaways
 
 Naive Bayes นำ Bayes' Rule มาใช้จำแนกคลาส โดยประมาณ prior จากสัดส่วนคลาสและ likelihood จากการกระจายของ features ภายในคลาส สมมติฐาน conditional independence ทำให้ joint likelihood แตกเป็นผลคูณของ likelihood ราย feature จึงฝึกและทำนายได้เร็ว
 
 ความเรียบง่ายนี้มีต้นทุน Features ที่สัมพันธ์กันอาจทำให้หลักฐานถูกนับซ้ำและ probability มั่นใจเกินจริง การใช้งานที่ดีจึงต้องเลือก likelihood ให้ตรงชนิดข้อมูล ใช้ smoothing เมื่อมี categorical counts แยก train กับ test อย่างถูกต้อง และประเมินทั้ง classification performance กับ probability calibration ตามวัตถุประสงค์
 
-## 21. Glossary
+## 23. Glossary
 
 | คำศัพท์ | ความหมาย |
 |---|---|
@@ -713,7 +997,7 @@ Naive Bayes นำ Bayes' Rule มาใช้จำแนกคลาส โด
 | Laplace smoothing | การเพิ่ม pseudo-count เพื่อป้องกัน probability เป็นศูนย์ |
 | Calibration | ความสอดคล้องระหว่าง predicted probability กับความถี่จริง |
 
-## 22. Source Coverage Audit
+## 24. Source Coverage Audit
 
 | เนื้อหาในเอกสาร | ส่วนใน Master Note | สถานะ |
 |---|---|---|
@@ -723,9 +1007,14 @@ Naive Bayes นำ Bayes' Rule มาใช้จำแนกคลาส โด
 | Multiple features และ chain rule | ส่วน 4 | ครบและขยายปัญหาความซับซ้อน |
 | Naive conditional independence | ส่วน 4.2 | ครบ |
 | ตัวอย่างคำนวณ Male/Female | ส่วน 5 | ตรวจใหม่และแก้ข้อผิดพลาดจากสไลด์ |
-| Advantages and disadvantages | ส่วน 12 | ครบและขยาย failure modes |
+| Advantages and disadvantages | ส่วน 14 | ครบและขยาย failure modes |
 | Continuous values และ Gaussian density | ส่วน 7 | ครบและอธิบาย density |
 | Laplacian correction | ส่วน 8 | ครบและปรับศัพท์เป็น Laplace smoothing |
+| Custom Naive Bayes กับ Play Tennis | ส่วน 11 | ครบทั้ง preprocessing, fit, predict และผลสาม queries |
+| One-hot encoding และ BernoulliNB | ส่วน 11.4 | ครบ พร้อมเพิ่ม Pipeline สำหรับ unknown categories |
+| Spam dataset และ CountVectorizer | ส่วน 12.1-12.2 | ครบ พร้อมอธิบาย sparse matrix และ class balance |
+| Train-test split และ MultinomialNB | ส่วน 12.3-12.4 | ครบ พร้อมชี้ preprocessing leakage ในลำดับเดิม |
+| Confusion matrix และ classification report | ส่วน 12.5 | ครบ พร้อมคำนวณและแปลผล metrics |
 | Reference ในสไลด์ | References | ครบ |
 
 ## References
@@ -735,3 +1024,5 @@ Naive Bayes นำ Bayes' Rule มาใช้จำแนกคลาส โด
 3. Scikit-learn developers. [GaussianNB API Reference](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html).
 4. Scikit-learn developers. [Probability Calibration](https://scikit-learn.org/stable/modules/calibration.html).
 5. Olabenjo, B. [Applying Naive Bayes Classification to Google Play Apps Categorization](https://arxiv.org/abs/1608.08574). arXiv:1608.08574, 2016.
+6. Course lab. [Naive Bayes with Play Tennis](https://github.com/mdanmek/nida-dads-notes/blob/main/dads6003-applied_ml/lab/naive_bayes.ipynb).
+7. Course lab. [Naive Bayes Spam Email Classifier](https://github.com/mdanmek/nida-dads-notes/blob/main/dads6003-applied_ml/lab/naive_bayes_spam_email_classifier.ipynb).
