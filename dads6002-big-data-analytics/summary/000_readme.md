@@ -7,7 +7,7 @@
 > **หลักสูตร:** วิทยาศาสตรมหาบัณฑิต สาขาการวิเคราะห์ข้อมูลและวิทยาการข้อมูล / สาขาวิทยาการคอมพิวเตอร์และระบบสารสนเทศ  
 > **ภาคการศึกษา:** 1/2569 ชั้นปีที่ 1
 
-ชุด canonical ที่แนะนำให้อ่านคือไฟล์ `011`–`014` และ `021`–`023` ซึ่งอยู่ในโฟลเดอร์ `summary/` นี้โดยตรง ให้ใช้เลขและลิงก์จากสารบัญนี้เป็นหลักเพื่อไม่สับสนกับชื่อไฟล์จากการสรุปรุ่นก่อนหน้า
+ชุด canonical ที่แนะนำให้อ่านคือไฟล์ `011`–`014`, `021`–`023` และ `031`–`033` ซึ่งอยู่ในโฟลเดอร์ `summary/` นี้โดยตรง ให้ใช้เลขและลิงก์จากสารบัญนี้เป็นหลักเพื่อไม่สับสนกับชื่อไฟล์จากการสรุปรุ่นก่อนหน้า
 
 ## ภาพรวมรายวิชาจาก Course Syllabus
 
@@ -93,6 +93,20 @@ DADS6002 เป็นวิชาหลักหรือวิชาบัง�
 
 ศัพท์อังกฤษถูกเก็บไว้เพื่อให้ตรงกับสไลด์และเอกสารระบบ แต่ทุกคำหลักต้องมีคำแปลและตัวอย่างเมื่อพบครั้งแรก ตารางสรุปและรายการคำสั่งเป็นส่วนทบทวนหลังคำอธิบาย ไม่ใช่สิ่งที่ใช้แทนการทำความเข้าใจ
 
+## 03 — HBase
+
+แหล่งหลัก: `dads6002_03_hbase.pdf` จำนวน 16 หน้า ชุดนี้เริ่มจากข้อจำกัดของการอ่านไฟล์แบบ batch แล้วค่อยสร้างความเข้าใจว่า HBase เพิ่มการเข้าถึงข้อมูลรายแถวด้วย RowKey อย่างไร ก่อนลงลึกถึงสถาปัตยกรรม การไหลของข้อมูล และคำสั่งที่ใช้ตรวจสอบพฤติกรรมจริง
+
+1. [บทที่ 03.1: HBase Foundations และ Data Model](031_hbase_foundations_and_data_model.md) — เหตุผลที่ใช้ HBase และความสัมพันธ์ระหว่าง Table, RowKey, Column Family, Qualifier, Cell และ Version
+2. [บทที่ 03.2: HBase Architecture, Read/Write Path และ Storage](032_hbase_architecture_and_storage.md) — บทบาทของ Region, HMaster, RegionServer, WAL, MemStore, HFile, BlockCache, ZooKeeper และ META
+3. [บทที่ 03.3: HBase Shell, RowKey Design และการใช้งานจริง](033_hbase_shell_and_rowkey_design.md) — คำสั่งหลัก การอ่านหลายเวอร์ชัน Scan/Filter และ trade-off ของการออกแบบ RowKey
+
+### วิธีอ่านชุด HBase สำหรับผู้เริ่มต้น
+
+เริ่ม 03.1 ด้วยคำถามว่า “ถ้า Hive เหมาะกับการวิเคราะห์ข้อมูลจำนวนมาก เหตุใดเรายังต้องมี HBase” แล้วสร้างภาพข้อมูลหนึ่ง Cell ให้ครบพิกัดจาก RowKey, Column Family, Qualifier และ Timestamp จากนั้นอ่าน 03.2 โดยติดตามข้อมูลหนึ่งค่าในเส้นทางเขียน `WAL → MemStore → HFile` และเส้นทางอ่านจาก cache/memory/disk เมื่อเห็นกลไกแล้วจึงอ่าน 03.3 เพื่อเข้าใจว่าคำสั่ง Shell แต่ละคำสั่งกระทบโครงสร้างใดและจะตรวจผลอย่างไร
+
+อย่าเริ่มจากท่อง syntax เพราะการเลือก RowKey และ Column Family เป็นการตัดสินใจด้านแบบจำลองข้อมูลที่กำหนดทั้งตำแหน่ง Region รูปแบบการอ่าน และความเสี่ยง hotspot ชุดนี้จึงวางคำอธิบายและตัวอย่างก่อนตารางคำสั่งเสมอ
+
 ## Recommended Learning Path
 
 ```mermaid
@@ -103,9 +117,12 @@ flowchart TD
     D --> E["02.1 Hive Foundations"]
     E --> F["02.2 HQL and Loading"]
     F --> G["02.3 Analytics and Joins"]
+    G --> H["03.1 HBase Data Model"]
+    H --> I["03.2 Architecture and Storage"]
+    I --> J["03.3 Shell and RowKey Design"]
 ```
 
-ลำดับนี้เริ่มจากเหตุผลที่ต้องใช้ distributed system ต่อด้วย storage/resource management, distributed processing และ workflow ก่อนยกระดับสู่ SQL-based analytics ด้วย Hive
+ลำดับนี้เริ่มจากเหตุผลที่ต้องใช้ distributed system ต่อด้วย storage/resource management, distributed processing และ workflow ก่อนยกระดับสู่ SQL-based analytics ด้วย Hive แล้วจึงใช้ข้อจำกัดของงาน batch เป็นสะพานไปสู่ HBase สำหรับการอ่านและเขียนข้อมูลรายแถวด้วย RowKey ที่ต้องการ latency ต่ำกว่า
 
 ## เส้นทาง Theory → Lab → Validation
 
@@ -126,6 +143,8 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 
 เรื่องราวหลักของทั้งชุดคือข้อมูลจัดซื้อโรงพยาบาล เริ่มจาก raw events เข้า Data Lake เก็บอย่างทนทานในระบบกระจาย แปลงด้วยงาน batch ควบคุมด้วย DAG จากนั้นประกาศ Hive tables และ schema เพื่อให้ query ได้ สุดท้ายจึง aggregate และ join กับ vendor master โดยตรวจ grain, unmatched keys, row multiplication และยอดรวม การอ่านตามลำดับนี้ช่วยให้เห็นว่าแต่ละเครื่องมือแก้ข้อจำกัดจากขั้นก่อนหน้า
 
+เมื่อเชื่อมไปยัง HBase ให้แยก workload ก่อน: Hive ยังเหมาะกับการ scan และสรุปข้อมูลจำนวนมาก ส่วน HBase เหมาะกับการค้นหรือแก้ไข record ที่ทราบ RowKey และต้องตอบสนองเร็วกว่า การเลือกเครื่องมือจึงขึ้นกับ access pattern ไม่ใช่การตัดสินว่าเครื่องมือใด “ใหม่กว่า” หรือ “ดีกว่า” โดยไม่มีบริบท
+
 ## Cumulative Learning Objectives
 
 - เชื่อม 5Vs กับ storage, processing, latency และ data-quality requirements
@@ -135,6 +154,9 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - อธิบาย Hive, Metastore, tables, partitions และ buckets
 - สร้าง HQL schema, SerDe และ staging-to-curated load flow
 - เขียน aggregation และ joins พร้อมตรวจ grain, unmatched keys และ totals
+- อธิบาย HBase data model และระบุพิกัดของ Cell จาก RowKey, Column Family, Qualifier และ Version
+- trace HBase write/read path พร้อมอธิบายความทนทาน การ flush และ compaction
+- ออกแบบ RowKey จาก access pattern พร้อมวิเคราะห์ลำดับแบบ byte และความเสี่ยง hotspot
 - รัน Lab Hadoop/Hive พร้อมแยก local/HDFS, ตรวจ data contract และอธิบาย failure ได้
 
 ## Numbering Standard
@@ -143,15 +165,16 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 |---|---|---|
 | `01.x` | ชุด Hadoop จากเอกสารหมายเลข 01 | `01.3` = MapReduce |
 | `02.x` | ชุด Hive จากเอกสารหมายเลข 02 | `02.2` = HQL และ loading |
+| `03.x` | ชุด HBase จากเอกสารหมายเลข 03 | `03.2` = architecture และ storage |
 | ชื่อไฟล์ `0xy_...md` | ตัดจุดออกเพื่อให้ sort ง่าย | `023_...md` = บทที่ 02.3 |
 
 เลขในชื่อไฟล์ หัวเรื่อง ลิงก์ข้ามบท และสารบัญต้องใช้ mapping เดียวกันนี้
 
 ## Integrated Capstone
 
-ออกแบบ analytical pipeline สำหรับข้อมูลการสั่งซื้อของโรงพยาบาล ตั้งแต่รับไฟล์เข้า HDFS จัดสรร resource ด้วย YARN ประมวลผลและ orchestration งาน สร้าง Hive external staging table แปลงเป็น curated table แล้วสรุปยอดร่วมกับ vendor master
+ออกแบบ analytical pipeline สำหรับข้อมูลการสั่งซื้อของโรงพยาบาล ตั้งแต่รับไฟล์เข้า HDFS จัดสรร resource ด้วย YARN ประมวลผลและ orchestration งาน สร้าง Hive external staging table แปลงเป็น curated table แล้วสรุปยอดร่วมกับ vendor master จากนั้นออกแบบ HBase table สำหรับค้นสถานะคำสั่งซื้อหรือยอดล่าสุดของโรงพยาบาลแบบ RowKey lookup
 
-ผลงานต้องแสดง architecture, grain, partition design, HQL, failure recovery และ reconciliation ของ row count กับยอดเงิน
+ผลงานต้องแสดง architecture, grain, partition design, HQL, HBase RowKey/Column Family, failure recovery และ reconciliation ของ row count กับยอดเงิน พร้อมอธิบายว่าข้อมูลส่วนใดควรอยู่ใน Hive หรือ HBase ตาม access pattern
 
 ## Cumulative Exam Blueprint
 
@@ -161,15 +184,19 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 | วิเคราะห์ failure และ orchestration | 01.2–01.4 | Analyze/Evaluate |
 | ออกแบบ Hive storage/schema | 02.1–02.2 | Apply/Analyze |
 | วิเคราะห์ aggregation/join correctness | 02.3 | Analyze/Evaluate |
+| อธิบาย HBase data model และ read/write path | 03.1–03.2 | Explain/Analyze |
+| ออกแบบ RowKey และวิเคราะห์ hotspot | 03.3 | Apply/Evaluate |
 | ออกแบบ pipeline end-to-end | ทุกบท | Create |
 
 ## Final Revision Checklist
 
-- [ ] อธิบายลำดับ 01.1 → 02.3 และ dependency ของแต่ละบทได้
+- [ ] อธิบายลำดับ 01.1 → 03.3 และ dependency ของแต่ละบทได้
 - [ ] วาด HDFS/YARN/MapReduce flow จากความจำได้
 - [ ] แยก table, partition และ bucket ได้
 - [ ] อธิบาย schema-on-read และ SerDe ได้
 - [ ] ตรวจ row multiplication และ unmatched keys หลัง join ได้
+- [ ] ระบุพิกัด Cell และ trace เส้นทาง WAL → MemStore → HFile ได้
+- [ ] อธิบายว่า RowKey ทำให้ scan order และ hotspot เปลี่ยนอย่างไรได้
 - [ ] ออกแบบ retry, validation และ reconciliation สำหรับ pipeline ได้
 - [ ] ทำ Lab 01–02 โดยทำนายผล เก็บหลักฐาน และซ่อม deliberate failure ได้
 
@@ -178,16 +205,19 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - `dads6002_00_course_syllabus.pdf` หน้า 1–7 ครอบคลุมข้อมูลรายวิชา เป้าหมาย คำอธิบาย ผลการเรียนรู้ แผนสัปดาห์ การประเมิน และเอกสารหลักในไฟล์นี้
 - `dads6002_01_hadoop.pdf` หน้า 1–43 ครอบคลุมในบท 01.1–01.4
 - `dads6002_02_hive.pdf` หน้า 1–21 ครอบคลุมในบท 02.1–02.3
+- `dads6002_03_hbase.pdf` หน้า 1–16 ครอบคลุมในบท 03.1–03.3
 - `lab_01_hadoop.pdf` หน้า 1–5 และ Python mapper/reducer ครอบคลุมในบท 01.2–01.3
 - `lab_02_hive.pdf` หน้า 1–5 ครอบคลุมในบท 02.2–02.3
 
 ## Suite Review
 
-- เลขบท canonical สอดคล้องกัน: `01.1–01.4` และ `02.1–02.3`
+- เลขบท canonical สอดคล้องกัน: `01.1–01.4`, `02.1–02.3` และ `03.1–03.3`
 - ทุกบทมี source range, prerequisites, teaching layer, practice, exam focus และ mastery checks
 - Hadoop → Hive เชื่อมผ่าน HDFS, MapReduce, metadata และ SQL abstraction
+- Hive → HBase เชื่อมผ่านความต่างระหว่าง batch analytics กับ low-latency row access
 - Hive หน้า 1–5 มีบ้านหลักใน 02.1, หน้า 6–15 ใน 02.2 และหน้า 16–21 ใน 02.3 โดยไม่มีช่วงหน้าตกหล่น
 - Lab ทุกชุดมีบ้านหลักตามแนวคิด ไม่สร้างไฟล์ซ้ำ และเพิ่ม prediction, expected evidence, deliberate failure กับ validation แล้ว
+- HBase หน้า 1–3 และ 7–8 มีบ้านหลักใน 03.1, หน้า 3–6 ใน 03.2 และหน้า 9–16 ใน 03.3 โดยส่วนที่ซ้ำกันใช้เป็นสะพานเชื่อม ไม่ทำให้หัวข้อหลักตกหล่น
 
 ## References
 
@@ -199,3 +229,4 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - [Apache Hadoop Documentation](https://hadoop.apache.org/docs/current/)
 - [Apache Airflow Documentation](https://airflow.apache.org/docs/apache-airflow/stable/)
 - [Apache Hive Documentation](https://hive.apache.org/docs/latest/)
+- [Apache HBase Documentation](https://hbase.apache.org/docs/)
