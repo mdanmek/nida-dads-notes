@@ -30,7 +30,6 @@ nida-dads-notes/
 │   ├── resource/
 │   ├── summary/
 │   └── project/
-│       └── eda/
 ├── dads6001-applied_statistics/
 │   ├── lecture/
 │   ├── lab/
@@ -57,7 +56,6 @@ nida-dads-notes/
 | `resource/` | Dataset หรือไฟล์ที่ใช้ประกอบการฝึก |
 | `summary/` | Master study notes ภาษาไทยสำหรับทำความเข้าใจและเตรียมสอบ |
 | `project/` | พื้นที่รวมโครงงานของรายวิชา แยกตามประเภทของโครงงาน |
-| `project/eda/` | แผนงาน Notebook และเอกสารของโครงงาน Exploratory Data Analysis |
 
 บางรายวิชาอาจไม่มีทุกโฟลเดอร์ โดยขึ้นอยู่กับรูปแบบเนื้อหาและงานของรายวิชานั้น
 
