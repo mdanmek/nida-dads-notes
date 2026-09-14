@@ -507,10 +507,11 @@ README ต้องแสดงการเปลี่ยนขอบเขต�
 
 ## 17. สถานะการปรับ Notebook ก่อน Run all
 
-ปรับไฟล์ `03_construction_eda_2569.ipynb` และ `04_construction_review_indicators_2569.ipynb` ตามขอบเขตใหม่แล้ว โดยยังไม่ยืนยันจำนวนผลคัดกรองจนกว่าจะ Run all
+ปรับไฟล์ `02_construction_data_preparation_2569.ipynb`, `03_construction_eda_2569.ipynb` และ `04_construction_review_indicators_2569.ipynb` ตามขอบเขตใหม่แล้ว โดยยังไม่ยืนยันจำนวนผลคัดกรองจนกว่าจะ Run all
 
 ### รายการที่ดำเนินการแล้ว
 
+- ปรับ Notebook 02 ให้เก็บงานก่อสร้างทั้งหมดเป็นฐานกลาง และตรวจว่าสามารถสร้างกลุ่มศึกษาหลักซ้ำได้
 - กำหนดประชากรอ้างอิงเป็นโครงการก่อสร้างทั้งหมด
 - กำหนดกลุ่มศึกษาหลักเป็นวิธีเฉพาะเจาะจงและวงเงินไม่เกิน 500,000 บาท
 - แยกเส้น 500,000 บาทตามกฎหมายออกจากช่วง 490,000–500,000 บาทที่ทีมกำหนด
@@ -521,11 +522,11 @@ README ต้องแสดงการเปลี่ยนขอบเขต�
 - เปลี่ยน overlap heatmap เป็นกราฟแสดงจำนวนตาม combination
 - เปลี่ยน Funnel เป็น “ผลการจัดลำดับตรวจสอบ”
 - ตัดตัวเลขผลลัพธ์เดิมที่ฝังใน Markdown ออกจากส่วนที่ต้องคำนวณใหม่
-- ล้าง output เดิมของ Notebook 03–04 เพื่อป้องกันผลเก่าขัดกับโค้ดใหม่
+- ล้าง output เดิมของ Notebook 02–04 เพื่อป้องกันผลเก่าขัดกับโค้ดใหม่
 
 ### Path สำหรับบันทึกรูป
 
-Notebook ทั้งสองใช้:
+Notebook 02–03 ใช้:
 
 ```python
 project_directory = data_path.parents[4]
@@ -539,7 +540,7 @@ project_directory = processed_dir.parents[3]
 figure_directory = project_directory / 'figure'
 ```
 
-ทั้งสองแบบชี้ไปยัง:
+ทั้งสาม Notebook ชี้ไปยัง:
 
 ```text
 /content/drive/MyDrive/learning/dads/dads5001/project_1_dads5001/figure
