@@ -1,8 +1,10 @@
 # DADS6003 Applied Machine Learning — Logistic Regression
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week04_logistic_regression.pdf` จำนวน 17 หน้า  
-> **ผู้สอนในเอกสาร:** Ekarat Rattagan  
-> **วันที่ในเอกสาร:** 29 มกราคม 2026  
+> **แหล่งเนื้อหาหลัก:** `lecture/dads6003_04_logistic_regression.pdf` จำนวน 17 หน้า
+> **เอกสารอ่านประกอบ:** `read/read03_logistic_regression.pdf` จำนวน 7 หน้า
+> **Lab:** `lab/logistic_regression.ipynb` จำนวน 24 cells
+> **ผู้สอนในเอกสาร:** Ekarat Rattagan
+> **วันที่ในเอกสาร:** 29 มกราคม 2026
 > **หมายเหตุ:** ชื่อไฟล์และ destination ระบุ Week 04 แต่หน้าปก/ส่วนท้ายของสไลด์ระบุ “Week 5: Logistic Regression” โน้ตนี้ใช้ path Week 04 ตามที่ผู้ใช้กำหนดโดยไม่แก้ข้อมูลต้นฉบับ
 
 ## 1. ภาพรวมบทเรียน
@@ -16,9 +18,7 @@ $$
 แล้วใช้ sigmoid function แปลงค่าที่อยู่ในช่วง \((-∞,+∞)\) ให้เป็น probability ในช่วง \((0,1)\):
 
 $$
-h_{\theta}(\mathbf{x})
-=\sigma(z)
-=\frac{1}{1+e^{-z}}
+h_{\theta}(\mathbf{x}) =\sigma(z) =\frac{1}{1+e^{-z}}
 $$
 
 จาก probability จึงใช้ threshold เช่น 0.5 เพื่อเปลี่ยนเป็น class prediction โมเดลถูก train ด้วย Negative Log-Likelihood หรือ Binary Cross-Entropy ไม่ใช้ MSE เป็นตัวเลือกมาตรฐาน
@@ -81,8 +81,7 @@ $$
 จากเอกสารหน้า 3 Linear Regression มี output ไม่จำกัด:
 
 $$
-h_{\theta}(\mathbf{x})=\boldsymbol{\theta}^{T}\mathbf{x}
-\in(-∞,+∞)
+h_{\theta}(\mathbf{x})=\boldsymbol{\theta}^{T}\mathbf{x} \in(-∞,+∞)
 $$
 
 แต่ probability ต้องอยู่ระหว่าง 0 และ 1 หากใช้เส้นตรงอาจทำนาย -0.3 หรือ 1.4 ซึ่งตีความเป็น probability ไม่ได้
@@ -112,8 +111,7 @@ $$
 และอนุพันธ์:
 
 $$
-\frac{d\sigma(z)}{dz}
-=\sigma(z)(1-\sigma(z))
+\frac{d\sigma(z)}{dz} =\sigma(z)(1-\sigma(z))
 $$
 
 อนุพันธ์มีค่าสูงสุดที่ \(z=0\) และเข้าใกล้ศูนย์เมื่อ \(|z|\) ใหญ่
@@ -134,16 +132,13 @@ z=\theta_0+\theta_1x_1+\cdots+\theta_dx_d
 $$
 
 $$
-P(y=1\mid\mathbf{x};\boldsymbol{\theta})
-=h_{\theta}(\mathbf{x})
-=\frac{1}{1+e^{-z}}
+P(y=1\mid\mathbf{x};\boldsymbol{\theta}) =h_{\theta}(\mathbf{x}) =\frac{1}{1+e^{-z}}
 $$
 
 และ
 
 $$
-P(y=0\mid\mathbf{x};\boldsymbol{\theta})
-=1-h_{\theta}(\mathbf{x})
+P(y=0\mid\mathbf{x};\boldsymbol{\theta}) =1-h_{\theta}(\mathbf{x})
 $$
 
 ## 6. Probability, Odds และ Log-Odds
@@ -176,14 +171,13 @@ $$
 จากเอกสารหน้า 15 เมื่อใช้ natural logarithm กับ odds จะได้ความสัมพันธ์เชิงเส้น:
 
 $$
-\log\left(\frac{p}{1-p}\right)
-=\theta_0+\theta_1x_1+\cdots+\theta_dx_d
+\log(\frac{p}{1-p}) =\theta_0+\theta_1x_1+\cdots+\theta_dx_d
 $$
 
 ฟังก์ชัน
 
 $$
-logit(p)=\ln\left(\frac{p}{1-p}\right)
+logit(p)=\ln(\frac{p}{1-p})
 $$
 
 แปลง \(p\in(0,1)\) ไปเป็น \((-∞,+∞)\) และ inverse logit คือ sigmoid
@@ -193,7 +187,7 @@ $$
 เริ่มจาก
 
 $$
-\ln\left(\frac{p}{1-p}\right)=z
+\ln(\frac{p}{1-p})=z
 $$
 
 ยกกำลัง \(e\):
@@ -213,9 +207,7 @@ p(1+e^z)=e^z
 $$
 
 $$
-p=\frac{e^z}{1+e^z}
-=\frac{1}{1+e^{-z}}
-=\sigma(z)
+p=\frac{e^z}{1+e^z} =\frac{1}{1+e^{-z}} =\sigma(z)
 $$
 
 ## 7. การตีความ Coefficient และ Odds Ratio
@@ -223,8 +215,7 @@ $$
 จาก logit model:
 
 $$
-\log\left(\frac{p}{1-p}\right)
-=\theta_0+\theta_1x_1+\cdots+\theta_dx_d
+\log(\frac{p}{1-p}) =\theta_0+\theta_1x_1+\cdots+\theta_dx_d
 $$
 
 เมื่อ \(x_j\) เพิ่ม 1 หน่วย โดยควบคุม features อื่นคงที่:
@@ -263,18 +254,13 @@ odds ถูกคูณด้วย 0.8 หรือ **ลดลง 20%** ไม
 จากเอกสารหน้า 5 หากใช้ threshold 0.5:
 
 $$
-\hat{y}=\begin{cases}
-1,&h_{\theta}(\mathbf{x})\ge0.5\\
-0,&h_{\theta}(\mathbf{x})<0.5
-\end{cases}
+\hat{y}=\begin{cases} 1,&h_{\theta}(\mathbf{x})\ge0.5\\ 0,&h_{\theta}(\mathbf{x})<0.5 \end{cases}
 $$
 
 เพราะ sigmoid เป็น monotonic และ \(\sigma(0)=0.5\):
 
 $$
-h_{\theta}(\mathbf{x})\ge0.5
-\iff
-\boldsymbol{\theta}^{T}\mathbf{x}\ge0
+h_{\theta}(\mathbf{x})\ge0.5 \iff \boldsymbol{\theta}^{T}\mathbf{x}\ge0
 $$
 
 ดังนั้น decision boundary ที่ threshold 0.5 คือ
@@ -292,16 +278,13 @@ $$
 boundary:
 
 $$
-\theta_0+\theta_1x=0
-\quad\Rightarrow\quad
-x=-\frac{\theta_0}{\theta_1}
+\theta_0+\theta_1x=0 \quad\Rightarrow\quad x=-\frac{\theta_0}{\theta_1}
 $$
 
 ### 8.2 สอง features
 
 $$
-h_{\theta}(\mathbf{x})
-=\sigma(\theta_0+\theta_1x_1+\theta_2x_2)
+h_{\theta}(\mathbf{x}) =\sigma(\theta_0+\theta_1x_1+\theta_2x_2)
 $$
 
 boundary:
@@ -313,8 +296,7 @@ $$
 หรือเมื่อ \(\theta_2\ne0\):
 
 $$
-x_2=-\frac{\theta_0}{\theta_2}
--\frac{\theta_1}{\theta_2}x_1
+x_2=-\frac{\theta_0}{\theta_2} -\frac{\theta_1}{\theta_2}x_1
 $$
 
 จึงเป็นเส้นตรงในระนาบสอง features
@@ -324,8 +306,7 @@ $$
 จากเอกสารหน้า 5–6:
 
 $$
-h_{\theta}(\mathbf{x})
-=\sigma(-1+x_1^2+x_2^2)
+h_{\theta}(\mathbf{x}) =\sigma(-1+x_1^2+x_2^2)
 $$
 
 boundary ที่ probability 0.5:
@@ -351,9 +332,7 @@ $$
 เทียบเท่ากับ
 
 $$
-\boldsymbol{\theta}^{T}\mathbf{x}
-\ge
-\log\left(\frac{\tau}{1-	au}\right)
+\boldsymbol{\theta}^{T}\mathbf{x} \ge \log(\frac{\tau}{1-\tau})
 $$
 
 ลด threshold มักเพิ่ม recall แต่ลด precision; เพิ่ม threshold มักเพิ่ม precision แต่ลด recall ทั้งนี้ขึ้นกับ distribution ของคะแนน
@@ -373,22 +352,13 @@ $$
 จากเอกสารหน้า 8 กำหนด loss ของหนึ่ง sample:
 
 $$
-Cost(h_{\theta}(\mathbf{x}),y)
-=\begin{cases}
--\ln h_{\theta}(\mathbf{x}),&y=1\\
--\ln(1-h_{\theta}(\mathbf{x})),&y=0
-\end{cases}
+Cost(h_{\theta}(\mathbf{x}),y) =\begin{cases} -\ln h_{\theta}(\mathbf{x}),&y=1\\ -\ln(1-h_{\theta}(\mathbf{x})),&y=0 \end{cases}
 $$
 
 รวมสองกรณี:
 
 $$
-J(\boldsymbol{\theta})
-=-\frac{1}{N}\sum_{i=1}^{N}
-\left[
-y_i\ln h_{\theta}(\mathbf{x}_i)
-+(1-y_i)\ln(1-h_{\theta}(\mathbf{x}_i))
-\right]
+J(\boldsymbol{\theta}) =-\frac{1}{N}\sum_{i=1}^{N} [ y_i\ln h_{\theta}(\mathbf{x}_i) +(1-y_i)\ln(1-h_{\theta}(\mathbf{x}_i)) ]
 $$
 
 ชื่อที่พบได้:
@@ -429,8 +399,7 @@ $$
 จากเอกสารหน้า 8 สำหรับ \(y_i\in\{0,1\}\):
 
 $$
-P(y_i\mid\mathbf{x}_i;\boldsymbol{\theta})
-=h_i^{y_i}(1-h_i)^{1-y_i}
+P(y_i\mid\mathbf{x}_i;\boldsymbol{\theta}) =h_i^{y_i}(1-h_i)^{1-y_i}
 $$
 
 โดย \(h_i=h_{\theta}(\mathbf{x}_i)\)
@@ -441,16 +410,13 @@ $$
 สมมติ samples เป็นอิสระแบบมีเงื่อนไข likelihood ทั้งชุดคือ
 
 $$
-L(\boldsymbol{\theta})
-=\prod_{i=1}^{N}h_i^{y_i}(1-h_i)^{1-y_i}
+L(\boldsymbol{\theta}) =\prod_{i=1}^{N}h_i^{y_i}(1-h_i)^{1-y_i}
 $$
 
 ใช้ log เปลี่ยนผลคูณเป็นผลรวม:
 
 $$
-\ell(\boldsymbol{\theta})
-=\sum_{i=1}^{N}
-\left[y_i\ln h_i+(1-y_i)\ln(1-h_i)\right]
+\ell(\boldsymbol{\theta}) =\sum_{i=1}^{N} [y_i\ln h_i+(1-y_i)\ln(1-h_i)]
 $$
 
 Maximum Likelihood ต้อง maximize \(\ell\) ซึ่งเท่ากับ minimize negative average log-likelihood \(J\)
@@ -462,14 +428,13 @@ Maximum Likelihood ต้อง maximize \(\ell\) ซึ่งเท่ากั
 กำหนด
 
 $$
-h_i=\sigma(z_i),\qquad
-z_i=\boldsymbol{\theta}^{T}\mathbf{x}_i
+h_i=\sigma(z_i),\qquad z_i=\boldsymbol{\theta}^{T}\mathbf{x}_i
 $$
 
 สำหรับหนึ่ง sample:
 
 $$
-L_i=-\left[y_i\ln h_i+(1-y_i)\ln(1-h_i)\right]
+L_i=-[y_i\ln h_i+(1-y_i)\ln(1-h_i)]
 $$
 
 ### 12.1 อนุพันธ์ที่ต้องใช้
@@ -489,60 +454,43 @@ $$
 จึงได้
 
 $$
-\frac{\partial h_i}{\partial\theta_j}
-=h_i(1-h_i)x_{i,j}
+\frac{\partial h_i}{\partial\theta_j} =h_i(1-h_i)x_{i,j}
 $$
 
 ### 12.2 Chain rule
 
 $$
-\frac{\partial L_i}{\partial\theta_j}
-=-left[
-y_i\frac{1}{h_i}\frac{\partial h_i}{\partial\theta_j}
-+(1-y_i)\frac{1}{1-h_i}
-\frac{\partial(1-h_i)}{\partial\theta_j}
-\right]
+\frac{\partial L_i}{\partial\theta_j} =-[ y_i\frac{1}{h_i}\frac{\partial h_i}{\partial\theta_j} +(1-y_i)\frac{1}{1-h_i} \frac{\partial(1-h_i)}{\partial\theta_j} ]
 $$
 
 เพราะ
 
 $$
-\frac{\partial(1-h_i)}{\partial\theta_j}
-=-\frac{\partial h_i}{\partial\theta_j}
+\frac{\partial(1-h_i)}{\partial\theta_j} =-\frac{\partial h_i}{\partial\theta_j}
 $$
 
 แทนอนุพันธ์ sigmoid:
 
 $$
-\frac{\partial L_i}{\partial\theta_j}
-=-left[
-y_i(1-h_i)x_{i,j}
--(1-y_i)h_ix_{i,j}
-\right]
+\frac{\partial L_i}{\partial\theta_j} =-[ y_i(1-h_i)x_{i,j} -(1-y_i)h_ix_{i,j} ]
 $$
 
 จัดรูป:
 
 $$
-\frac{\partial L_i}{\partial\theta_j}
-=(h_i-y_i)x_{i,j}
+\frac{\partial L_i}{\partial\theta_j} =(h_i-y_i)x_{i,j}
 $$
 
 เฉลี่ยทุก samples:
 
 $$
-\boxed{
-\frac{\partial J}{\partial\theta_j}
-=\frac{1}{N}\sum_{i=1}^{N}
-(h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}}
+\boxed{ \frac{\partial J}{\partial\theta_j} =\frac{1}{N}\sum_{i=1}^{N} (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}}
 $$
 
 ในรูปเมทริกซ์:
 
 $$
-\boxed{
-\nabla J(\boldsymbol{\theta})
-=\frac{1}{N}X^T(\mathbf{h}-\mathbf{y})}
+\boxed{ \nabla J(\boldsymbol{\theta}) =\frac{1}{N}X^T(\mathbf{h}-\mathbf{y})}
 $$
 
 ### 12.3 เหตุใด gradient คล้าย Linear Regression
@@ -563,19 +511,13 @@ $$
 ## 13. Gradient Descent Update
 
 $$
-\theta_j^{(t+1)}
-=\theta_j^{(t)}-eta
-\frac{1}{N}\sum_{i=1}^{N}
-(h_i-y_i)x_{i,j}
+\theta_j^{(t+1)} =\theta_j^{(t)}-\eta \frac{1}{N}\sum_{i=1}^{N} (h_i-y_i)x_{i,j}
 $$
 
 matrix form:
 
 $$
-\boldsymbol{\theta}^{(t+1)}
-=\boldsymbol{\theta}^{(t)}
--\eta\frac{1}{N}X^T
-(\sigma(X\boldsymbol{\theta}^{(t)})-\mathbf{y})
+\boldsymbol{\theta}^{(t+1)} =\boldsymbol{\theta}^{(t)} -\eta\frac{1}{N}X^T (\sigma(X\boldsymbol{\theta}^{(t)})-\mathbf{y})
 $$
 
 ### Worked example: หนึ่ง update
@@ -583,7 +525,7 @@ $$
 มีหนึ่ง sample \(x_0=1,x_1=2,y=1\), parameters เริ่มต้น \(\theta_0=0,\theta_1=0\), \(\eta=0.1\)
 
 $$
-z=0+0(2)=0,qquad h=\sigma(0)=0.5
+z=0+0(2)=0,\qquad h=\sigma(0)=0.5
 $$
 
 gradients:
@@ -778,11 +720,7 @@ $$
 ต้องการจัดลำดับ vendor ที่ควรตรวจสอบ:
 
 $$
-P(Risk=1\mid x)
-=\sigma(\theta_0
-+\theta_1LateDeliveryRate
-+\theta_2PriceVariance
-+\theta_3ComplaintCount)
+P(Risk=1\mid x) =\sigma(\theta_0 +\theta_1LateDeliveryRate +\theta_2PriceVariance +\theta_3ComplaintCount)
 $$
 
 การออกแบบที่สำคัญ:
@@ -796,35 +734,81 @@ $$
 
 ## 22. Common Misconceptions
 
-1. **“Logistic Regression ใช้ทำนายค่าต่อเนื่องเพราะชื่อ Regression”**  
+1. **“Logistic Regression ใช้ทำนายค่าต่อเนื่องเพราะชื่อ Regression”**
    ในบทนี้ใช้ classification และให้ probability ของ class
 
-2. **“Sigmoid output คือความน่าจะเป็นที่เชื่อถือได้เสมอ”**  
+2. **“Sigmoid output คือความน่าจะเป็นที่เชื่อถือได้เสมอ”**
    การตีความเป็น probability อาศัย model specification และ calibration ต้องตรวจบน unseen data
 
-3. **“Probability 0.8 เท่ากับ odds 0.8”**  
+3. **“Probability 0.8 เท่ากับ odds 0.8”**
    Probability 0.8 มี odds \(0.8/0.2=4\)
 
-4. **“Coefficient 0.2 หมายถึง probability เพิ่ม 20%”**  
+4. **“Coefficient 0.2 หมายถึง probability เพิ่ม 20%”**
    coefficient เปลี่ยน log-odds; odds ratio คือ \(e^{0.2}\) ผลต่อ probability ขึ้นกับ baseline
 
-5. **“Decision boundary ต้องเป็นเส้นตรงเสมอ”**  
+5. **“Decision boundary ต้องเป็นเส้นตรงเสมอ”**
    เป็นเส้นตรงใน feature space แต่ polynomial mapping ทำให้โค้งใน original space ได้
 
-6. **“Threshold 0.5 ดีที่สุดเสมอ”**  
+6. **“Threshold 0.5 ดีที่สุดเสมอ”**
    threshold ที่เหมาะขึ้นกับ metric, prevalence, cost และ capacity
 
-7. **“AUC สูงจึงใช้ probability คำนวณความเสี่ยงได้ทันที”**  
+7. **“AUC สูงจึงใช้ probability คำนวณความเสี่ยงได้ทันที”**
    AUC วัด ranking/discrimination ไม่รับรอง calibration
 
-8. **“Gradient เหมือน Linear Regression จึงใช้ MSE ได้เหมือนกัน”**  
+8. **“Gradient เหมือน Linear Regression จึงใช้ MSE ได้เหมือนกัน”**
    gradient form คล้ายกันหลัง simplify แต่ hypothesis และ objective ต่างกัน
 
-9. **“Accuracy สูงแปลว่าตรวจจับ rare event ดี”**  
+9. **“Accuracy สูงแปลว่าตรวจจับ rare event ดี”**
    หาก positive มี 1% การทาย 0 ทั้งหมดได้ accuracy 99% แต่ recall = 0
 
-10. **“เพิ่ม features ยิ่งมากยิ่งดี”**  
+10. **“เพิ่ม features ยิ่งมากยิ่งดี”**
    เพิ่มความเสี่ยง leakage, multicollinearity และ overfitting จึงต้อง validate และ regularize
+
+## Lab Notebook Walkthrough: จากการเขียนเองสู่ Iris Classification
+
+> **จาก `lab/logistic_regression.ipynb`:** Notebook มีสองช่วง ช่วงแรกเขียน sigmoid, cost และ gradient descent ด้วย NumPy เพื่อให้เห็นกลไก ช่วงที่สองใช้ `LogisticRegression` กับ Iris และทำ assignment แบ่งข้อมูล 80/20
+
+### Custom implementation: สิ่งที่ code ตั้งใจทำ
+
+ข้อมูลจำลองมี 10 observations, 4 features และ binary target จากนั้นเติม intercept column ทำให้ (X_b) มี 5 คอลัมน์ ฟังก์ชัน `gradient_Descent()` คำนวณ probability ด้วย sigmoid หาค่า error (h-y) แล้ว update coefficients ด้วย
+
+$$
+\theta \gets \theta-\eta\frac{1}{N}X^T(h-y)
+$$
+
+หลัง 100 iterations output ที่บันทึกไว้ให้ probability 10 ค่า ใช้ threshold 0.5 แล้วทำนายถูก 8 จาก 10 หรือ accuracy 80% แต่คะแนนนี้เป็น **training accuracy** เพราะใช้ข้อมูลสิบแถวชุดเดียวกันทั้ง fit และ evaluate จึงใช้สาธิตกลไกได้ แต่ยังบอก generalization ไม่ได้
+
+### จุดผิดใน cost function ที่ต้องรู้
+
+Binary cross-entropy ที่ถูกต้องคือ
+
+$$
+J(\theta)=-\frac{1}{N}[y^T\log(h)+(1-y)^T\log(1-h)]
+$$
+
+แต่ cell เดิมใส่เครื่องหมายลบไว้ทั้งด้านนอกและหน้า (y^T\log(h)) ทำให้ expression ไม่ตรงกับ NLL มาตรฐาน แม้ output ที่บันทึกไว้จะลดลงก็ไม่ควรใช้เป็นหลักฐานว่า loss ถูกต้อง ควรแก้เป็น:
+
+```python
+def cost(x, y, theta):
+    h = sigmoid(x @ theta)
+    eps = 1e-12
+    h = np.clip(h, eps, 1 - eps)
+
+    return -np.mean(
+        y.reshape(-1, 1) * np.log(h)
+        + (1 - y.reshape(-1, 1)) * np.log(1 - h)
+    )
+```
+
+การ clip ป้องกัน `log(0)` ในตัวอย่างเพื่อการเรียนรู้ ส่วนงานจริงควรใช้ implementation ของ library ที่คำนวณจาก logits อย่างเสถียร
+
+### Iris assignment: ส่วนที่ใช้ประเมินข้อมูลใหม่
+
+Assignment ใช้ Iris ทั้ง 4 features แบ่ง train/test 80/20 พร้อม `stratify=Y` จึงได้ training 120 observations และ test 30 observations ผลที่บันทึกไว้คือ test accuracy 96.67% หรือทำนายถูก 29 จาก 30 ตัวอย่าง
+
+กราฟ decision boundary แสดงเพียง petal length กับ petal width โดยตรึง sepal length และ sepal width ไว้ที่ค่าเฉลี่ยของ training set ดังนั้นกราฟเป็น **two-dimensional slice ของโมเดลสี่มิติ** ไม่ใช่ decision surface ทั้งหมด หากเปลี่ยนค่าที่ใช้ตรึง sepal features เส้นแบ่งบนกราฟอาจเปลี่ยนได้
+
+ก่อนถึง assignment มีตัวอย่าง Iris อีกชุดที่ใช้เพียง petal features และ fit ทั้ง 150 observations โดยไม่แยก test ตัวอย่างนั้นเหมาะสำหรับสาธิต boundary แต่ไม่ใช่การประเมินโมเดล อีกทั้ง short-version cell ตั้งแกนว่า `Sepal length/width` ทั้งที่ตัวแปรจริงยังเป็น petal length/width จึงควรอ่านจากตัวแปรที่ส่งเข้าโมเดล ไม่ใช่เชื่อ label บนกราฟโดยอัตโนมัติ
 
 ## Hands-on Lab: Probability, Threshold และต้นทุนความผิดพลาด
 
@@ -973,18 +957,15 @@ h_{\theta}(x)=\sigma(\theta^Tx)
 $$
 
 $$
-Odds=\frac{p}{1-p},qquad
-logit(p)=\ln\frac{p}{1-p}
+Odds=\frac{p}{1-p},\qquad \mathrm{logit}(p)=\ln\frac{p}{1-p}
 $$
 
 $$
-J(\theta)=-\frac{1}{N}\sum_i
-[y_i\ln h_i+(1-y_i)\ln(1-h_i)]
+J(\theta)=-\frac{1}{N}\sum_i [y_i\ln h_i+(1-y_i)\ln(1-h_i)]
 $$
 
 $$
-\frac{\partial J}{\partial\theta_j}
-=\frac{1}{N}\sum_i(h_i-y_i)x_{i,j}
+\frac{\partial J}{\partial\theta_j} =\frac{1}{N}\sum_i(h_i-y_i)x_{i,j}
 $$
 
 ### Calculations
@@ -1140,11 +1121,24 @@ $$
 | Sigmoid | ฟังก์ชันแปลงค่าจริงเป็นช่วง \((0,1)\) |
 | Threshold | จุดตัด probability เพื่อสร้าง class label |
 
+## Source Coverage and Learning Gap Audit
+
+| แหล่ง/หัวข้อ | ส่วนที่สอน | สิ่งที่ตรวจเพิ่ม |
+|---|---|---|
+| Lecture: sigmoid, decision boundary, NLL และ GD | ส่วน 3–13 | เติม odds/log-odds, derivation และ numerical stability |
+| Reading: logistic interpretation | ส่วน 6–7, 18 | เพิ่ม odds ratio, assumptions และข้อจำกัดของ coefficient |
+| Lab: custom implementation | Lab Notebook Walkthrough | ตรวจ training-only score และพบเครื่องหมาย cost function ผิด |
+| Lab: Iris 80/20 assignment | Lab Notebook Walkthrough | ยืนยัน 120/30 observations, accuracy 96.67% และข้อจำกัดของกราฟ 2D |
+
+Learning Gap Audit แยกสามสิ่งที่สไลด์และ code อาจทำให้สับสน ได้แก่ probability ไม่ใช่ class label, training loss ไม่ใช่ evaluation metric และ decision boundary สองมิติอาจเป็นเพียง slice ของโมเดลหลายมิติ โน้ตจึงสอนกลไกก่อน metric และระบุข้อผิดพลาดใน notebook โดยไม่แก้ output ย้อนหลังเงียบ ๆ
+
 ## 28. References
 
 ### เอกสารประกอบการสอน
 
-- Rattagan, E. (2026). `dads6003_week04_logistic_regression.pdf`: *Week 5: Logistic Regression*, หน้า 1–17.
+- Rattagan, E. (2026). `lecture/dads6003_04_logistic_regression.pdf`: *Week 5: Logistic Regression*, หน้า 1–17.
+- Course reading. `read/read03_logistic_regression.pdf`: *Logistic Regression*.
+- Course lab. [`lab/logistic_regression.ipynb`](https://github.com/mdanmek/nida-dads-notes/blob/main/dads6003-applied_ml/lab/logistic_regression.ipynb).
 
 ### แหล่งที่อ้างในเอกสาร
 
