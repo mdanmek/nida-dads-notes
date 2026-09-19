@@ -147,7 +147,7 @@ $$
 Binary classifier มักสร้าง score หรือ probability ก่อน แล้วใช้ threshold แปลงเป็น class:
 
 $$
-\hat{y}=\begin{cases}1,&\hat{p}\geq t\\0,&\hat{p}<t\end{cases}
+\hat{y}=1\;\mathrm{if}\;\hat{p}\geq t,\qquad \hat{y}=0\;\mathrm{if}\;\hat{p}<t
 $$
 
 \(\hat{p}\) คือ predicted probability ของ positive class และ \(t\) คือ threshold ค่า default 0.5 เป็นเพียง convention ไม่ได้เหมาะกับทุกต้นทุน
