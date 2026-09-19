@@ -1,8 +1,10 @@
 # DADS6003 Applied Machine Learning — Week 02: Single Variable Linear Regression
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week02_single_linear_regression.pdf` จำนวน 16 หน้า  
-> **ผู้สอนในเอกสาร:** Ekarat Rattagan  
-> **วันที่ในเอกสาร:** 18 สิงหาคม 2026  
+> **แหล่งเนื้อหาหลัก:** `lecture/dads6003_02_single_linear_regression.pdf` จำนวน 16 หน้า
+> **เอกสารอ่านประกอบ:** `read/read01_linear_regression.pdf` จำนวน 7 หน้า
+> **Lab:** `lab/linear_regression.ipynb` จำนวน 15 cells
+> **ผู้สอนในเอกสาร:** Ekarat Rattagan
+> **วันที่ในเอกสาร:** 18 สิงหาคม 2026
 > **ขอบเขต:** การแทนโมเดล Linear Regression ตัวแปรเดียว, Mean Squared Error, Normal Equation และ Batch Gradient Descent
 
 ## 1. ภาพรวมบทเรียน
@@ -86,14 +88,13 @@ Linear Regression ตรวจว่าการเปลี่ยนแปล�
 สำหรับหนึ่ง observation เขียนได้ชัดเจนว่า
 
 $$
-h_{\theta}:\mathbb{R}^{d}\rightarrow\mathbb{R}
+h_{\theta}:\mathbb{R}^{d}\to\mathbb{R}
 $$
 
 เมื่อประมวลผลทั้ง dataset:
 
 $$
-X\in\mathbb{R}^{N\times d},\qquad
-\mathbf{y}\in\mathbb{R}^{N\times1}
+X\in\mathbb{R}^{N\times d},\qquad \mathbf{y}\in\mathbb{R}^{N\times1}
 $$
 
 และโมเดลสร้าง predictions \(\hat{\mathbf{y}}\in\mathbb{R}^{N\times1}\)
@@ -154,8 +155,7 @@ $$
 จากเอกสารหน้า 3:
 
 $$
-J(\theta_0,\theta_1)
-=\frac{1}{N}\sum_{i=1}^{N}\left(h_{\theta}(x_i)-y_i\right)^2
+J(\theta_0,\theta_1) =\frac{1}{N}\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)^2
 $$
 
 เหตุผลที่ใช้ squared error:
@@ -170,8 +170,7 @@ $$
 เป้าหมายจากเอกสารคือ
 
 $$
-(\hat{\theta}_0,\hat{\theta}_1)
-=\underset{\theta_0,\theta_1}{\arg\min}\;J(\theta_0,\theta_1)
+(\hat{\theta}_0,\hat{\theta}_1) =\underset{\theta_0,\theta_1}{\arg\min}\;J(\theta_0,\theta_1)
 $$
 
 - \(\min J\) หมายถึงค่าต่ำสุดของ cost
@@ -228,8 +227,7 @@ $$
 จากเอกสารหน้า 5:
 
 $$
-\hat{\boldsymbol{\theta}}
-=(X^TX)^{-1}X^T\mathbf{y}
+\hat{\boldsymbol{\theta}} =(X^TX)^{-1}X^T\mathbf{y}
 $$
 
 ### 7.1 Design matrix และ intercept trick
@@ -237,22 +235,7 @@ $$
 สำหรับ Single Variable Linear Regression ให้เพิ่ม \(x_{i,0}=1\) ทุก sample:
 
 $$
-X=
-\begin{bmatrix}
-1 & x_1\\
-1 & x_2\\
-\vdots & \vdots\\
-1 & x_N
-\end{bmatrix},\qquad
-\boldsymbol{\theta}=
-\begin{bmatrix}
-\theta_0\\
-\theta_1
-\end{bmatrix},\qquad
-\mathbf{y}=
-\begin{bmatrix}
-y_1\\y_2\\\vdots\\y_N
-\end{bmatrix}
+X= \begin{bmatrix} 1 & x_1\\ 1 & x_2\\ \vdots & \vdots\\ 1 & x_N \end{bmatrix},\qquad \boldsymbol{\theta}= \begin{bmatrix} \theta_0\\ \theta_1 \end{bmatrix},\qquad \mathbf{y}= \begin{bmatrix} y_1\\y_2\\\vdots\\y_N \end{bmatrix}
 $$
 
 จะได้
@@ -266,16 +249,13 @@ $$
 เขียน sum of squared errors ในรูปเมทริกซ์:
 
 $$
-J(\boldsymbol{\theta})
-=\frac{1}{N}(X\boldsymbol{\theta}-\mathbf{y})^T
-(X\boldsymbol{\theta}-\mathbf{y})
+J(\boldsymbol{\theta}) =\frac{1}{N}(X\boldsymbol{\theta}-\mathbf{y})^T (X\boldsymbol{\theta}-\mathbf{y})
 $$
 
 หา gradient และตั้งเท่ากับศูนย์:
 
 $$
-\nabla_{\boldsymbol{\theta}}J
-=\frac{2}{N}X^T(X\boldsymbol{\theta}-\mathbf{y})=0
+\nabla_{\boldsymbol{\theta}}J =\frac{2}{N}X^T(X\boldsymbol{\theta}-\mathbf{y})=0
 $$
 
 จึงได้
@@ -346,9 +326,7 @@ $$
 จากเอกสารหน้า 11:
 
 $$
-\theta_j^{(t+1)}
-:=\theta_j^{(t)}-eta
-\frac{\partial}{\partial\theta_j}J(\boldsymbol{\theta}^{(t)})
+\theta_j^{(t+1)} :=\theta_j^{(t)}-\eta \frac{\partial}{\partial\theta_j}J(\boldsymbol{\theta}^{(t)})
 $$
 
 โดย:
@@ -362,28 +340,23 @@ $$
 จาก
 
 $$
-J(\boldsymbol{\theta})=
-\frac{1}{N}\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)^2
+J(\boldsymbol{\theta})= \frac{1}{N}\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)^2
 $$
 
 ใช้ chain rule:
 
 $$
-\frac{\partial J}{\partial\theta_j}
-=\frac{2}{N}\sum_{i=1}^{N}
-(h_{\theta}(x_i)-y_i)x_{i,j}
+\frac{\partial J}{\partial\theta_j} =\frac{2}{N}\sum_{i=1}^{N} (h_{\theta}(x_i)-y_i)x_{i,j}
 $$
 
 เมื่อกำหนด \(x_{i,0}=1\)
 
 $$
-\frac{\partial J}{\partial\theta_0}
-=\frac{2}{N}\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)
+\frac{\partial J}{\partial\theta_0} =\frac{2}{N}\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)
 $$
 
 $$
-\frac{\partial J}{\partial\theta_1}
-=\frac{2}{N}\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)x_i
+\frac{\partial J}{\partial\theta_1} =\frac{2}{N}\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)x_i
 $$
 
 > **หมายเหตุสำคัญจากเอกสารหน้า 12:** สูตร update ในสไลด์เขียน \(\frac{1}{N}\sum e_ix_{i,j}\) โดยไม่มีตัวคูณ 2 ทั้งที่ cost หน้า 8 นิยามเป็น MSE \(\frac{1}{N}\sum e_i^2\) ตามตรง ทางปฏิบัติ factor 2 เป็นค่าคงที่ที่ดูดรวมเข้า learning rate ได้ หรือมักนิยาม cost เป็น \(\frac{1}{2N}\sum e_i^2\) เพื่อให้ 2 ตัดกัน โน้ตนี้ใช้ **สูตรตามสไลด์** ในการเฉลย Exercise เพื่อให้ตรงกับชั้นเรียน
@@ -393,9 +366,7 @@ $$
 คำนวณ gradients ของ \(\theta_0\) และ \(\theta_1\) จาก parameter values ของ iteration เดียวกันก่อน แล้วจึง update ทั้งคู่:
 
 $$
-\boldsymbol{\theta}^{(t+1)}
-=\boldsymbol{\theta}^{(t)}-
-\eta\frac{1}{N}X^T(X\boldsymbol{\theta}^{(t)}-\mathbf{y})
+\boldsymbol{\theta}^{(t+1)} =\boldsymbol{\theta}^{(t)}- \eta\frac{1}{N}X^T(X\boldsymbol{\theta}^{(t)}-\mathbf{y})
 $$
 
 หาก update \(\theta_0\) แล้วนำค่าที่อัปเดตใหม่ไปคำนวณ gradient ของ \(\theta_1\) จะไม่ใช่ simultaneous Batch GD ตามสูตร
@@ -478,73 +449,33 @@ $$
 สร้าง matrices:
 
 $$
-X=
-\begin{bmatrix}
-1&2\\
-1&5\\
-1&1
-\end{bmatrix},\qquad
-\mathbf{y}=
-\begin{bmatrix}
-12\\9\\6
-\end{bmatrix}
+X= \begin{bmatrix} 1&2\\ 1&5\\ 1&1 \end{bmatrix},\qquad \mathbf{y}= \begin{bmatrix} 12\\9\\6 \end{bmatrix}
 $$
 
 คำนวณ
 
 $$
-X^TX=
-\begin{bmatrix}
-3&8\\
-8&30
-\end{bmatrix}
+X^TX= \begin{bmatrix} 3&8\\ 8&30 \end{bmatrix}
 $$
 
 $$
-X^T\mathbf{y}=
-\begin{bmatrix}
-27\\75
-\end{bmatrix}
+X^T\mathbf{y}= \begin{bmatrix} 27\\75 \end{bmatrix}
 $$
 
 inverse ของ \(X^TX\):
 
 $$
-(X^TX)^{-1}
-=\frac{1}{3(30)-8(8)}
-\begin{bmatrix}
-30&-8\\
--8&3
-\end{bmatrix}
-=\frac{1}{26}
-\begin{bmatrix}
-30&-8\\
--8&3
-\end{bmatrix}
+(X^TX)^{-1} =\frac{1}{3(30)-8(8)} \begin{bmatrix} 30&-8\\ -8&3 \end{bmatrix} =\frac{1}{26} \begin{bmatrix} 30&-8\\ -8&3 \end{bmatrix}
 $$
 
 ดังนั้น
 
 $$
-\hat{\boldsymbol{\theta}}
-=(X^TX)^{-1}X^T\mathbf{y}
-=\frac{1}{26}
-\begin{bmatrix}
-30&-8\\
--8&3
-\end{bmatrix}
-\begin{bmatrix}
-27\\75
-\end{bmatrix}
-=
-\begin{bmatrix}
-105/13\\9/26
-\end{bmatrix}
+\hat{\boldsymbol{\theta}} =(X^TX)^{-1}X^T\mathbf{y} =\frac{1}{26} \begin{bmatrix} 30&-8\\ -8&3 \end{bmatrix} \begin{bmatrix} 27\\75 \end{bmatrix} = \begin{bmatrix} 105/13\\9/26 \end{bmatrix}
 $$
 
 $$
-\boxed{\hat{\theta}_0\approx8.076923,\qquad
-\hat{\theta}_1\approx0.346154}
+\boxed{\hat{\theta}_0\approx8.076923,\qquad \hat{\theta}_1\approx0.346154}
 $$
 
 สมการเส้นตรงที่ได้คือ
@@ -558,17 +489,13 @@ $$
 กำหนดตามโจทย์:
 
 $$
-\theta_0^{(0)}=0.1,\quad
-\theta_1^{(0)}=0.1,\quad
-\eta=0.01,\quad N=3
+\theta_0^{(0)}=0.1,\quad \theta_1^{(0)}=0.1,\quad \eta=0.01,\quad N=3
 $$
 
 และใช้ update equation ตามหน้า 12:
 
 $$
-\theta_j^{(t+1)}=\theta_j^{(t)}-
-0.01\left[\frac{1}{3}\sum_{i=1}^{3}
-(h_{\theta}(x_i)-y_i)x_{i,j}\right]
+\theta_j^{(t+1)}=\theta_j^{(t)}- 0.01[\frac{1}{3}\sum_{i=1}^{3} (h_{\theta}(x_i)-y_i)x_{i,j}]
 $$
 
 โดย \(x_{i,0}=1\)
@@ -608,8 +535,7 @@ $$
 MSE ก่อน update เท่ากับ
 
 $$
-MSE_0=\frac{(-11.7)^2+(-8.4)^2+(-5.8)^2}{3}
-\approx80.363333
+MSE_0=\frac{(-11.7)^2+(-8.4)^2+(-5.8)^2}{3} \approx80.363333
 $$
 
 #### Iteration 2: จาก \(t=1\) ไป \(t=2\)
@@ -625,30 +551,25 @@ $$
 | 1 | 6 | 0.523667 | -5.476333 | -5.476333 |
 
 $$
-g_0=\frac{-11.139-7.127-5.476333}{3}
-\approx-7.914111
+g_0=\frac{-11.139-7.127-5.476333}{3} \approx-7.914111
 $$
 
 $$
-g_1=\frac{-22.278-35.635-5.476333}{3}
-\approx-21.129778
+g_1=\frac{-22.278-35.635-5.476333}{3} \approx-21.129778
 $$
 
 $$
-\theta_0^{(2)}=0.186333-0.01(-7.914111)
-\approx0.265474
+\theta_0^{(2)}=0.186333-0.01(-7.914111) \approx0.265474
 $$
 
 $$
-\theta_1^{(2)}=0.337333-0.01(-21.129778)
-\approx0.548631
+\theta_1^{(2)}=0.337333-0.01(-21.129778) \approx0.548631
 $$
 
 ดังนั้นหลัง 2 iterations:
 
 $$
-\boxed{\theta_0^{(2)}\approx0.265474,\qquad
-\theta_1^{(2)}\approx0.548631}
+\boxed{\theta_0^{(2)}\approx0.265474,\qquad \theta_1^{(2)}\approx0.548631}
 $$
 
 MSE ลดจากประมาณ \(80.363333\) ก่อนรอบแรก เป็น \(68.287226\) ก่อน update รอบที่สอง และเมื่อใช้ parameters หลังสองรอบจะได้ MSE ประมาณ \(58.647129\) แสดงว่า algorithm กำลังเคลื่อนไปในทิศทางที่ลด cost แต่สองรอบยังน้อยมาก จึงยังห่างจากคำตอบ analytical
@@ -710,29 +631,63 @@ $$
 
 ## 17. Common Misconceptions
 
-1. **“เส้น regression ต้องผ่านทุกจุด”**  
+1. **“เส้น regression ต้องผ่านทุกจุด”**
    ไม่ใช่ โมเดลเลือกเส้นที่ลดผลรวม squared errors ข้อมูลจริงมี noise จึงมักไม่อยู่บนเส้นทั้งหมด
 
-2. **“Slope เป็นบวกจึงพิสูจน์ว่า \(x\) ทำให้ \(y\) เพิ่ม”**  
+2. **“Slope เป็นบวกจึงพิสูจน์ว่า \(x\) ทำให้ \(y\) เพิ่ม”**
    Regression แสดง association ภายใต้ข้อมูลและแบบจำลอง ไม่ยืนยัน causality โดยไม่มี design/assumptions เพิ่มเติม
 
-3. **“Normal Equation ใช้ได้ก็ต่อเมื่อเขียน inverse ตรง ๆ”**  
+3. **“Normal Equation ใช้ได้ก็ต่อเมื่อเขียน inverse ตรง ๆ”**
    ในทางปฏิบัติใช้ linear solver, QR decomposition, SVD หรือ pseudo-inverse ที่เสถียรกว่า
 
-4. **“Gradient Descent ได้คำตอบในหนึ่งรอบ”**  
+4. **“Gradient Descent ได้คำตอบในหนึ่งรอบ”**
    เป็น iterative method ต้องทำซ้ำจน convergence หรือถึง stopping criterion
 
-5. **“Learning rate ยิ่งใหญ่ยิ่งเร็ว”**  
+5. **“Learning rate ยิ่งใหญ่ยิ่งเร็ว”**
    ใหญ่เกินไปทำให้ oscillate/diverge ส่วนเล็กเกินไปทำให้ช้า
 
-6. **“อัปเดต \(\theta_0\) แล้วใช้ค่าใหม่คำนวณ \(\theta_1\) ได้”**  
+6. **“อัปเดต \(\theta_0\) แล้วใช้ค่าใหม่คำนวณ \(\theta_1\) ได้”**
    Batch GD มาตรฐานต้องคำนวณ gradient ทุก parameter จาก parameter state เดียวกัน แล้ว update พร้อมกัน
 
-7. **“Feature scaling เปลี่ยนเส้นที่ดีที่สุดเสมอ”**  
+7. **“Feature scaling เปลี่ยนเส้นที่ดีที่สุดเสมอ”**
    ถ้าแปลงและแปลงกลับถูกต้อง scaling ไม่เปลี่ยน predictive family ของ linear model แต่ช่วย optimization และ numerical conditioning
 
-8. **“MSE ต่ำบน training data แปลว่าโมเดลดี”**  
+8. **“MSE ต่ำบน training data แปลว่าโมเดลดี”**
    ต้องประเมินกับ unseen data และตรวจ assumptions/diagnostics ด้วย
+
+## Lab Notebook Walkthrough: Analytical Solution และ Gradient Descent
+
+> **จาก `lab/linear_regression.ipynb`:** Notebook ใช้ข้อมูลเล็กสามจุด (x=[0,2,3]) และ (y=[1,1,4]) เพื่อให้เห็นว่าการแก้ด้วย Normal Equation, `LinearRegression` และ Gradient Descent ควรเข้าใกล้เส้นเดียวกัน
+
+### Normal Equation ด้วย NumPy
+
+Notebook เพิ่มคอลัมน์หนึ่งเพื่อแทน intercept แล้วคำนวณ
+
+$$
+\hat{\theta}=(X^TX)^{-1}X^Ty
+$$
+
+ผลที่บันทึกไว้คือ intercept ประมาณ (0.571) และ slope ประมาณ (0.857) จึงได้สมการ
+
+$$
+\hat{y}=0.571+0.857x
+$$
+
+เมื่อทำนาย (x=1) และ (x=5) ด้วย scikit-learn ได้ประมาณ (1.429) และ (4.857) ตามลำดับ ผลทั้งสองวิธีตรงกันเพราะกำลังแก้ Ordinary Least Squares ชุดเดียวกัน
+
+Notebook มีตัวอย่าง `x=[0,0,0]` เพื่อสื่อว่า (X^TX) อาจผกผันไม่ได้ อย่างไรก็ตาม code ที่เขียนว่า `np.linalg.pinv(x_b.T.dot(x_b)).dot(x_b.T).dot(y)` ยังสร้าง pseudo-inverse จาก (X^TX) วิธีที่ตรงและเสถียรกว่าคือ `np.linalg.pinv(x_b) @ y` หรือ `np.linalg.lstsq(x_b, y, rcond=None)[0]`
+
+### Gradient Descent และความหมายของ convergence
+
+Notebook เริ่ม θ0 และ θ1 ที่ 0.1 ใช้ learning rate 0.01 แล้วหยุดเมื่อ cost เปลี่ยนไม่เกิน tolerance ผลที่บันทึกไว้ converge แถว iteration 2,454 และได้ค่าประมาณ (0.571) กับ (0.857) เช่นเดียวกับคำตอบ analytical นี่เป็น validation ที่มีประโยชน์: วิธีคำนวณต่างกัน แต่เมื่อ objective เดียวกันและ optimization สำเร็จ ควรเข้าใกล้คำตอบเดียวกัน
+
+อย่างไรก็ตาม Notebook มี dependency ที่มองไม่เห็น: cell นิยามฟังก์ชันชื่อ `J()` แต่ `gradient_descent()` เรียก `cost_function()` ซึ่งไม่มีนิยามใน cells ที่บันทึกไว้ หากเปิด runtime ใหม่แล้ว Run All จะเกิด `NameError` แม้ notebook จะยังแสดง output เก่าอยู่ การแก้ขั้นต่ำคือเปลี่ยนสองตำแหน่งที่เรียก `cost_function(...)` ให้เป็น `J(...)` และรันใหม่ตั้งแต่ต้น
+
+อีกจุดหนึ่งคือ code cells ทุก cell มี `execution_count=None` แต่ยังมี output จึงไม่ควรถือว่า output พิสูจน์ว่า notebook ปัจจุบัน reproducible ต้องใช้ **Restart runtime → Run all** แล้วตรวจว่าไม่มี error และค่าหลักยังเหมือนเดิม
+
+### กราฟ cost path แปลว่าอะไร
+
+Notebook เก็บคู่ค่า θ0 กับ cost เพื่อวาดเส้นทางการลดลง กราฟนี้ช่วยเห็นว่า parameter เคลื่อนไปยังบริเวณ cost ต่ำ แต่เป็นเพียง projection หนึ่งมิติ เพราะ θ1 ก็เปลี่ยนพร้อมกัน จึงไม่ควรตีความว่า cost เป็นฟังก์ชันของ θ0 เพียงตัวเดียว กราฟ cost ต่อ iteration หรือ contour ของ (J(\theta_0,\theta_1)) จะสื่อ convergence ได้ตรงกว่า
 
 ## Hands-on Lab: สร้างและตรวจ Linear Regression แบบครบวงจร
 
@@ -846,8 +801,7 @@ $$
 $$
 
 $$
-\theta_j^{(t+1)}=\theta_j^{(t)}-eta\frac{1}{N}
-\sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)x_{i,j}
+\theta_j^{(t+1)}=\theta_j^{(t)}-\eta\frac{1}{N} \sum_{i=1}^{N}(h_{\theta}(x_i)-y_i)x_{i,j}
 $$
 
 ### Calculations to perform
@@ -972,11 +926,24 @@ $$
 | Slope | การเปลี่ยนแปลงของค่าทำนายเมื่อ feature เพิ่มหนึ่งหน่วย |
 | SVD | การแยกเมทริกซ์ที่ใช้วิเคราะห์ rank และคำนวณ pseudo-inverse |
 
+## Source Coverage and Learning Gap Audit
+
+| แหล่ง/หัวข้อ | ส่วนที่สอน | สิ่งที่ตรวจเพิ่ม |
+|---|---|---|
+| Lecture: representation, MSE, Normal Equation, BGD | ส่วน 3–13 | เติม derivation, dimension check และ simultaneous update |
+| Reading: regression concepts และ assumptions | ส่วน 4–5, 14–16 | เชื่อม fit, inference, residual และข้อจำกัดการตีความ |
+| Lab: NumPy/Sklearn Normal Equation | Lab Notebook Walkthrough | ตรวจผล θ ตรงกันและอธิบาย pseudo-inverse |
+| Lab: custom Gradient Descent | Lab Notebook Walkthrough | พบชื่อฟังก์ชันไม่ตรงและ output ที่อาศัย runtime เดิม |
+
+Learning Gap Audit ไม่หยุดที่การมีสูตรในไฟล์ แต่ตรวจว่าผู้อ่านสามารถอธิบายความหมายของ cost, ทำหนึ่ง gradient update, เปรียบเทียบ analytical กับ iterative solution และตรวจ reproducibility ของ notebook ได้ ขอบเขตของบทนี้ยังไม่รวมการอนุมานเชิงสถิติเต็มรูปแบบ เช่น confidence interval และ hypothesis test ซึ่งควรเรียนร่วมกับวิชาสถิติ
+
 ## 23. References
 
 ### เอกสารประกอบการสอน
 
-- Rattagan, E. (2026). `dads6003_week02_single_linear_regression.pdf`: *Week 2: Single Variable Linear Regression*, หน้า 1–16.
+- Rattagan, E. (2026). `lecture/dads6003_02_single_linear_regression.pdf`: *Week 2: Single Variable Linear Regression*, หน้า 1–16.
+- Course reading. `read/read01_linear_regression.pdf`: *Regression Analysis: Basic Concepts*.
+- Course lab. [`lab/linear_regression.ipynb`](https://github.com/mdanmek/nida-dads-notes/blob/main/dads6003-applied_ml/lab/linear_regression.ipynb).
 
 ### แหล่งที่อ้างในเอกสาร
 
