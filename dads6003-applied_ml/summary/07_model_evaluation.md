@@ -694,6 +694,10 @@ Model evaluation ต้องแยกข้อมูลที่ใช้เร
 | PR curve | Precision เทียบ Recall หลาย thresholds |
 | Calibration | ความสอดคล้อง probability กับความถี่จริง |
 
+## Learning Gap Audit
+
+การตรวจรอบนี้ใช้ Hold-out slide เป็นตัวอย่างของ sparse slide expansion: คำว่า `Simple`, `Fast` และ `Overfitting` ถูกขยายเป็นเงื่อนไข กลไก และข้อจำกัดที่นำไปใช้ตัดสินใจได้ พร้อมแก้ความเข้าใจว่า hold-out ไม่ได้สร้าง overfitting โดยตัวมันเอง แต่การใช้ test set เลือกโมเดลซ้ำต่างหากที่ทำให้ evaluation bias นอกจากนี้ยังแยก single train-validation-test split ออกจาก k-fold cross-validation และเชื่อมทุก metric กับชนิดความผิดพลาดและ operating threshold
+
 ## 22. Source Coverage Audit
 
 | เนื้อหาใน lecture | ส่วนใน Master Note | สถานะ |
