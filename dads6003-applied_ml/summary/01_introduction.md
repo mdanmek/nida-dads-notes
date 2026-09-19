@@ -1,7 +1,7 @@
 # DADS6003 Applied Machine Learning — Week 01: Introduction to Machine Learning
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week01_introduction.pdf` จำนวน 20 หน้า  
-> **ขอบเขต:** ความหมายและประเภทของ Machine Learning, กระบวนการพัฒนาโมเดล และองค์ประกอบของอัลกอริทึม  
+> **แหล่งเนื้อหาหลัก:** `lecture/dads6003_01_introduction.pdf` จำนวน 20 หน้า
+> **ขอบเขต:** ความหมายและประเภทของ Machine Learning, กระบวนการพัฒนาโมเดล และองค์ประกอบของอัลกอริทึม
 > **รูปแบบโน้ต:** เนื้อหาจากเอกสารประกอบการสอน + คำอธิบายเพิ่มเติมเพื่อการเรียนและเตรียมสอบ
 
 ## 1. ภาพรวมบทเรียน
@@ -56,7 +56,7 @@ $$
 
 ### 4.1 Traditional Programming กับ Machine Learning
 
-จากเอกสารหน้า 5:
+จากเอกสารหน้า 4:
 
 | แนวทาง | สิ่งที่ป้อนเข้า | สิ่งที่ได้ออกมา |
 |---|---|---|
@@ -70,19 +70,19 @@ $$
 
 ### 4.2 นิยามของ Arthur Samuel
 
-จากเอกสารหน้า 6 Arthur Samuel (1959) ให้นิยาม Machine Learning ว่าเป็นสาขาที่ทำให้คอมพิวเตอร์มีความสามารถในการเรียนรู้โดยไม่ต้องถูกโปรแกรมรายละเอียดไว้อย่างชัดเจนทุกกรณี
+จากเอกสารหน้า 5 Arthur Samuel (1959) ให้นิยาม Machine Learning ว่าเป็นสาขาที่ทำให้คอมพิวเตอร์มีความสามารถในการเรียนรู้โดยไม่ต้องถูกโปรแกรมรายละเอียดไว้อย่างชัดเจนทุกกรณี
 
 แก่นของนิยามนี้คือ **การเปลี่ยนจากการแจกแจงกฎทั้งหมด เป็นการให้ระบบอนุมานกฎจากประสบการณ์** แต่ไม่ได้แปลว่าระบบเรียนรู้ได้เองโดยไร้เป้าหมายหรือไร้การออกแบบ
 
 ### 4.3 นิยามแบบ Task–Experience–Performance ของ Tom Mitchell
 
-จากเอกสารหน้า 7 โปรแกรมถือว่าเรียนรู้จาก **ประสบการณ์ \(E\)** ในงาน **\(T\)** และวัดด้วย **\(P\)** หากประสิทธิภาพในงาน \(T\) ตามมาตรวัด \(P\) ดีขึ้นเมื่อได้รับประสบการณ์ \(E\) มากขึ้น
+จากเอกสารหน้า 6 โปรแกรมถือว่าเรียนรู้จาก **ประสบการณ์ \(E\)** ในงาน **\(T\)** และวัดด้วย **\(P\)** หากประสิทธิภาพในงาน \(T\) ตามมาตรวัด \(P\) ดีขึ้นเมื่อได้รับประสบการณ์ \(E\) มากขึ้น
 
 - **Task (T):** งานที่ต้องทำ
 - **Experience (E):** ข้อมูลหรือปฏิสัมพันธ์ที่ใช้เรียนรู้
 - **Performance measure (P):** เกณฑ์ที่ใช้วัดว่าทำงานดีขึ้นหรือไม่
 
-#### ตัวอย่างจากเอกสาร (หน้า 8–9)
+#### ตัวอย่างจากเอกสาร (หน้า 7–8)
 
 | กรณี | Task (T) | Experience (E) | Performance (P) |
 |---|---|---|---|
@@ -115,7 +115,7 @@ flowchart TD
 
 ### 5.1 Supervised Learning
 
-จากเอกสารหน้า 10 กำหนดชุดข้อมูลที่มี label:
+จากเอกสารหน้า 9 กำหนดชุดข้อมูลที่มี label:
 
 $$
 D=\{(\mathbf{x}_1,y_1),(\mathbf{x}_2,y_2),\ldots,(\mathbf{x}_n,y_n)\}
@@ -134,8 +134,7 @@ $$
 ตัวอย่าง representation แบบ Linear Regression:
 
 $$
-\hat{y}=\theta_0+\theta_1x_1+\cdots+\theta_px_p
-=\theta_0+\boldsymbol{\theta}^{T}\mathbf{x}
+\hat{y}=\theta_0+\theta_1x_1+\cdots+\theta_px_p =\theta_0+\boldsymbol{\theta}^{T}\mathbf{x}
 $$
 
 #### Classification
@@ -146,13 +145,13 @@ $$
 - ลูกค้าจะ churn / ไม่ churn
 - จำแนกประเภทสินค้า
 
-เอกสารหน้า 11 ยกตัวอย่างอัลกอริทึม Regression ได้แก่ Linear และ Polynomial Regression และ Classification ได้แก่ Naive Bayes, Decision Tree, SVM และ Neural Network
+> **คำอธิบายเพิ่มเติม:** Regression และ Classification เป็นชนิดของงาน ไม่ใช่รายชื่ออัลกอริทึมที่ผูกตายตัวกับงานชนิดเดียว เช่น Decision Tree และ Neural Network สามารถออกแบบให้ทำได้ทั้งสองแบบ ต้องดูชนิด output และ objective ของโมเดลร่วมกัน
 
 > **คำอธิบายเพิ่มเติม:** ชื่ออัลกอริทึมไม่ผูกกับงานแบบตายตัวเสมอไป เช่น Decision Tree มีทั้ง classifier และ regressor ส่วน Neural Network ใช้ได้กับทั้ง regression และ classification ต้องดูชนิดของ output, loss และ objective ร่วมกัน
 
 ### 5.2 Unsupervised Learning
 
-จากเอกสารหน้า 12 ชุดข้อมูลไม่มี label:
+จากเอกสารหน้า 10 ชุดข้อมูลไม่มี label:
 
 $$
 D=\{\mathbf{x}_1,\mathbf{x}_2,\ldots,\mathbf{x}_n\}
@@ -160,14 +159,14 @@ $$
 
 เป้าหมายคือทำความเข้าใจและสกัด pattern, structure หรือ relationship ที่ซ่อนอยู่ในข้อมูล โดยไม่รู้คำตอบที่ถูกต้องล่วงหน้า
 
-#### เป้าหมายหลักจากเอกสาร (หน้า 13)
+#### เป้าหมายหลักจากเอกสาร (หน้า 10)
 
 - **Clustering:** จัด observation ที่คล้ายกันให้อยู่กลุ่มเดียวกัน
 - **Dimensionality Reduction:** ลดจำนวนมิติแต่รักษาสารสนเทศสำคัญ
 - **Anomaly Detection:** หา observation ที่ผิดไปจากรูปแบบส่วนใหญ่
 - **Association Rule:** ค้นหาสิ่งที่มักเกิดร่วมกัน เช่น market basket analysis
 
-อัลกอริทึมที่เอกสารระบุ ได้แก่ K-means, DBSCAN และ PCA (หน้า 14)
+อัลกอริทึมที่เอกสารระบุ ได้แก่ K-means, DBSCAN และ PCA (หน้า 11)
 
 | วิธี | แนวคิด | เหมาะเมื่อ | ข้อจำกัดเด่น |
 |---|---|---|---|
@@ -179,7 +178,7 @@ $$
 
 ### 5.3 Reinforcement Learning
 
-จากเอกสารหน้า 15 Reinforcement Learning (RL) เรียนรู้จากลำดับของ **state, action และ reward** เพื่อหา **optimal policy** หรือกฎที่บอกว่าควรทำ action ใดในแต่ละ state
+จากเอกสารหน้า 12 Reinforcement Learning (RL) เรียนรู้จากลำดับของ **state, action และ reward** เพื่อหา **optimal policy** หรือกฎที่บอกว่าควรทำ action ใดในแต่ละ state
 
 - **Agent:** ผู้ตัดสินใจ
 - **Environment:** สภาพแวดล้อมที่ agent ปฏิสัมพันธ์
@@ -204,7 +203,7 @@ $$
 
 ## 6. Machine Learning Applications
 
-เอกสารหน้า 16 ยกตัวอย่าง Email spam detection, Face detection/recognition, Sport analytics, Zip-code recognition, Credit-card fraud detection, Stock prediction, Smart assistants เช่น ChatGPT, Recommendation และ Self-driving cars
+เอกสารหน้า 13 ยกตัวอย่าง Email spam detection, Face detection/recognition, Sport analytics, Zip-code recognition, Credit-card fraud detection, Stock prediction, Smart assistants เช่น ChatGPT, Recommendation และ Self-driving cars
 
 สิ่งที่ควรฝึกคือไม่หยุดเพียงชื่อ application แต่ต้องระบุชนิดปัญหาและ target:
 
@@ -221,7 +220,7 @@ $$
 
 ### 7.1 เจ็ดคำถามก่อนสร้างโมเดล
 
-จากเอกสารหน้า 17:
+จากเอกสารหน้า 14:
 
 1. Desired outcome หรือ Business Requirement คืออะไร
 2. Dataset ควรมีลักษณะอย่างไร — นี่คือ Experience \(E\)
@@ -235,7 +234,7 @@ $$
 
 ### 7.2 Training pipeline และ Predicting pipeline
 
-จากแผนภาพหน้า 18 กระบวนการฝึกโมเดลประกอบด้วย:
+จากแผนภาพหน้า 15 กระบวนการฝึกโมเดลประกอบด้วย:
 
 1. **Raw data & target:** รวบรวมข้อมูลและกำหนด target
 2. **Feature engineering:** ทำความสะอาด แปลง และสร้าง features
@@ -265,7 +264,7 @@ $$
 
 ### 7.4 การดูแลโมเดลหลัง Deployment
 
-เอกสารถามเรื่อง model maintenance ไว้ตั้งแต่หน้า 17 เพราะโมเดลไม่จบเมื่อ deploy แล้ว ควรติดตาม:
+เอกสารถามเรื่อง model maintenance ไว้ตั้งแต่หน้า 14 เพราะโมเดลไม่จบเมื่อ deploy แล้ว ควรติดตาม:
 
 - **Data drift:** การกระจายของ input เปลี่ยน
 - **Concept drift:** ความสัมพันธ์ระหว่าง input กับ target เปลี่ยน
@@ -275,13 +274,13 @@ $$
 
 ## 8. องค์ประกอบของ Machine Learning Algorithm
 
-เอกสารหน้า 19 สรุป 3 องค์ประกอบคือ **Representation, Optimization และ Evaluation**
+เอกสารหน้า 16 สรุป 3 องค์ประกอบคือ **Representation, Optimization และ Evaluation**
 
 ### 8.1 Representation — โมเดลสามารถแทนฟังก์ชันแบบใด
 
 Representation คือรูปแบบหรือ hypothesis space ที่อนุญาตให้โมเดลใช้ หากเลือก representation ง่ายเกินไปอาจเกิด underfitting แต่ถ้าซับซ้อนเกินไปอาจเกิด overfitting
 
-จากเอกสารหน้า 20–21:
+จากเอกสารหน้า 17:
 
 1. **Numerical functions**
    - Linear Regression: \(\hat{y}=\theta_0+\boldsymbol{\theta}^{T}\mathbf{x}\)
@@ -302,7 +301,7 @@ $$
 
 ### 8.2 Optimization — จะหาค่าโมเดลที่เหมาะสมอย่างไร
 
-Optimization คือกระบวนการค้นหา parameters ที่ทำให้ objective/loss ดีที่สุด เอกสารหน้า 22 ระบุ Gradient Descent, Stochastic Gradient Descent, RMSProp, AdaGrad, Newton's method, Hessian-free method และ Conjugate Gradient
+Optimization คือกระบวนการค้นหา parameters ที่ทำให้ objective/loss ดีที่สุด เอกสารหน้า 18 ระบุ Gradient Descent, Stochastic Gradient Descent, RMSProp, AdaGrad, Newton's method, Hessian-free method และ Conjugate Gradient
 
 ตัวอย่าง ถ้า loss function คือ \(J(\boldsymbol{\theta})\) Gradient Descent ปรับ parameter ตามทิศทางตรงข้าม gradient:
 
@@ -322,7 +321,7 @@ $$
 
 ### 8.3 Evaluation — จะตัดสินว่าโมเดลดีอย่างไร
 
-เอกสารหน้า 23 ระบุ Accuracy, MSE, MAE, RMSE, Precision, Recall, F1-score, Kappa และ Matthews Correlation Coefficient (MCC)
+เอกสารหน้า 19 ระบุ Accuracy, MSE, MAE, RMSE, Precision, Recall, F1-score, Kappa และ Matthews Correlation Coefficient (MCC)
 
 #### Regression metrics
 
@@ -353,8 +352,7 @@ $$
 $$
 
 $$
-\mathrm{MSE}=\frac{2^2+(-2)^2+5^2}{3}=11,
-\quad \mathrm{RMSE}=\sqrt{11}\approx3.32
+\mathrm{MSE}=\frac{2^2+(-2)^2+5^2}{3}=11, \quad \mathrm{RMSE}=\sqrt{11}\approx3.32
 $$
 
 #### Classification metrics
@@ -371,13 +369,11 @@ $$
 $$
 
 $$
-\mathrm{Precision}=\frac{TP}{TP+FP},\qquad
-\mathrm{Recall}=\frac{TP}{TP+FN}
+\mathrm{Precision}=\frac{TP}{TP+FP},\qquad \mathrm{Recall}=\frac{TP}{TP+FN}
 $$
 
 $$
-F_1=2\times\frac{\mathrm{Precision}\times\mathrm{Recall}}
-{\mathrm{Precision}+\mathrm{Recall}}
+F_1=2\times\frac{\mathrm{Precision}\times\mathrm{Recall}} {\mathrm{Precision}+\mathrm{Recall}}
 $$
 
 - ใช้ **Precision** เมื่อ false positive มีต้นทุนสูง เช่น flag ธุรกรรมปกติเป็น fraud แล้วบล็อกลูกค้า
@@ -420,25 +416,25 @@ $$
 
 ## 10. Common Misconceptions
 
-1. **“มีข้อมูลจำนวนมากจึงใช้ ML ได้แน่นอน”**  
+1. **“มีข้อมูลจำนวนมากจึงใช้ ML ได้แน่นอน”**
    ปริมาณไม่ทดแทนความเกี่ยวข้อง คุณภาพ label และความเป็นตัวแทนของ population
 
-2. **“ถ้าไม่มี label ก็สร้าง prediction ของผลลัพธ์ที่ต้องการได้”**  
+2. **“ถ้าไม่มี label ก็สร้าง prediction ของผลลัพธ์ที่ต้องการได้”**
    Unsupervised learning หาโครงสร้างได้ แต่ไม่มีคำตอบรับรองว่ากลุ่มนั้นตรงกับ business target
 
-3. **“Accuracy 99% แปลว่าโมเดลดี”**  
+3. **“Accuracy 99% แปลว่าโมเดลดี”**
    ถ้ามี fraud 1% โมเดลที่ทายว่าไม่ fraud ทุกครั้งก็ได้ accuracy 99% แต่ recall ของ fraud เท่ากับ 0
 
-4. **“Validation set กับ test set ใช้แทนกันได้”**  
+4. **“Validation set กับ test set ใช้แทนกันได้”**
    Validation ใช้ตัดสินใจระหว่างพัฒนา ส่วน test ควรถูกกันไว้สำหรับการประเมินครั้งสุดท้าย
 
-5. **“โมเดลซับซ้อนย่อมดีกว่า”**  
+5. **“โมเดลซับซ้อนย่อมดีกว่า”**
    โมเดลซับซ้อนอาจ overfit ใช้ทรัพยากรมาก อธิบายยาก และไม่เพิ่มคุณค่าธุรกิจ
 
-6. **“Deployment คือจุดจบของโครงการ ML”**  
+6. **“Deployment คือจุดจบของโครงการ ML”**
    สภาพข้อมูลเปลี่ยนได้ จึงต้อง monitor, retrain, version และมี rollback plan
 
-7. **“Optimization metric กับ business KPI เป็นสิ่งเดียวกัน”**  
+7. **“Optimization metric กับ business KPI เป็นสิ่งเดียวกัน”**
    loss ใช้ฝึกโมเดล ส่วน metric ใช้ประเมิน และ business KPI ใช้วัดผลกระทบ ทั้งสามควรเชื่อมโยงแต่ไม่จำเป็นต้องเหมือนกัน
 
 ## Hands-on Lab: เปลี่ยนโจทย์ธุรกิจให้เป็น ML Problem
@@ -646,11 +642,23 @@ $$
 | Representation | รูปแบบฟังก์ชันหรือ hypothesis ที่โมเดลสามารถแทนได้ |
 | Task (T) | งานที่ระบบต้องทำ |
 
+## Source Coverage and Learning Gap Audit
+
+| แหล่ง/หัวข้อ | ส่วนที่สอน | สิ่งที่ขยายจากสไลด์ |
+|---|---|---|
+| ML definitions และ T–E–P | ส่วน 4 | เปลี่ยนนิยามเป็นวิธีตั้งโจทย์และ metric ที่ใช้ได้จริง |
+| Supervised, Unsupervised, RL | ส่วน 5 | เพิ่ม input/output, boundary และเกณฑ์เลือกประเภทงาน |
+| ML applications | ส่วน 6 | แปลงชื่อ application เป็น formulation และข้อควรระวัง |
+| ML process | ส่วน 7 | เพิ่ม train/validation/test, leakage และ monitoring |
+| Representation–Optimization–Evaluation | ส่วน 8 | อธิบายความสัมพันธ์ของสามองค์ประกอบด้วยโจทย์เดียวกัน |
+
+Learning Gap Audit พบว่าสไลด์ทำหน้าที่เป็น outline และหลาย bullet ต้องอาศัยคำอธิบายในชั้นเรียน โน้ตจึงเติม prerequisite vocabulary, causal links, ตัวอย่าง PR/PO และข้อจำกัดของ metric โดยไม่กล่าวอ้างว่าเป็นถ้อยคำของผู้สอน ส่วนอัลกอริทึมรายตัว เช่น SVM, Tree และ Neural Network ถูกเก็บไว้เป็นหัวข้อบทถัดไปเพื่อไม่ให้เนื้อหาพื้นฐานแตกแขนงเกินจำเป็น
+
 ## 16. References
 
 ### เอกสารประกอบการสอน
 
-- Rattagan, E. (2025). `dads6003_week01_introduction.pdf`: *Week 1: Introduction*, หน้า 1–20.
+- Rattagan, E. (2025). `lecture/dads6003_01_introduction.pdf`: *Week 1: Introduction*, หน้า 1–20.
 
 ### คำอธิบายเพิ่มเติม
 
