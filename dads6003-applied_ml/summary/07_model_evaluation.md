@@ -82,13 +82,13 @@ Hold-out แบ่งข้อมูลครั้งเดียว เช่�
 
 ### 2.4 K-fold cross-validation
 
-K-fold แบ่ง training data เป็น \(K\) ส่วน ในรอบที่ \(k\) ใช้ fold ที่ \(k\) เป็น validation และใช้ส่วนที่เหลือ fit โมเดล ทำครบทุก fold แล้วเฉลี่ย score:
+K-fold แบ่ง training data เป็น $K$ ส่วน ในรอบที่ $k$ ใช้ fold ที่ $k$ เป็น validation และใช้ส่วนที่เหลือ fit โมเดล ทำครบทุก fold แล้วเฉลี่ย score:
 
 $$
 \mathrm{CV\ Score}=\frac{1}{K}\sum_{k=1}^{K}s_k
 $$
 
-ค่า \(s_k\) คือ validation score ของ fold ที่ \(k\) วิธีนี้ใช้ observations ได้คุ้มและลดการพึ่ง split เดียว แต่ช้ากว่าเพราะ fit \(K\) ครั้งต่อหนึ่ง model configuration
+ค่า $s_k$ คือ validation score ของ fold ที่ $k$ วิธีนี้ใช้ observations ได้คุ้มและลดการพึ่ง split เดียว แต่ช้ากว่าเพราะ fit $K$ ครั้งต่อหนึ่ง model configuration
 
 สำหรับ classification ควรใช้ stratified folds เพื่อรักษาสัดส่วน class โดยประมาณ หากมีคนไข้หลายแถว ต้อง split แบบ grouped เพื่อไม่ให้ข้อมูลคนเดียวกันอยู่ทั้ง train และ validation หากข้อมูลมีลำดับเวลา ต้องใช้ time-aware split ไม่ควรสุ่มอนาคตกลับไปฝึกอดีต
 
@@ -118,12 +118,12 @@ $$
 J(\theta)=\frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i)-y_i)^2+\lambda\sum_{j=1}^{d}\theta_j^2
 $$
 
-เมื่อ \(\lambda\) เพิ่ม coefficients ถูกหดมากขึ้น โมเดลยืดหยุ่นน้อยลง:
+เมื่อ $\lambda$ เพิ่ม coefficients ถูกหดมากขึ้น โมเดลยืดหยุ่นน้อยลง:
 
-- \(\lambda\) สูงเกิน: variance ลด แต่ bias เพิ่ม อาจ underfit
-- \(\lambda\) ต่ำเกิน: bias ลด แต่ variance เพิ่ม อาจ overfit
+- $\lambda$ สูงเกิน: variance ลด แต่ bias เพิ่ม อาจ underfit
+- $\lambda$ ต่ำเกิน: bias ลด แต่ variance เพิ่ม อาจ overfit
 
-ดังนั้นการเพิ่มหรือลด \(\lambda\) ไม่ใช่คำตอบเดียว ต้องวินิจฉัยก่อนว่า error มาจาก bias หรือ variance
+ดังนั้นการเพิ่มหรือลด $\lambda$ ไม่ใช่คำตอบเดียว ต้องวินิจฉัยก่อนว่า error มาจาก bias หรือ variance
 
 ### 3.3 Training data size
 
@@ -150,11 +150,11 @@ $$
 \hat{y}=1\;\mathrm{if}\;\hat{p}\geq t,\qquad \hat{y}=0\;\mathrm{if}\;\hat{p}<t
 $$
 
-\(\hat{p}\) คือ predicted probability ของ positive class และ \(t\) คือ threshold ค่า default 0.5 เป็นเพียง convention ไม่ได้เหมาะกับทุกต้นทุน
+$\hat{p}$ คือ predicted probability ของ positive class และ $t$ คือ threshold ค่า default 0.5 เป็นเพียง convention ไม่ได้เหมาะกับทุกต้นทุน
 
 จากตัวอย่างสไลด์หน้า 12:
 
-| ID | Actual \(y\) | Probability | Prediction เมื่อ \(t=0.5\) |
+| ID | Actual $y$ | Probability | Prediction เมื่อ $t=0.5$ |
 |---:|---:|---:|---:|
 | 1 | 0 | 0.5 | 1 |
 | 2 | 1 | 0.9 | 1 |
