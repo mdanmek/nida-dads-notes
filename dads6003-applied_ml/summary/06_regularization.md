@@ -533,6 +533,10 @@ Regularization เพิ่มต้นทุนให้ coefficients ใหญ
 | Coefficient path | coefficients เมื่อเปลี่ยน penalty |
 | Subgradient | ตัวแทน gradient ที่จุดไม่ differentiable |
 
+## Learning Gap Audit
+
+การตรวจรอบนี้เติมช่องว่างระหว่าง bullet “ลด overfitting” กับกลไกจริง: penalty เปลี่ยน objective, scaling เปลี่ยนความยุติธรรมของ penalty และ training error ที่สูงขึ้นอาจแลกกับ test error ที่ต่ำลงได้ Lab เดิมวัดข้อมูลฝึกเพียงชุดเดียวจึงไม่สามารถเลือก alpha ที่ generalize ดีที่สุด โน้ตจึงแยกผลที่สังเกตจาก notebook ออกจากข้อสรุปที่ต้องใช้ validation/CV และอธิบายความต่างของสัญลักษณ์ในสไลด์กับ `scikit-learn`
+
 ## 20. Source Coverage Audit
 
 | เนื้อหาในแหล่งเรียน | ส่วน | สถานะ |
