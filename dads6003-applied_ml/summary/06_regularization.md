@@ -29,13 +29,13 @@ Regularization คือการเพิ่มข้อจำกัดให�
 
 ### 1.1 Model fit และ generalization
 
-โมเดล regression รับ features \(X\) แล้วสร้างค่าทำนาย \(\hat{y}\) จาก coefficients เช่น polynomial degree 4:
+โมเดล regression รับ features $X$ แล้วสร้างค่าทำนาย $\hat{y}$ จาก coefficients เช่น polynomial degree 4:
 
 $$
 \hat{y} = \beta_0+\beta_1x+\beta_2x^2+\beta_3x^3+\beta_4x^4
 $$
 
-การ fit คือการหาค่า \(\beta\) ที่ลด loss ใน training data สำหรับ Mean Squared Error:
+การ fit คือการหาค่า $\beta$ ที่ลด loss ใน training data สำหรับ Mean Squared Error:
 
 $$
 MSE = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2
@@ -59,7 +59,7 @@ $$
 
 ## 2. Regularization แบบเห็นภาพก่อน
 
-สมมติ degree 4 ใช้ \(\beta_3\) และ \(\beta_4\) ขนาดใหญ่มากเพื่อบิดเส้นให้ผ่านจุดฝึกทุกจุด หากบอกโมเดลว่า “coefficient ที่ใหญ่มีค่าใช้จ่าย” โมเดลต้องสมดุลสองเรื่อง:
+สมมติ degree 4 ใช้ $\beta_3$ และ $\beta_4$ ขนาดใหญ่มากเพื่อบิดเส้นให้ผ่านจุดฝึกทุกจุด หากบอกโมเดลว่า “coefficient ที่ใหญ่มีค่าใช้จ่าย” โมเดลต้องสมดุลสองเรื่อง:
 
 1. ลด prediction error บน training data
 2. รักษา coefficients ไม่ให้รุนแรงเกินไป
@@ -82,13 +82,13 @@ $$
 J_{reg}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda P(\beta)
 $$
 
-โดย \(P(\beta)\) คือรูปแบบ penalty และ \(\lambda \geq 0\) ควบคุมความแรง เมื่อ \(\lambda=0\) จะกลับเป็น regression ที่ไม่มี penalty เมื่อ \(\lambda\) สูงขึ้น โมเดลยอมเสีย training fit มากขึ้นเพื่อให้ coefficients เล็กลง โดยทั่วไป intercept \(\beta_0\) ไม่ถูก penalize
+โดย $P(\beta)$ คือรูปแบบ penalty และ $\lambda \geq 0$ ควบคุมความแรง เมื่อ $\lambda=0$ จะกลับเป็น regression ที่ไม่มี penalty เมื่อ $\lambda$ สูงขึ้น โมเดลยอมเสีย training fit มากขึ้นเพื่อให้ coefficients เล็กลง โดยทั่วไป intercept $\beta_0$ ไม่ถูก penalize
 
 ### 3.1 ทำไมต้อง scale features
 
 ถ้า `Age` มี coefficient 0.5 แต่ `Annual Income` มี coefficient 0.00002 ความต่างอาจมาจากหน่วย ไม่ได้แปลว่า Age สำคัญกว่า เมื่อ penalty ลงที่ coefficient โดยตรง feature สเกลใหญ่ใช้ coefficient เล็กและถูกลงโทษน้อยกว่าอย่างไม่ยุติธรรม
 
-จึงควร scale numerical features ก่อน Ridge, Lasso และ Elastic Net โดย fit scaler เฉพาะ training data Polynomial features ยิ่งจำเป็น: ใน lab \(x\) อยู่ 10-30 แต่ \(x^4\) อยู่ 10,000-810,000
+จึงควร scale numerical features ก่อน Ridge, Lasso และ Elastic Net โดย fit scaler เฉพาะ training data Polynomial features ยิ่งจำเป็น: ใน lab $x$ อยู่ 10-30 แต่ $x^4$ อยู่ 10,000-810,000
 
 ## 4. Ridge Regression: L2
 
@@ -102,9 +102,9 @@ $$
 J_{Ridge}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda\sum_{j=1}^{d}\beta_j^2
 $$
 
-coefficients \([2,1]\) มี L2 penalty \(2^2+1^2=5\) ส่วน \([1.5,1.5]\) มีค่า 4.5 เมื่อสอง features ให้ข้อมูลคล้ายกัน Ridge จึงมักกระจายน้ำหนักแทนเลือกตัวเดียว เพราะการแบ่ง coefficient ใหญ่เป็นสองค่าเล็กลดผลรวมกำลังสอง
+coefficients $[2,1]$ มี L2 penalty $2^2+1^2=5$ ส่วน $[1.5,1.5]$ มีค่า 4.5 เมื่อสอง features ให้ข้อมูลคล้ายกัน Ridge จึงมักกระจายน้ำหนักแทนเลือกตัวเดียว เพราะการแบ่ง coefficient ใหญ่เป็นสองค่าเล็กลดผลรวมกำลังสอง
 
-เมื่อ \(\lambda\) เพิ่ม coefficients หดเข้าหาศูนย์อย่างต่อเนื่อง แต่โดยทั่วไปไม่เป็นศูนย์พอดี Ridge เหมาะเมื่อหลาย features มีสัญญาณเล็กน้อย, features สัมพันธ์กันสูง หรือต้องการ prediction ที่เสถียรกว่าการเลือกตัวแปรเด็ดขาด
+เมื่อ $\lambda$ เพิ่ม coefficients หดเข้าหาศูนย์อย่างต่อเนื่อง แต่โดยทั่วไปไม่เป็นศูนย์พอดี Ridge เหมาะเมื่อหลาย features มีสัญญาณเล็กน้อย, features สัมพันธ์กันสูง หรือต้องการ prediction ที่เสถียรกว่าการเลือกตัวแปรเด็ดขาด
 
 ### 4.1 อ่าน coefficient path
 
@@ -142,16 +142,16 @@ $$
 J_{EN}(\beta) = Loss(\beta) + \lambda [ r\lVert\beta\rVert_1 + (1-r)\lVert\beta\rVert_2^2 ]
 $$
 
-เมื่อ \(r=1\) เหลือ L1 แบบ Lasso เมื่อ \(r=0\) เหลือ L2 แบบ Ridge จึงได้ทั้ง sparsity และความเสถียรกับ correlated features
+เมื่อ $r=1$ เหลือ L1 แบบ Lasso เมื่อ $r=0$ เหลือ L2 แบบ Ridge จึงได้ทั้ง sparsity และความเสถียรกับ correlated features
 
 ### 6.1 สไลด์กับ scikit-learn ใช้ทิศทางตรงข้าม
 
 | แหล่ง | ตัวแปรผสม | ค่า 0 | ค่า 1 |
 |---|---|---|---|
-| Lecture slide | \(\alpha\) เป็นน้ำหนัก L2 | Lasso | Ridge |
+| Lecture slide | $\alpha$ เป็นน้ำหนัก L2 | Lasso | Ridge |
 | scikit-learn | `l1_ratio` เป็นน้ำหนัก L1 | L2 | Lasso |
 
-ใน scikit-learn `alpha` ควบคุมความแรงรวม ส่วน `l1_ratio` ควบคุมสัดส่วน L1 ตาม [ElasticNet API](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) ดังนั้นอย่านำ \(\alpha\) ในสไลด์ไปเทียบกับ `alpha` ใน API โดยตรง
+ใน scikit-learn `alpha` ควบคุมความแรงรวม ส่วน `l1_ratio` ควบคุมสัดส่วน L1 ตาม [ElasticNet API](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) ดังนั้นอย่านำ $\alpha$ ในสไลด์ไปเทียบกับ `alpha` ใน API โดยตรง
 
 Elastic Net เหมาะเมื่อ useful features อยู่เป็นกลุ่มที่สัมพันธ์กันและยังต้องการตัดบาง features เช่นยอดขายย้อนหลังหลายเดือน Ridge อาจเก็บทั้งกลุ่ม ส่วน Lasso อาจเลือกเดือนเดียวอย่างไม่เสถียร Elastic Net เป็นทางกลาง
 
@@ -176,12 +176,12 @@ $$
 \beta_j^{(t+1)} = \beta_j^{(t)} - \eta [ \nabla_j Loss + 2\lambda\beta_j^{(t)} ]
 $$
 
-\(\eta\) คือ learning rate ถ้าสูงเกินอาจแกว่ง ถ้าต่ำเกิน convergence ช้า
+$\eta$ คือ learning rate ถ้าสูงเกินอาจแกว่ง ถ้าต่ำเกิน convergence ช้า
 
 L1 ไม่ differentiable ที่ศูนย์ จึงใช้ subgradient:
 
 $$
-sign(\beta_j) = \begin{cases} -1, & \beta_j<0 \\ s, & \beta_j=0,\quad s\in[-1,1] \\ 1, & \beta_j>0 \end{cases}
+sign(\beta_j)=-1\;\mathrm{if}\;\beta_j<0,\qquad sign(\beta_j)=s\in[-1,1]\;\mathrm{if}\;\beta_j=0,\qquad sign(\beta_j)=1\;\mathrm{if}\;\beta_j>0
 $$
 
 ที่ศูนย์มี subgradient ได้หลายค่า ไม่ได้แปลว่า optimize ไม่ได้ แต่ต้องใช้ solver ที่รองรับ nonsmooth objective เช่น coordinate descent
@@ -203,21 +203,21 @@ y = np.array([[10, 30, 50, 51, 52]]).T
 |---|---:|
 | Coefficient | 2.1 |
 | Intercept | -3.4 |
-| Training \(R^2\) | 0.8135 |
+| Training $R^2$ | 0.8135 |
 | Training MSE | 50.54 |
 
 เส้นตรงจับแนวโน้มเพิ่ม แต่ไม่จับการเพิ่มเร็วช่วงต้นและเริ่มราบช่วงท้าย
 
 ### 9.2 Polynomial degree 2 และ 4
 
-`PolynomialFeatures(degree=2)` เปลี่ยน \(x\) เป็น \([1,x,x^2]\):
+`PolynomialFeatures(degree=2)` เปลี่ยน $x$ เป็น $[1,x,x^2]$:
 
 ```text
 x = 10  ->  [1, 10, 100]
 x = 15  ->  [1, 15, 225]
 ```
 
-| Model | Training \(R^2\) | Training MSE |
+| Model | Training $R^2$ | Training MSE |
 |---|---:|---:|
 | Linear | 0.8135 | 50.5400 |
 | Polynomial degree 2 | 0.9848 | 4.1257 |
@@ -240,7 +240,7 @@ plt.show()
 
 ### 9.3 Ridge
 
-`Ridge(alpha=100)` กับ degree 4 ได้ Training \(R^2=0.9827\), MSE 4.6936 และ intercept -15.4716 Training MSE สูงกว่า degree 4 ที่ไม่ regularize เพราะโมเดลยอม fit จุดฝึกไม่สมบูรณ์เพื่อหด coefficients จะเรียกว่า “ดีขึ้น” ได้ต่อเมื่อ test error ลด
+`Ridge(alpha=100)` กับ degree 4 ได้ Training $R^2=0.9827$, MSE 4.6936 และ intercept -15.4716 Training MSE สูงกว่า degree 4 ที่ไม่ regularize เพราะโมเดลยอม fit จุดฝึกไม่สมบูรณ์เพื่อหด coefficients จะเรียกว่า “ดีขึ้น” ได้ต่อเมื่อ test error ลด
 
 เมื่อเพิ่ม alpha 0-1,000 training MSE เพิ่มจากใกล้ 0 เป็น 12.6279 นี่เป็นพฤติกรรมปกติของ penalty ไม่ได้พิสูจน์ว่า alpha 0 ดีที่สุด เพราะประเมินบน training data
 
@@ -248,7 +248,7 @@ plt.show()
 
 Lab เพิ่ม alpha 0-2,000 ที่ alpha 200 coefficients ของ degree 1 และ 2 เป็นศูนย์ แต่ degree 3 และ 4 ยังเหลือ และ MSE เท่ากับ 16.7088 นี่แสดง sparsity แต่ powers ต่างสเกลกันมาก จึงไม่ควรเปรียบ coefficient sizes ก่อน scaling
 
-ที่ alpha 0 Lasso ได้ \(R^2=0.9847\) แทน 1.0 เพราะใช้ Lasso solver ในกรณีไม่แนะนำและ notebook ปิด warnings ด้วย `warnings.filterwarnings('ignore')` ควรเปิด warnings เพื่อเห็นปัญหา convergence หรือ parameter
+ที่ alpha 0 Lasso ได้ $R^2=0.9847$ แทน 1.0 เพราะใช้ Lasso solver ในกรณีไม่แนะนำและ notebook ปิด warnings ด้วย `warnings.filterwarnings('ignore')` ควรเปิด warnings เพื่อเห็นปัญหา convergence หรือ parameter
 
 ### 9.5 Elastic Net
 
@@ -427,7 +427,7 @@ Lasso ที่ให้ coefficient ศูนย์ตอบเพียงว�
 
 ### ข้อ 1: คำนวณ
 
-coefficients \([3,-2,0]\) มี L1 และ squared L2 เท่าใด
+coefficients $[3,-2,0]$ มี L1 และ squared L2 เท่าใด
 
 **เฉลย:**
 
