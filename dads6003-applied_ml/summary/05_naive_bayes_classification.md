@@ -132,19 +132,13 @@ $$
 สำหรับ Male:
 
 $$
-P(M \mid Drew)
-= \frac{P(Drew \mid M)P(M)}{P(Drew)}
-= \frac{\frac{1}{3}\frac{3}{8}}{\frac{3}{8}}
-= \frac{1}{3}
+P(M \mid Drew) = \frac{P(Drew \mid M)P(M)}{P(Drew)} = \frac{\frac{1}{3}\frac{3}{8}}{\frac{3}{8}} = \frac{1}{3}
 $$
 
 สำหรับ Female:
 
 $$
-P(F \mid Drew)
-= \frac{P(Drew \mid F)P(F)}{P(Drew)}
-= \frac{\frac{2}{5}\frac{5}{8}}{\frac{3}{8}}
-= \frac{2}{3}
+P(F \mid Drew) = \frac{P(Drew \mid F)P(F)}{P(Drew)} = \frac{\frac{2}{5}\frac{5}{8}}{\frac{3}{8}} = \frac{2}{3}
 $$
 
 ดังนั้น ถ้าใช้เพียงชื่อ Drew โมเดลจะทำนาย Female เพราะ posterior สูงกว่า แต่ตัวอย่างนี้สอนเรื่องการปรับ prior ด้วยข้อมูลใหม่ ไม่ได้หมายความว่าชื่อกำหนดเพศหรือมีความสัมพันธ์เชิงเหตุผล
@@ -156,18 +150,13 @@ $$
 เมื่อมี features $x_1,x_2,\ldots,x_d$ เราต้องการ
 
 $$
-P(Y \mid x_1,x_2,\ldots,x_d)
-= \frac{P(x_1,x_2,\ldots,x_d \mid Y)P(Y)}{P(x_1,x_2,\ldots,x_d)}
+P(Y \mid x_1,x_2,\ldots,x_d) = \frac{P(x_1,x_2,\ldots,x_d \mid Y)P(Y)}{P(x_1,x_2,\ldots,x_d)}
 $$
 
 ส่วนที่ยากคือ joint likelihood $P(x_1,x_2,\ldots,x_d \mid Y)$ เพราะถ้า features พึ่งพากัน ต้องเก็บและประมาณ combinations จำนวนมาก ตาม chain rule:
 
 $$
-P(x_1,x_2,\ldots,x_d \mid Y)
-= P(x_1 \mid Y)
-P(x_2 \mid x_1,Y)
-\cdots
-P(x_d \mid x_1,\ldots,x_{d-1},Y)
+P(x_1,x_2,\ldots,x_d \mid Y) = P(x_1 \mid Y) P(x_2 \mid x_1,Y) \cdots P(x_d \mid x_1,\ldots,x_{d-1},Y)
 $$
 
 เมื่อจำนวน features หรือจำนวนค่าที่เป็นไปได้เพิ่มขึ้น หลาย combinations อาจไม่เคยปรากฏใน training data ทำให้ประมาณความน่าจะเป็นได้ไม่เสถียรและต้องใช้ข้อมูลจำนวนมาก
@@ -177,8 +166,7 @@ $$
 Naive Bayes สมมติว่า features เป็นอิสระต่อกัน **เมื่อกำหนดคลาสแล้ว**:
 
 $$
-P(x_1,x_2,\ldots,x_d \mid Y=c)
-= \prod_{j=1}^{d} P(x_j \mid Y=c)
+P(x_1,x_2,\ldots,x_d \mid Y=c) = \prod_{j=1}^{d} P(x_j \mid Y=c)
 $$
 
 คำว่า conditional สำคัญมาก เราไม่ได้อ้างว่า features เป็นอิสระในประชากรทั้งหมด แต่บอกว่าภายในแต่ละคลาส การรู้ feature หนึ่งไม่ให้ข้อมูลเพิ่มเกี่ยวกับอีก feature หนึ่ง
@@ -196,9 +184,7 @@ $$
 Evidence เหมือนกันทุกคลาสสำหรับตัวอย่างเดียวกัน จึงไม่ต้องคำนวณเมื่อเป้าหมายมีเพียงการเลือกคลาส:
 
 $$
-\hat{y}
-= \underset{c}{\mathrm{argmax}}
-P(Y=c)\prod_{j=1}^{d}P(x_j \mid Y=c)
+\hat{y} = \underset{c}{\mathrm{argmax}} P(Y=c)\prod_{j=1}^{d}P(x_j \mid Y=c)
 $$
 
 นี่เรียกว่า Maximum A Posteriori หรือ MAP decision rule ส่วน posterior ที่รวมกันเป็น 1 ต้องนำคะแนนของทุกคลาสมาหารด้วยผลรวมคะแนนทั้งหมด
@@ -235,61 +221,41 @@ $$
 ดังนั้น likelihood และ unnormalized posterior score คือ
 
 $$
-P(X \mid M)
-= \frac{1}{3}\frac{1}{3}\frac{1}{3}\frac{2}{3}
-= \frac{2}{81}
+P(X \mid M) = \frac{1}{3}\frac{1}{3}\frac{1}{3}\frac{2}{3} = \frac{2}{81}
 $$
 
 $$
-s_M
-= P(X \mid M)P(M)
-= \frac{2}{81}\frac{3}{8}
-= \frac{1}{108}
-\approx 0.009259
+s_M = P(X \mid M)P(M) = \frac{2}{81}\frac{3}{8} = \frac{1}{108} \approx 0.009259
 $$
 
 ### 5.2 คะแนนของ Female
 
 $$
-P(Drew \mid F)=\frac{2}{5}, \quad
-P(No \mid F)=\frac{3}{5}
+P(Drew \mid F)=\frac{2}{5}, \quad P(No \mid F)=\frac{3}{5}
 $$
 
 $$
-P(Brown \mid F)=\frac{2}{5}, \quad
-P(Short \mid F)=\frac{1}{5}
+P(Brown \mid F)=\frac{2}{5}, \quad P(Short \mid F)=\frac{1}{5}
 $$
 
 จึงได้
 
 $$
-P(X \mid F)
-= \frac{2}{5}\frac{3}{5}\frac{2}{5}\frac{1}{5}
-= \frac{12}{625}
+P(X \mid F) = \frac{2}{5}\frac{3}{5}\frac{2}{5}\frac{1}{5} = \frac{12}{625}
 $$
 
 $$
-s_F
-= P(X \mid F)P(F)
-= \frac{12}{625}\frac{5}{8}
-= \frac{3}{250}
-= 0.012
+s_F = P(X \mid F)P(F) = \frac{12}{625}\frac{5}{8} = \frac{3}{250} = 0.012
 $$
 
 ### 5.3 Normalize ให้เป็น posterior
 
 $$
-P(M \mid X)
-= \frac{s_M}{s_M+s_F}
-= \frac{0.009259}{0.009259+0.012}
-\approx 0.4355
+P(M \mid X) = \frac{s_M}{s_M+s_F} = \frac{0.009259}{0.009259+0.012} \approx 0.4355
 $$
 
 $$
-P(F \mid X)
-= \frac{s_F}{s_M+s_F}
-= \frac{0.012}{0.009259+0.012}
-\approx 0.5645
+P(F \mid X) = \frac{s_F}{s_M+s_F} = \frac{0.012}{0.009259+0.012} \approx 0.5645
 $$
 
 ดังนั้นคำตอบที่คำนวณได้จากข้อมูลในสไลด์คือ **Female** ไม่ใช่ Male
@@ -305,9 +271,7 @@ $$
 เพราะ logarithm เปลี่ยนการคูณเป็นการบวก โมเดลจึงเปรียบเทียบ log score แทน:
 
 $$
-\log s_c
-= \log P(Y=c)
-+ \sum_{j=1}^{d}\log P(x_j \mid Y=c)
+\log s_c = \log P(Y=c) + \sum_{j=1}^{d}\log P(x_j \mid Y=c)
 $$
 
 เนื่องจาก log เป็นฟังก์ชันเพิ่ม คลาสที่มี score สูงสุดยังคงเป็นคลาสเดียวกับที่มี log score สูงสุด การเปลี่ยนนี้จึงช่วยด้านตัวเลขโดยไม่เปลี่ยนกฎการตัดสินใจ
@@ -319,9 +283,7 @@ $$
 Gaussian Naive Bayes สมมติว่า ภายในแต่ละคลาส feature แต่ละตัวแจกแจงแบบ Gaussian โดยประมาณค่าเฉลี่ยและความแปรปรวนแยกตาม class-feature pair:
 
 $$
-p(x_j \mid Y=c)
-= \frac{1}{\sqrt{2\pi\sigma_{cj}^{2}}}
-e^{-\frac{(x_j-\mu_{cj})^2}{2\sigma_{cj}^{2}}}
+p(x_j \mid Y=c) = \frac{1}{\sqrt{2\pi\sigma_{cj}^{2}}} e^{-\frac{(x_j-\mu_{cj})^2}{2\sigma_{cj}^{2}}}
 $$
 
 เพื่อความเข้ากันได้กับ GitHub ให้ตีความ `exp` ในสมการนี้ว่า $e$ ยกกำลังข้อความภายในวงเล็บ โดย:
@@ -352,8 +314,7 @@ $$
 Laplace smoothing เพิ่ม pseudo-count เท่ากับ 1 ให้ทุก category ถ้ามี $K$ categories:
 
 $$
-\hat{P}(x=v)
-= \frac{N_v+1}{N+K}
+\hat{P}(x=v) = \frac{N_v+1}{N+K}
 $$
 
 สำหรับตัวอย่างที่มี 3 categories:
@@ -375,8 +336,7 @@ $$
 ใน Naive Bayes จริง เราคำนวณแยกตาม feature และ class ถ้า feature $j$ มี $K_j$ categories สูตรทั่วไปคือ
 
 $$
-\hat{P}(x_j=v \mid Y=c)
-= \frac{N_{cjv}+\alpha}{N_c+\alpha K_j}
+\hat{P}(x_j=v \mid Y=c) = \frac{N_{cjv}+\alpha}{N_c+\alpha K_j}
 $$
 
 โดย $\alpha=1$ คือ Laplace smoothing และ $0<\alpha<1$ มักเรียกว่า Lidstone smoothing ค่า $\alpha$ สูงขึ้นทำให้ probabilities ถูกดึงให้ใกล้ uniform มากขึ้น ซึ่งลดความรุนแรงจากข้อมูลน้อย แต่ถ้าสูงเกินไปก็กลบสัญญาณจริง
@@ -532,11 +492,7 @@ Class ที่เขียนใน notebook เก็บข้อมูลส�
 สำหรับการเลือกคลาสเพียงอย่างเดียว evidence เป็นตัวหารเดียวกันทุกคลาส จึงตัดออกได้โดยไม่เปลี่ยนคำตอบ:
 
 $$
-\hat{y}
-=\underset{c}{\mathrm{argmax}}
-[
-P(c)\prod_j P(x_j \mid c)
-]
+\hat{y} =\underset{c}{\mathrm{argmax}} [ P(c)\prod_j P(x_j \mid c) ]
 $$
 
 การคูณ evidence แยกราย feature ใน custom code เป็นวิธีสาธิตตาม notebook แต่ไม่ใช่สิ่งจำเป็นสำหรับ MAP classification และไม่ใช่การคำนวณ joint evidence ที่ถูกต้องเสมอไป
@@ -710,26 +666,17 @@ Notebook แสดงชื่อ Gaussian, Multinomial, Bernoulli และ Cat
 Accuracy คำนวณจาก:
 
 $$
-Accuracy
-=\frac{TN+TP}{TN+FP+FN+TP}
-=\frac{861+273}{1146}
-\approx 0.9895
+Accuracy =\frac{TN+TP}{TN+FP+FN+TP} =\frac{861+273}{1146} \approx 0.9895
 $$
 
 สำหรับ spam class:
 
 $$
-Precision_{spam}
-=\frac{TP}{TP+FP}
-=\frac{273}{273+11}
-\approx 0.9613
+Precision_{spam} =\frac{TP}{TP+FP} =\frac{273}{273+11} \approx 0.9613
 $$
 
 $$
-Recall_{spam}
-=\frac{TP}{TP+FN}
-=\frac{273}{273+1}
-\approx 0.9964
+Recall_{spam} =\frac{TP}{TP+FN} =\frac{273}{273+1} \approx 0.9964
 $$
 
 Precision ประมาณ 0.96 หมายความว่า ในอีเมลที่โมเดลแจ้งว่าเป็น spam มีประมาณ 96% ที่เป็น spam จริง ส่วน recall ใกล้ 1.00 หมายความว่าโมเดลพลาด spam จริงเพียง 1 ฉบับจาก 274 ฉบับ
@@ -888,9 +835,7 @@ P(international)=\frac{12+8}{100}=0.20
 $$
 
 $$
-P(Fraud \mid international)
-= \frac{0.60 \times 0.20}{0.20}
-= 0.60
+P(Fraud \mid international) = \frac{0.60 \times 0.20}{0.20} = 0.60
 $$
 
 แม้ prior ของ Fraud มีเพียง 20% แต่เมื่อทราบว่าเป็น international transaction posterior เพิ่มเป็น 60%
@@ -902,9 +847,7 @@ $$
 **เฉลย:**
 
 $$
-P(mobile \mid class)
-= \frac{0+1}{20+1 \times 4}
-= \frac{1}{24}
+P(mobile \mid class) = \frac{0+1}{20+1 \times 4} = \frac{1}{24}
 $$
 
 ### ข้อ 4: Analyze
@@ -989,6 +932,10 @@ Naive Bayes นำ Bayes' Rule มาใช้จำแนกคลาส โด
 | Probability density | ความหนาแน่นของความน่าจะเป็นสำหรับค่าต่อเนื่อง |
 | Laplace smoothing | การเพิ่ม pseudo-count เพื่อป้องกัน probability เป็นศูนย์ |
 | Calibration | ความสอดคล้องระหว่าง predicted probability กับความถี่จริง |
+
+## Learning Gap Audit
+
+การตรวจรอบนี้ยืนยันว่าโน้ตไม่ได้เพียงถอด Bayes' Rule จากสไลด์ แต่สอนลำดับ prior → likelihood → unnormalized score → posterior → class decision พร้อมตัวอย่างคำนวณครบขั้น Lab สองชุดถูกใช้เพื่ออธิบายคนละชนิดข้อมูล และชี้จุดที่ output รันได้แต่ workflow ยังมี leakage จากการ fit vocabulary ก่อน split ขอบเขตที่ตั้งใจไม่ลงลึกคือการพิสูจน์ calibration theory และ generative graphical models ซึ่งไม่จำเป็นต่อ Core objectives ของบทนี้
 
 ## 24. Source Coverage Audit
 
