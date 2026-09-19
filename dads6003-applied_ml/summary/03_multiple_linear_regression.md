@@ -46,7 +46,7 @@ flowchart TD
 
 หลังเรียนบทนี้ควรสามารถ:
 
-- ระบุมิติของ \(X\), \(\mathbf{x}_i\), \(\boldsymbol{\theta}\), \(\mathbf{y}\) และ \(\hat{\mathbf{y}}\) ได้
+- ระบุมิติของ $X$, $\mathbf{x}_i$, $\boldsymbol{\theta}$, $\mathbf{y}$ และ $\hat{\mathbf{y}}$ ได้
 - เขียน Multiple Linear Regression ทั้งแบบ scalar, vector และ matrix ได้
 - ตีความ coefficient แบบ holding other variables constant ได้
 - เขียน MSE และ gradient ในรูปเมทริกซ์ได้
@@ -61,23 +61,23 @@ flowchart TD
 
 ## 3. Dataset และ Matrix Notation
 
-จากเอกสารหน้า 2 กำหนด dataset ที่มี \(N\) rows และ \(d\) features:
+จากเอกสารหน้า 2 กำหนด dataset ที่มี $N$ rows และ $d$ features:
 
 $$
 X\in\mathbb{R}^{N\times d}
 $$
 
-notation \(x_{i,j}\) หมายถึงค่าที่ row หรือ sample \(i\), feature column \(j\)
+notation $x_{i,j}$ หมายถึงค่าที่ row หรือ sample $i$, feature column $j$
 
 ### 3.1 Design matrix ที่รวม intercept
 
-เพื่อเขียน intercept เป็น matrix multiplication เราเพิ่มคอลัมน์ \(x_{i,0}=1\):
+เพื่อเขียน intercept เป็น matrix multiplication เราเพิ่มคอลัมน์ $x_{i,0}=1$:
 
 $$
 X= \begin{bmatrix} 1&x_{1,1}&x_{1,2}&\cdots&x_{1,d}\\ 1&x_{2,1}&x_{2,2}&\cdots&x_{2,d}\\ \vdots&\vdots&\vdots&\ddots&\vdots\\ 1&x_{N,1}&x_{N,2}&\cdots&x_{N,d} \end{bmatrix} \in\mathbb{R}^{N\times(d+1)}
 $$
 
-> **คำอธิบายเพิ่มเติม:** สไลด์เรียกข้อมูลว่า \(X\in\mathbb{R}^{N\times d}\) แต่แผนภาพมีคอลัมน์ 1 สำหรับ intercept แล้ว ในโน้ตนี้จึงแยกให้ชัด: raw feature matrix มี \(d\) columns ส่วน design matrix หลังเพิ่ม intercept มี \(d+1\) columns
+> **คำอธิบายเพิ่มเติม:** สไลด์เรียกข้อมูลว่า $X\in\mathbb{R}^{N\times d}$ แต่แผนภาพมีคอลัมน์ 1 สำหรับ intercept แล้ว ในโน้ตนี้จึงแยกให้ชัด: raw feature matrix มี $d$ columns ส่วน design matrix หลังเพิ่ม intercept มี $d+1$ columns
 
 กำหนด parameter vector และ target vector:
 
@@ -107,7 +107,7 @@ $$
 h_{\theta}(\mathbf{x}) =\theta_0+\theta_1x_1+\cdots+\theta_jx_j+\cdots+\theta_dx_d =\boldsymbol{\theta}^T\mathbf{x}
 $$
 
-ในสมการสุดท้ายต้องนิยาม \(x_0=1\) และเขียน
+ในสมการสุดท้ายต้องนิยาม $x_0=1$ และเขียน
 
 $$
 \mathbf{x}= \begin{bmatrix} x_0\\x_1\\\vdots\\x_d \end{bmatrix},\qquad \boldsymbol{\theta}^T= \begin{bmatrix} \theta_0&\theta_1&\cdots&\theta_d \end{bmatrix}
@@ -123,14 +123,14 @@ $$
 
 หาก Area วัดเป็น 10 ตารางเมตร:
 
-- \(\theta_1=30{,}000\): เมื่อพื้นที่เพิ่ม 10 ตารางเมตร ราคาที่คาดเพิ่ม 30,000 บาท **เมื่อจำนวนห้องนอนคงที่**
-- \(\theta_2=120{,}000\): เมื่อเพิ่ม 1 ห้องนอน ราคาที่คาดเพิ่ม 120,000 บาท **เมื่อพื้นที่คงที่**
+- $\theta_1=30{,}000$: เมื่อพื้นที่เพิ่ม 10 ตารางเมตร ราคาที่คาดเพิ่ม 30,000 บาท **เมื่อจำนวนห้องนอนคงที่**
+- $\theta_2=120{,}000$: เมื่อเพิ่ม 1 ห้องนอน ราคาที่คาดเพิ่ม 120,000 บาท **เมื่อพื้นที่คงที่**
 
 คำว่า “เมื่อ features อื่นคงที่” คือหัวใจของ multiple regression coefficient และทำให้การตีความต่างจาก correlation แบบคู่
 
 ### 4.2 Intercept และ domain
 
-\(\theta_0\) คือ prediction เมื่อ features ทุกตัวเป็นศูนย์ แต่ถ้าค่าศูนย์อยู่นอกช่วงข้อมูลหรือไม่มีความหมายจริง intercept อาจเป็นเพียงค่าที่ช่วยวาง hyperplane ไม่ควรฝืนตีความทางธุรกิจ
+$\theta_0$ คือ prediction เมื่อ features ทุกตัวเป็นศูนย์ แต่ถ้าค่าศูนย์อยู่นอกช่วงข้อมูลหรือไม่มีความหมายจริง intercept อาจเป็นเพียงค่าที่ช่วยวาง hyperplane ไม่ควรฝืนตีความทางธุรกิจ
 
 ### 4.3 Geometry
 
@@ -164,7 +164,7 @@ $$
 \nabla J(\boldsymbol{\theta}) =\frac{2}{N}X^T(X\boldsymbol{\theta}-\mathbf{y})
 $$
 
-> **ความสอดคล้องกับสไลด์:** สไลด์หน้า 5 ใช้ update term \(\frac{1}{N}\sum e_ix_{i,j}\) โดยไม่มี 2 เช่นเดียวกับ Week 02 ค่าคงที่ 2 สามารถดูดรวมใน learning rate ได้ หรือ cost อาจนิยามเป็น \(\frac{1}{2N}\sum e_i^2\) เพื่อให้อนุพันธ์ไม่มี 2
+> **ความสอดคล้องกับสไลด์:** สไลด์หน้า 5 ใช้ update term $\frac{1}{N}\sum e_ix_{i,j}$ โดยไม่มี 2 เช่นเดียวกับ Week 02 ค่าคงที่ 2 สามารถดูดรวมใน learning rate ได้ หรือ cost อาจนิยามเป็น $\frac{1}{2N}\sum e_i^2$ เพื่อให้อนุพันธ์ไม่มี 2
 
 ## 6. Batch Gradient Descent
 
@@ -180,7 +180,7 @@ $$
 \theta_j^{(t+1)} :=\theta_j^{(t)}-\eta\frac{1}{N} \sum_{i=1}^{N} (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}, \qquad j=0,1,\ldots,d
 $$
 
-และ \(x_{i,0}=1\)
+และ $x_{i,0}=1$
 
 ### 6.1 Matrix update
 
@@ -190,10 +190,10 @@ $$
 
 ### 6.2 ขั้นตอนหนึ่ง iteration
 
-1. คำนวณ predictions: \(\hat{\mathbf{y}}=X\boldsymbol{\theta}^{(t)}\)
-2. คำนวณ residual vector: \(\mathbf{e}=\hat{\mathbf{y}}-\mathbf{y}\)
-3. คำนวณ gradient: \(\mathbf{g}=\frac{1}{N}X^T\mathbf{e}\)
-4. update ทุก parameters พร้อมกัน: \(\boldsymbol{\theta}^{(t+1)}=\boldsymbol{\theta}^{(t)}-\eta\mathbf{g}\)
+1. คำนวณ predictions: $\hat{\mathbf{y}}=X\boldsymbol{\theta}^{(t)}$
+2. คำนวณ residual vector: $\mathbf{e}=\hat{\mathbf{y}}-\mathbf{y}$
+3. คำนวณ gradient: $\mathbf{g}=\frac{1}{N}X^T\mathbf{e}$
+4. update ทุก parameters พร้อมกัน: $\boldsymbol{\theta}^{(t+1)}=\boldsymbol{\theta}^{(t)}-\eta\mathbf{g}$
 5. ตรวจ cost และ stopping criterion
 
 คำว่า **Batch** หมายความว่า gradient หนึ่งครั้งใช้ training samples ทั้งหมด
@@ -202,12 +202,12 @@ $$
 
 กำหนดข้อมูลสอง features:
 
-| Sample | \(x_1\) | \(x_2\) | \(y\) |
+| Sample | $x_1$ | $x_2$ | $y$ |
 |---:|---:|---:|---:|
 | 1 | 1 | 2 | 8 |
 | 2 | 2 | 1 | 9 |
 
-กำหนด \(\boldsymbol{\theta}^{(0)}=[1,1,1]^T\), \(\eta=0.1\) และใช้สูตรตามสไลด์
+กำหนด $\boldsymbol{\theta}^{(0)}=[1,1,1]^T$, $\eta=0.1$ และใช้สูตรตามสไลด์
 
 $$
 X= \begin{bmatrix} 1&1&2\\ 1&2&1 \end{bmatrix},\qquad \mathbf{y}= \begin{bmatrix}8\\9\end{bmatrix}
@@ -237,11 +237,11 @@ $$
 \boldsymbol{\theta}^{(1)} =\begin{bmatrix}1\\1\\1\end{bmatrix} -0.1 \begin{bmatrix}-4.5\\-7\\-6.5\end{bmatrix} =\boxed{ \begin{bmatrix}1.45\\1.70\\1.65\end{bmatrix}}
 $$
 
-ก่อน update, \(MSE=(16+25)/2=20.5\) หลัง update predictions เป็น \([6.45,6.50]\) และ MSE ลดเหลือประมาณ \(4.32625\) แสดงว่าก้าวนี้เคลื่อนลงตาม cost surface
+ก่อน update, $MSE=(16+25)/2=20.5$ หลัง update predictions เป็น $[6.45,6.50]$ และ MSE ลดเหลือประมาณ $4.32625$ แสดงว่าก้าวนี้เคลื่อนลงตาม cost surface
 
 ## 8. Feature Scaling
 
-จากเอกสารหน้า 6 หาก \(x_2\gg x_1\) Gradient Descent อาจช้าหรือไม่เสถียร เพราะ gradient แต่ละแกนมีขนาดต่างกันมาก cost contours จะยืดยาว ทำให้เส้นทาง update zigzag
+จากเอกสารหน้า 6 หาก $x_2\gg x_1$ Gradient Descent อาจช้าหรือไม่เสถียร เพราะ gradient แต่ละแกนมีขนาดต่างกันมาก cost contours จะยืดยาว ทำให้เส้นทาง update zigzag
 
 ### 8.1 Min-Max Scaling
 
@@ -251,7 +251,7 @@ $$
 
 ถ้ากำหนดช่วง 0–1 ค่าต่ำสุดจะเป็น 0 และค่าสูงสุดจะเป็น 1
 
-ตัวอย่าง \(x=30,x_{\min}=10,x_{\max}=50\):
+ตัวอย่าง $x=30,x_{\min}=10,x_{\max}=50$:
 
 $$
 x'=\frac{30-10}{50-10}=0.5
@@ -268,7 +268,7 @@ $$
 
 หลัง standardize ข้อมูล training จะมีค่าเฉลี่ยประมาณ 0 และส่วนเบี่ยงเบนมาตรฐานประมาณ 1
 
-ตัวอย่าง \(x=70,\mu=50,\sigma=10\):
+ตัวอย่าง $x=70,\mu=50,\sigma=10$:
 
 $$
 x'=\frac{70-50}{10}=2
@@ -280,7 +280,7 @@ $$
 
 | ประเด็น | Min-Max | Z-score |
 |---|---|---|
-| สูตร | \((x-x_{min})/(x_{max}-x_{min})\) | \((x-\mu)/\sigma\) |
+| สูตร | $(x-x_{min})/(x_{max}-x_{min})$ | $(x-\mu)/\sigma$ |
 | ช่วงผลลัพธ์ | มัก 0–1 สำหรับ training data | ไม่มีขอบเขตตายตัว |
 | เหมาะเมื่อ | ต้องการ bounded range | ต้องการ center และ comparable variance |
 | Outlier | กระทบ min/max มาก | กระทบ mean/SD เช่นกัน แต่ไม่บีบค่าปกติทั้งหมดลงช่วงเล็กเท่า Min-Max |
@@ -288,7 +288,7 @@ $$
 
 ### 8.4 ป้องกัน Data Leakage
 
-ต้องคำนวณ \(x_{min},x_{max},\mu,\sigma\) จาก **training set เท่านั้น** แล้วใช้ค่าเดิม transform validation, test และ production data หากคำนวณจากทุกชุดก่อน split จะเกิด data leakage
+ต้องคำนวณ $x_{min},x_{max},\mu,\sigma$ จาก **training set เท่านั้น** แล้วใช้ค่าเดิม transform validation, test และ production data หากคำนวณจากทุกชุดก่อน split จะเกิด data leakage
 
 ### 8.5 Scaling กับ coefficient
 
@@ -304,7 +304,7 @@ $$
 \theta_j^{(t+1)} :=\theta_j^{(t)}-\eta\frac{1}{N} \sum_{i=1}^{N} (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
 $$
 
-- ใช้ทุก \(N\) samples ต่อ update
+- ใช้ทุก $N$ samples ต่อ update
 - gradient มี variance ต่ำและเส้นทางค่อนข้างเสถียร
 - แต่หนึ่ง update แพงเมื่อ dataset ใหญ่
 
@@ -314,7 +314,7 @@ $$
 \theta_j^{(t+1)} :=\theta_j^{(t)}-\eta (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
 $$
 
-โดยสุ่ม sample \(\mathbf{x}_i\) ต่อ iteration
+โดยสุ่ม sample $\mathbf{x}_i$ ต่อ iteration
 
 - update ได้เร็วและเริ่มเรียนรู้ก่อนอ่านครบทั้ง dataset
 - เหมาะกับข้อมูลใหญ่หรือ online learning
@@ -344,11 +344,11 @@ $$
 
 โดย:
 
-- \(\eta_0\): initial learning rate
-- \(\lambda\): decay rate
-- \(t\): iteration/time step
+- $\eta_0$: initial learning rate
+- $\lambda$: decay rate
+- $t$: iteration/time step
 
-ตัวอย่างจากเอกสาร ให้ \(\eta_0=0.01,\lambda=0.1,t=1\):
+ตัวอย่างจากเอกสาร ให้ $\eta_0=0.01,\lambda=0.1,t=1$:
 
 $$
 \eta_2 =\frac{0.01}{1+(0.01)(0.1)(1)} =\frac{0.01}{1.001} \approx0.009990
@@ -364,17 +364,17 @@ $$
 
 ## 11. BGD vs SGD vs Mini-batch GD
 
-จากเอกสารหน้า 9 Mini-batch ใช้ \(b\) samples โดย \(1<b<N\) เช่น \(b=10\)
+จากเอกสารหน้า 9 Mini-batch ใช้ $b$ samples โดย $1<b<N$ เช่น $b=10$
 
 $$
 \theta_j^{(t+1)} :=\theta_j^{(t)}-\eta\frac{1}{b} \sum_{i\in B_t} (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
 $$
 
-โดย \(B_t\) คือ mini-batch ใน iteration \(t\)
+โดย $B_t$ คือ mini-batch ใน iteration $t$
 
 | ประเด็น | BGD | SGD | Mini-batch GD |
 |---|---|---|---|
-| Samples ต่อ update | \(N\) | 1 | \(b\), เมื่อ \(1<b<N\) |
+| Samples ต่อ update | $N$ | 1 | $b$, เมื่อ $1<b<N$ |
 | Gradient noise | ต่ำ | สูง | ปานกลาง |
 | ต้นทุนต่อ update | สูง | ต่ำ | ปานกลาง |
 | Hardware/vectorization | ใช้ได้แต่ batch อาจใหญ่เกิน memory | ใช้ vectorization ได้น้อย | เหมาะกับ GPU/CPU matrix operations |
@@ -383,11 +383,11 @@ $$
 
 ### 11.1 Epoch, iteration และ batch size
 
-- **Batch size \(b\):** จำนวน samples ต่อหนึ่ง parameter update
+- **Batch size $b$:** จำนวน samples ต่อหนึ่ง parameter update
 - **Iteration:** การ update parameters หนึ่งครั้ง
 - **Epoch:** การที่โมเดลประมวลผล training samples ครบหนึ่งรอบ
 
-ถ้า \(N=1{,}000\) และ \(b=100\) จะมีประมาณ 10 iterations ต่อ epoch
+ถ้า $N=1{,}000$ และ $b=100$ จะมีประมาณ 10 iterations ต่อ epoch
 
 ## 12. Polynomial Regression
 
@@ -401,7 +401,7 @@ $$
 
 ### 12.1 ทำไมเรียกว่า Polynomial แต่ยังเป็น Linear Regression
 
-โมเดล nonlinear ใน original inputs เพราะมี \(x_1^2,x_2^2,x_1x_2\) แต่ยัง **linear in parameters** เพราะ parameters ปรากฏเป็นสัมประสิทธิ์กำลังหนึ่งและไม่ได้คูณกัน
+โมเดล nonlinear ใน original inputs เพราะมี $x_1^2,x_2^2,x_1x_2$ แต่ยัง **linear in parameters** เพราะ parameters ปรากฏเป็นสัมประสิทธิ์กำลังหนึ่งและไม่ได้คูณกัน
 
 กำหนด transformed features:
 
@@ -419,7 +419,7 @@ $$
 
 ### 12.2 Interaction term
 
-เทอม \(x_1x_2\) หมายความว่าผลของ \(x_1\) ต่อ prediction เปลี่ยนตามระดับของ \(x_2\)
+เทอม $x_1x_2$ หมายความว่าผลของ $x_1$ ต่อ prediction เปลี่ยนตามระดับของ $x_2$
 
 สำหรับ
 
@@ -427,25 +427,25 @@ $$
 h=\theta_0+\theta_1x_1+\theta_2x_2+\theta_3x_1x_2
 $$
 
-marginal effect ของ \(x_1\) คือ
+marginal effect ของ $x_1$ คือ
 
 $$
 \frac{\partial h}{\partial x_1} =\theta_1+\theta_3x_2
 $$
 
-ดังนั้นเมื่อมี interaction จะตีความ \(\theta_1\) เดี่ยว ๆ ว่าเป็นผลของ \(x_1\) ทุกระดับไม่ได้ แต่เป็นผลเมื่อ \(x_2=0\)
+ดังนั้นเมื่อมี interaction จะตีความ $\theta_1$ เดี่ยว ๆ ว่าเป็นผลของ $x_1$ ทุกระดับไม่ได้ แต่เป็นผลเมื่อ $x_2=0$
 
 ### 12.3 จำนวน Polynomial Terms
 
-จำนวน monomials ที่ degree ไม่เกิน \(r\) จาก \(d\) features รวม intercept คือ
+จำนวน monomials ที่ degree ไม่เกิน $r$ จาก $d$ features รวม intercept คือ
 
 $$
 \binom{d+r}{r} =\frac{(d+r)!}{r!d!}
 $$
 
-เอกสารเขียน \(n=\#features+\#degree\) และ \(r=\#degree\) จึงเท่ากับ \(\binom{n}{r}\)
+เอกสารเขียน $n=\#features+\#degree$ และ $r=\#degree$ จึงเท่ากับ $\binom{n}{r}$
 
-สำหรับ \(d=2,r=2\):
+สำหรับ $d=2,r=2$:
 
 $$
 \binom{2+2}{2} =\binom{4}{2} =\frac{4!}{2!(4-2)!} =6
@@ -461,7 +461,7 @@ $$
 
 จำนวน terms โตเร็ว:
 
-| Features \(d\) | Degree \(r\) | Terms รวม intercept \(\binom{d+r}{r}\) |
+| Features $d$ | Degree $r$ | Terms รวม intercept $\binom{d+r}{r}$ |
 |---:|---:|---:|
 | 2 | 2 | 6 |
 | 3 | 2 | 10 |
@@ -472,7 +472,7 @@ $$
 
 ## 13. Worked Example: Polynomial Feature Expansion
 
-ให้ sample \((x_1,x_2)=(2,3)\) และ degree 2 feature vector คือ
+ให้ sample $(x_1,x_2)=(2,3)$ และ degree 2 feature vector คือ
 
 $$
 \boldsymbol{\phi}(\mathbf{x}) =\begin{bmatrix} 1&x_1&x_2&x_1x_2&x_1^2&x_2^2 \end{bmatrix}^T =\begin{bmatrix} 1&2&3&6&4&9 \end{bmatrix}^T
@@ -568,19 +568,19 @@ $$
 R^2 =1-\frac{\sum_i(y_i-\hat{y}_i)^2} {\sum_i(y_i-\bar{y})^2}
 $$
 
-- \(R^2=1\): fit สมบูรณ์บนชุดที่ประเมิน
-- \(R^2=0\): ไม่ดีกว่าการทำนายด้วยค่าเฉลี่ยในนิยามทั่วไป
-- \(R^2<0\): บน unseen data โมเดลอาจแย่กว่าค่าเฉลี่ย
+- $R^2=1$: fit สมบูรณ์บนชุดที่ประเมิน
+- $R^2=0$: ไม่ดีกว่าการทำนายด้วยค่าเฉลี่ยในนิยามทั่วไป
+- $R^2<0$: บน unseen data โมเดลอาจแย่กว่าค่าเฉลี่ย
 
-### 16.4 Adjusted \(R^2\)
+### 16.4 Adjusted $R^2$
 
-Training \(R^2\) ไม่ลดเมื่อเพิ่ม features แม้ feature ไม่มีประโยชน์ Adjusted \(R^2\) จึงปรับโทษจำนวน predictors:
+Training $R^2$ ไม่ลดเมื่อเพิ่ม features แม้ feature ไม่มีประโยชน์ Adjusted $R^2$ จึงปรับโทษจำนวน predictors:
 
 $$
 \bar{R}^2 =1-(1-R^2)\frac{N-1}{N-d-1}
 $$
 
-แต่การเลือกโมเดลเพื่อ prediction ควรใช้ validation/cross-validation ร่วมด้วย ไม่ควรพึ่ง Adjusted \(R^2\) อย่างเดียว
+แต่การเลือกโมเดลเพื่อ prediction ควรใช้ validation/cross-validation ร่วมด้วย ไม่ควรพึ่ง Adjusted $R^2$ อย่างเดียว
 
 ## 17. Practical Workflow
 
@@ -649,7 +649,7 @@ $$
 9. **“Interaction term มีไว้เพิ่ม accuracy อย่างเดียว”**
    interaction ควรมี domain rationale และเปลี่ยนวิธีตีความ main effects
 
-10. **“\(R^2\) สูงแปลว่าโมเดลถูกต้อง”**
+10. **“$R^2$ สูงแปลว่าโมเดลถูกต้อง”**
    ยังอาจมี leakage, overfitting, biased residuals หรือไม่มี causal meaning
 
 ## Hands-on Lab: Multiple และ Polynomial Regression โดยไม่ให้ข้อมูลรั่ว
@@ -778,8 +778,8 @@ Pipeline ป้องกันไม่ให้ผู้ใช้เผลอ f
 
 ### Definitions and notation
 
-- ความหมายและมิติของ \(N,d,x_{i,j},X,\boldsymbol{\theta},\mathbf{y}\)
-- intercept column \(x_{i,0}=1\)
+- ความหมายและมิติของ $N,d,x_{i,j},X,\boldsymbol{\theta},\mathbf{y}$
+- intercept column $x_{i,0}=1$
 - BGD, SGD, Mini-batch GD, batch size, iteration และ epoch
 - learning rate และ decay rate
 - polynomial term และ interaction term
@@ -831,15 +831,15 @@ $$
 
 ### Recall
 
-**1.** ถ้ามี \(N=100\), \(d=4\) และรวม intercept แล้ว design matrix กับ parameter vector มีมิติเท่าใด?
+**1.** ถ้ามี $N=100$, $d=4$ และรวม intercept แล้ว design matrix กับ parameter vector มีมิติเท่าใด?
 
 **2.** BGD, SGD และ Mini-batch GD ใช้ samples ต่อ update ต่างกันอย่างไร?
 
-**3.** เหตุใดต้องกำหนด \(x_{i,0}=1\)?
+**3.** เหตุใดต้องกำหนด $x_{i,0}=1$?
 
 ### Explain and Compare
 
-**4.** อธิบายความหมายของ \(\theta_j\) ใน Multiple Linear Regression
+**4.** อธิบายความหมายของ $\theta_j$ ใน Multiple Linear Regression
 
 **5.** เปรียบเทียบ Min-Max scaling กับ Z-score standardization
 
@@ -849,17 +849,17 @@ $$
 
 ### Apply
 
-**8.** ให้ \(h=10+2x_1-3x_2\), \(x_1=4,x_2=2\) จงหาค่าทำนายและตีความ coefficients
+**8.** ให้ $h=10+2x_1-3x_2$, $x_1=4,x_2=2$ จงหาค่าทำนายและตีความ coefficients
 
-**9.** ค่า \(x=80,x_{min}=20,x_{max}=100,\mu=60,\sigma=10\) จงคำนวณ Min-Max และ Z-score
+**9.** ค่า $x=80,x_{min}=20,x_{max}=100,\mu=60,\sigma=10$ จงคำนวณ Min-Max และ Z-score
 
-**10.** ให้ \(\eta_0=0.1,\lambda=0.5,t=4\) จงหา \(\eta_{t+1}\) ตามสูตรในสไลด์
+**10.** ให้ $\eta_0=0.1,\lambda=0.5,t=4$ จงหา $\eta_{t+1}$ ตามสูตรในสไลด์
 
 **11.** มี 3 features และ degree 2 จะมี polynomial terms รวม intercept กี่ terms?
 
 ### Analyze
 
-**12.** โมเดลมี training \(R^2=0.98\), test \(R^2=0.42\) หลังเพิ่ม polynomial degree จาก 2 เป็น 8 จงวิเคราะห์
+**12.** โมเดลมี training $R^2=0.98$, test $R^2=0.42$ หลังเพิ่ม polynomial degree จาก 2 เป็น 8 จงวิเคราะห์
 
 **13.** Feature “ยอดขายบาท” และ “ยอดขายพันบาท” อยู่ในโมเดลเดียวกัน จะเกิดปัญหาอะไร?
 
@@ -867,19 +867,19 @@ $$
 
 ## 22. Model Answers with Reasoning
 
-**1.** Design matrix มีมิติ \(100\times5\) และ parameter vector มีมิติ \(5\times1\) เพราะเพิ่ม intercept อีกหนึ่ง column/parameter
+**1.** Design matrix มีมิติ $100\times5$ และ parameter vector มีมิติ $5\times1$ เพราะเพิ่ม intercept อีกหนึ่ง column/parameter
 
-**2.** BGD ใช้ \(N\), SGD ใช้ 1 และ Mini-batch ใช้ \(b\) โดย \(1<b<N\) samples ต่อ update
+**2.** BGD ใช้ $N$, SGD ใช้ 1 และ Mini-batch ใช้ $b$ โดย $1<b<N$ samples ต่อ update
 
-**3.** เพื่อรวม intercept ใน dot product: \(\theta_0x_0=\theta_0(1)\)
+**3.** เพื่อรวม intercept ใน dot product: $\theta_0x_0=\theta_0(1)$
 
-**4.** \(\theta_j\) คือการเปลี่ยนแปลงของ prediction เมื่อ \(x_j\) เพิ่มหนึ่งหน่วย โดยควบคุม included features อื่นคงที่ ภายใต้ model specification เดิม
+**4.** $\theta_j$ คือการเปลี่ยนแปลงของ prediction เมื่อ $x_j$ เพิ่มหนึ่งหน่วย โดยควบคุม included features อื่นคงที่ ภายใต้ model specification เดิม
 
 **5.** Min-Max แปลงตามค่าต่ำสุด/สูงสุดและมักได้ช่วง 0–1 ส่วน Z-score ลบ mean แล้วหาร SD ทำให้ center ใกล้ 0 และ scale ใกล้ unit variance ทั้งคู่ไวต่อ outliers คนละรูปแบบ
 
 **6.** ใช้ mini-batch เพื่อเฉลี่ย noise, ลด learning rate ตามเวลา, shuffle ข้อมูลทุก epoch และอาจใช้ momentum/parameter averaging
 
-**7.** nonlinear ใน input เพราะมี \(x^2\) หรือ \(x_1x_2\) แต่ linear ใน parameters เพราะ prediction ยังเป็นผลรวม \(\theta_j\phi_j(x)\)
+**7.** nonlinear ใน input เพราะมี $x^2$ หรือ $x_1x_2$ แต่ linear ใน parameters เพราะ prediction ยังเป็นผลรวม $\theta_j\phi_j(x)$
 
 **8.**
 
@@ -887,7 +887,7 @@ $$
 \hat{y}=10+2(4)-3(2)=12
 $$
 
-เมื่อคุม \(x_2\) คงที่ \(x_1\) เพิ่ม 1 ทำให้ prediction เพิ่ม 2; เมื่อคุม \(x_1\) คงที่ \(x_2\) เพิ่ม 1 ทำให้ prediction ลด 3
+เมื่อคุม $x_2$ คงที่ $x_1$ เพิ่ม 1 ทำให้ prediction เพิ่ม 2; เมื่อคุม $x_1$ คงที่ $x_2$ เพิ่ม 1 ทำให้ prediction ลด 3
 
 **9.**
 
