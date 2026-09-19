@@ -15,7 +15,7 @@ $$
 z=\boldsymbol{\theta}^{T}\mathbf{x}
 $$
 
-แล้วใช้ sigmoid function แปลงค่าที่อยู่ในช่วง \((-∞,+∞)\) ให้เป็น probability ในช่วง \((0,1)\):
+แล้วใช้ sigmoid function แปลงค่าที่อยู่ในช่วง $(-∞,+∞)$ ให้เป็น probability ในช่วง $(0,1)$:
 
 $$
 h_{\theta}(\mathbf{x}) =\sigma(z) =\frac{1}{1+e^{-z}}
@@ -44,14 +44,14 @@ flowchart LR
 - อธิบาย linear และ nonlinear decision boundary ได้
 - คำนวณ Negative Log-Likelihood/Binary Cross-Entropy ได้
 - derive gradient ของ Logistic Regression ด้วย chain rule ได้
-- อธิบายเหตุที่ gradient มีรูป \((\hat{y}-y)x_j\) คล้าย Linear Regression ได้
+- อธิบายเหตุที่ gradient มีรูป $(\hat{y}-y)x_j$ คล้าย Linear Regression ได้
 - เปรียบเทียบ Linear กับ Logistic Regression ด้าน representation, cost, metrics และ output ได้
 - เลือก threshold และ evaluation metric ตามต้นทุนของ FP/FN ได้
 - อธิบาย class imbalance, probability calibration และ regularization เบื้องต้นได้
 
 ## 3. Logistic Regression ใช้ทำอะไร
 
-จากเอกสารหน้า 2 Logistic Regression ใช้กับ binary/multiclass classification และให้ผลลัพธ์เป็น probability ในช่วง \((0,1)\) ตัวอย่างได้แก่ cancer prediction, churn prediction และ employee attrition prediction
+จากเอกสารหน้า 2 Logistic Regression ใช้กับ binary/multiclass classification และให้ผลลัพธ์เป็น probability ในช่วง $(0,1)$ ตัวอย่างได้แก่ cancer prediction, churn prediction และ employee attrition prediction
 
 ### 3.1 Binary classification
 
@@ -61,11 +61,11 @@ $$
 y\in\{0,1\}
 $$
 
-โดยมักเรียก \(y=1\) ว่า positive class และ \(y=0\) ว่า negative class เช่น:
+โดยมักเรียก $y=1$ ว่า positive class และ $y=0$ ว่า negative class เช่น:
 
-- \(1\): เป็น fraud, \(0\): ไม่เป็น fraud
-- \(1\): churn, \(0\): ไม่ churn
-- \(1\): เป็นโรค, \(0\): ไม่เป็นโรค
+- $1$: เป็น fraud, $0$: ไม่เป็น fraud
+- $1$: churn, $0$: ไม่ churn
+- $1$: เป็นโรค, $0$: ไม่เป็นโรค
 
 การกำหนด positive class มีผลต่อความหมายของ precision, recall และ odds ratio จึงต้องประกาศให้ชัด
 
@@ -94,13 +94,13 @@ $$
 
 ### 4.1 คุณสมบัติของ sigmoid
 
-| \(z\) | \(\sigma(z)\) โดยประมาณ | ความหมาย |
+| $z$ | $\sigma(z)$ โดยประมาณ | ความหมาย |
 |---:|---:|---|
-| \(-∞\) | 0 | มั่นใจไปทาง class 0 |
+| $-∞$ | 0 | มั่นใจไปทาง class 0 |
 | -2 | 0.1192 | probability ของ class 1 ต่ำ |
 | 0 | 0.5 | จุดกึ่งกลาง |
 | 2 | 0.8808 | probability ของ class 1 สูง |
-| \(+∞\) | 1 | มั่นใจไปทาง class 1 |
+| $+∞$ | 1 | มั่นใจไปทาง class 1 |
 
 คุณสมบัติสำคัญ:
 
@@ -114,7 +114,7 @@ $$
 \frac{d\sigma(z)}{dz} =\sigma(z)(1-\sigma(z))
 $$
 
-อนุพันธ์มีค่าสูงสุดที่ \(z=0\) และเข้าใกล้ศูนย์เมื่อ \(|z|\) ใหญ่
+อนุพันธ์มีค่าสูงสุดที่ $z=0$ และเข้าใกล้ศูนย์เมื่อ $|z|$ ใหญ่
 
 ## 5. Model Representation
 
@@ -122,10 +122,10 @@ $$
 
 | Model | Representation |
 |---|---|
-| Linear Regression | \(h_{\theta}(\mathbf{x})=\boldsymbol{\theta}^{T}\mathbf{x}\) |
-| Logistic Regression | \(h_{\theta}(\mathbf{x})=\sigma(\boldsymbol{\theta}^{T}\mathbf{x})\) |
+| Linear Regression | $h_{\theta}(\mathbf{x})=\boldsymbol{\theta}^{T}\mathbf{x}$ |
+| Logistic Regression | $h_{\theta}(\mathbf{x})=\sigma(\boldsymbol{\theta}^{T}\mathbf{x})$ |
 
-สำหรับ \(d\) features และ \(x_0=1\):
+สำหรับ $d$ features และ $x_0=1$:
 
 $$
 z=\theta_0+\theta_1x_1+\cdots+\theta_dx_d
@@ -145,7 +145,7 @@ $$
 
 ### 6.1 Odds
 
-จากเอกสารหน้า 14 หาก probability ของเหตุการณ์สำเร็จคือ \(p\):
+จากเอกสารหน้า 14 หาก probability ของเหตุการณ์สำเร็จคือ $p$:
 
 $$
 Odds=\frac{p}{1-p}
@@ -153,7 +153,7 @@ $$
 
 ตัวอย่างจากสไลด์:
 
-| Probability \(p\) | Odds \(p/(1-p)\) | การอ่าน |
+| Probability $p$ | Odds $p/(1-p)$ | การอ่าน |
 |---:|---:|---|
 | 0.8 | 4 | สำเร็จต่อไม่สำเร็จ = 4:1 |
 | 0.9 | 9 | 9:1 |
@@ -180,7 +180,7 @@ $$
 logit(p)=\ln(\frac{p}{1-p})
 $$
 
-แปลง \(p\in(0,1)\) ไปเป็น \((-∞,+∞)\) และ inverse logit คือ sigmoid
+แปลง $p\in(0,1)$ ไปเป็น $(-∞,+∞)$ และ inverse logit คือ sigmoid
 
 ### 6.3 Derive sigmoid จาก logit
 
@@ -190,7 +190,7 @@ $$
 \ln(\frac{p}{1-p})=z
 $$
 
-ยกกำลัง \(e\):
+ยกกำลัง $e$:
 
 $$
 \frac{p}{1-p}=e^z
@@ -218,10 +218,10 @@ $$
 \log(\frac{p}{1-p}) =\theta_0+\theta_1x_1+\cdots+\theta_dx_d
 $$
 
-เมื่อ \(x_j\) เพิ่ม 1 หน่วย โดยควบคุม features อื่นคงที่:
+เมื่อ $x_j$ เพิ่ม 1 หน่วย โดยควบคุม features อื่นคงที่:
 
-- log-odds เปลี่ยน \(\theta_j\)
-- odds ถูกคูณด้วย \(e^{\theta_j}\)
+- log-odds เปลี่ยน $\theta_j$
+- odds ถูกคูณด้วย $e^{\theta_j}$
 
 ดังนั้น
 
@@ -231,15 +231,15 @@ $$
 
 ### Worked example
 
-หาก \(\theta_1=0.693\):
+หาก $\theta_1=0.693$:
 
 $$
 e^{0.693}\approx2
 $$
 
-เมื่อ \(x_1\) เพิ่ม 1 หน่วย odds ของ class 1 เพิ่มเป็น 2 เท่า โดยคุม features อื่นคงที่
+เมื่อ $x_1$ เพิ่ม 1 หน่วย odds ของ class 1 เพิ่มเป็น 2 เท่า โดยคุม features อื่นคงที่
 
-หาก \(\theta_2=-0.223\):
+หาก $\theta_2=-0.223$:
 
 $$
 e^{-0.223}\approx0.8
@@ -247,17 +247,17 @@ $$
 
 odds ถูกคูณด้วย 0.8 หรือ **ลดลง 20%** ไม่ใช่ probability ลดลง 20 percentage points
 
-> **ข้อควรระวัง:** ผลต่อ probability ไม่คงที่ เพราะ sigmoid เป็นเส้นโค้ง ผลของ feature ต่อ probability ขึ้นกับค่าเริ่มต้นของ \(z\)
+> **ข้อควรระวัง:** ผลต่อ probability ไม่คงที่ เพราะ sigmoid เป็นเส้นโค้ง ผลของ feature ต่อ probability ขึ้นกับค่าเริ่มต้นของ $z$
 
 ## 8. Decision Rule และ Threshold
 
 จากเอกสารหน้า 5 หากใช้ threshold 0.5:
 
 $$
-\hat{y}=\begin{cases} 1,&h_{\theta}(\mathbf{x})\ge0.5\\ 0,&h_{\theta}(\mathbf{x})<0.5 \end{cases}
+\hat{y}=1\;\mathrm{if}\;h_{\theta}(\mathbf{x})\geq0.5,\qquad \hat{y}=0\;\mathrm{if}\;h_{\theta}(\mathbf{x})<0.5
 $$
 
-เพราะ sigmoid เป็น monotonic และ \(\sigma(0)=0.5\):
+เพราะ sigmoid เป็น monotonic และ $\sigma(0)=0.5$:
 
 $$
 h_{\theta}(\mathbf{x})\ge0.5 \iff \boldsymbol{\theta}^{T}\mathbf{x}\ge0
@@ -293,7 +293,7 @@ $$
 \theta_0+\theta_1x_1+\theta_2x_2=0
 $$
 
-หรือเมื่อ \(\theta_2\ne0\):
+หรือเมื่อ $\theta_2\ne0$:
 
 $$
 x_2=-\frac{\theta_0}{\theta_2} -\frac{\theta_1}{\theta_2}x_1
@@ -323,7 +323,7 @@ $$
 
 ### 8.4 Threshold ไม่จำเป็นต้องเป็น 0.5
 
-ถ้าใช้ threshold \(\tau\):
+ถ้าใช้ threshold $\tau$:
 
 $$
 h_{\theta}(\mathbf{x})\ge\tau
@@ -352,7 +352,7 @@ $$
 จากเอกสารหน้า 8 กำหนด loss ของหนึ่ง sample:
 
 $$
-Cost(h_{\theta}(\mathbf{x}),y) =\begin{cases} -\ln h_{\theta}(\mathbf{x}),&y=1\\ -\ln(1-h_{\theta}(\mathbf{x})),&y=0 \end{cases}
+Cost(h_{\theta}(\mathbf{x}),y)=-\ln h_{\theta}(\mathbf{x})\;\mathrm{if}\;y=1,\qquad Cost(h_{\theta}(\mathbf{x}),y)=-\ln(1-h_{\theta}(\mathbf{x}))\;\mathrm{if}\;y=0
 $$
 
 รวมสองกรณี:
@@ -373,22 +373,22 @@ $$
 
 จากกราฟหน้า 9:
 
-- ถ้า \(y=1\), loss = \(-\ln\hat{p}\): \(\hat{p}\to1\) loss เข้าใกล้ 0; \(\hat{p}\to0\) loss เข้าใกล้ ∞
-- ถ้า \(y=0\), loss = \(-\ln(1-\hat{p})\): \(\hat{p}\to0\) loss เข้าใกล้ 0; \(\hat{p}\to1\) loss เข้าใกล้ ∞
+- ถ้า $y=1$, loss = $-\ln\hat{p}$: $\hat{p}\to1$ loss เข้าใกล้ 0; $\hat{p}\to0$ loss เข้าใกล้ ∞
+- ถ้า $y=0$, loss = $-\ln(1-\hat{p})$: $\hat{p}\to0$ loss เข้าใกล้ 0; $\hat{p}\to1$ loss เข้าใกล้ ∞
 
 โมเดลจึงถูกลงโทษมากเมื่อทำนายผิดอย่างมั่นใจ
 
 ### 10.2 Worked example
 
-ถ้า \(y=1\):
+ถ้า $y=1$:
 
-| \(\hat{p}\) | Loss \(-\ln\hat{p}\) |
+| $\hat{p}$ | Loss $-\ln\hat{p}$ |
 |---:|---:|
 | 0.9 | 0.1053 |
 | 0.6 | 0.5108 |
 | 0.1 | 2.3026 |
 
-ถ้า \(y=0\) และ \(\hat{p}=0.9\):
+ถ้า $y=0$ และ $\hat{p}=0.9$:
 
 $$
 Loss=-\ln(1-0.9)=-\ln(0.1)=2.3026
@@ -396,16 +396,16 @@ $$
 
 ## 11. เชื่อมกับ Bernoulli Likelihood
 
-จากเอกสารหน้า 8 สำหรับ \(y_i\in\{0,1\}\):
+จากเอกสารหน้า 8 สำหรับ $y_i\in\{0,1\}$:
 
 $$
 P(y_i\mid\mathbf{x}_i;\boldsymbol{\theta}) =h_i^{y_i}(1-h_i)^{1-y_i}
 $$
 
-โดย \(h_i=h_{\theta}(\mathbf{x}_i)\)
+โดย $h_i=h_{\theta}(\mathbf{x}_i)$
 
-- ถ้า \(y_i=1\): ได้ \(h_i\)
-- ถ้า \(y_i=0\): ได้ \(1-h_i\)
+- ถ้า $y_i=1$: ได้ $h_i$
+- ถ้า $y_i=0$: ได้ $1-h_i$
 
 สมมติ samples เป็นอิสระแบบมีเงื่อนไข likelihood ทั้งชุดคือ
 
@@ -419,7 +419,7 @@ $$
 \ell(\boldsymbol{\theta}) =\sum_{i=1}^{N} [y_i\ln h_i+(1-y_i)\ln(1-h_i)]
 $$
 
-Maximum Likelihood ต้อง maximize \(\ell\) ซึ่งเท่ากับ minimize negative average log-likelihood \(J\)
+Maximum Likelihood ต้อง maximize $\ell$ ซึ่งเท่ากับ minimize negative average log-likelihood $J$
 
 ## 12. Derivation ของ Gradient
 
@@ -503,8 +503,8 @@ $$
 
 แต่ **representation และ cost function ไม่เหมือนกัน**:
 
-- Linear Regression: prediction = \(X\theta\), cost = MSE
-- Logistic Regression: prediction = \(\sigma(X\theta)\), cost = BCE/NLL
+- Linear Regression: prediction = $X\theta$, cost = MSE
+- Logistic Regression: prediction = $\sigma(X\theta)$, cost = BCE/NLL
 
 ความเหมือนของ gradient update ไม่ได้แปลว่าโมเดลหรือ probabilistic assumptions เหมือนกัน
 
@@ -522,7 +522,7 @@ $$
 
 ### Worked example: หนึ่ง update
 
-มีหนึ่ง sample \(x_0=1,x_1=2,y=1\), parameters เริ่มต้น \(\theta_0=0,\theta_1=0\), \(\eta=0.1\)
+มีหนึ่ง sample $x_0=1,x_1=2,y=1$, parameters เริ่มต้น $\theta_0=0,\theta_1=0$, $\eta=0.1$
 
 $$
 z=0+0(2)=0,\qquad h=\sigma(0)=0.5
@@ -567,13 +567,13 @@ probability ของ class ที่ถูกต้องเพิ่มจา�
 | ประเด็น | Linear Regression | Logistic Regression |
 |---|---|---|
 | งานหลัก | ทำนายค่าต่อเนื่อง | Classification |
-| Output | \((-∞,+∞)\) | probability \((0,1)\) |
-| Representation | \(\theta^Tx\) | \(\sigma(\theta^Tx)\) |
-| Target | \(y\in\mathbb{R}\) | binary \(y\in\{0,1\}\) ในบทนี้ |
+| Output | $(-∞,+∞)$ | probability $(0,1)$ |
+| Representation | $\theta^Tx$ | $\sigma(\theta^Tx)$ |
+| Target | $y\in\mathbb{R}$ | binary $y\in\{0,1\}$ ในบทนี้ |
 | Cost | MSE/SSE | NLL/Binary Cross-Entropy |
 | Distribution view | มักเชื่อมกับ Gaussian errors | Bernoulli likelihood |
-| Metrics | MAE, MSE, RMSE, \(R^2\) | Accuracy, Precision, Recall, F1, ROC-AUC |
-| Gradient form ตามสไลด์ | \(X^T(h-y)/N\) | \(X^T(h-y)/N\) |
+| Metrics | MAE, MSE, RMSE, $R^2$ | Accuracy, Precision, Recall, F1, ROC-AUC |
+| Gradient form ตามสไลด์ | $X^T(h-y)/N$ | $X^T(h-y)/N$ |
 | Decision threshold | ไม่มี | ต้องกำหนดสำหรับ class label |
 
 ## 15. Evaluation Metrics
@@ -687,11 +687,11 @@ $$
 J_{reg}(\theta)=J(\theta)+\lambda\sum_{j=1}^{d}|\theta_j|
 $$
 
-โดยทั่วไปไม่ penalize intercept การ regularize ช่วยลด variance และ coefficients ใหญ่เกินไป แต่ต้อง tune \(\lambda\) บน validation data
+โดยทั่วไปไม่ penalize intercept การ regularize ช่วยลด variance และ coefficients ใหญ่เกินไป แต่ต้อง tune $\lambda$ บน validation data
 
 ## 19. Numerical Stability
 
-การคำนวณ \(\ln(h)\) เมื่อ \(h\) ใกล้ 0 หรือ \(\ln(1-h)\) เมื่อ \(h\) ใกล้ 1 อาจเกิด \(\ln0\) ใน floating point
+การคำนวณ $\ln(h)$ เมื่อ $h$ ใกล้ 0 หรือ $\ln(1-h)$ เมื่อ $h$ ใกล้ 1 อาจเกิด $\ln0$ ใน floating point
 
 แนวทาง:
 
@@ -741,10 +741,10 @@ $$
    การตีความเป็น probability อาศัย model specification และ calibration ต้องตรวจบน unseen data
 
 3. **“Probability 0.8 เท่ากับ odds 0.8”**
-   Probability 0.8 มี odds \(0.8/0.2=4\)
+   Probability 0.8 มี odds $0.8/0.2=4$
 
 4. **“Coefficient 0.2 หมายถึง probability เพิ่ม 20%”**
-   coefficient เปลี่ยน log-odds; odds ratio คือ \(e^{0.2}\) ผลต่อ probability ขึ้นกับ baseline
+   coefficient เปลี่ยน log-odds; odds ratio คือ $e^{0.2}$ ผลต่อ probability ขึ้นกับ baseline
 
 5. **“Decision boundary ต้องเป็นเส้นตรงเสมอ”**
    เป็นเส้นตรงใน feature space แต่ polynomial mapping ทำให้โค้งใน original space ได้
@@ -970,7 +970,7 @@ $$
 
 ### Calculations
 
-- คำนวณ sigmoid/probability จาก \(z\)
+- คำนวณ sigmoid/probability จาก $z$
 - แปลง probability ↔ odds ↔ log-odds
 - หา odds ratio จาก coefficient
 - หา decision boundary
@@ -992,7 +992,7 @@ $$
 
 **1.** Logistic Regression แบบ binary มี target อยู่ในเซตใด?
 
-**2.** \(\sigma(0)\) เท่ากับเท่าใด?
+**2.** $\sigma(0)$ เท่ากับเท่าใด?
 
 **3.** เมื่อ threshold = 0.5 decision boundary ใน logit space คือสมการใด?
 
@@ -1004,19 +1004,19 @@ $$
 
 **6.** อธิบายเหตุผลที่ Binary Cross-Entropy ลงโทษ confident wrong prediction รุนแรง
 
-**7.** เหตุใด gradient ของ Logistic Regression จึง simplify เป็น \((h-y)x_j\)?
+**7.** เหตุใด gradient ของ Logistic Regression จึง simplify เป็น $(h-y)x_j$?
 
 ### Apply
 
-**8.** ให้ \(z=-1\) จงหา \(\sigma(z)\) และ class ที่ threshold 0.5
+**8.** ให้ $z=-1$ จงหา $\sigma(z)$ และ class ที่ threshold 0.5
 
 **9.** Probability เท่ากับ 0.75 จงหา odds และ log-odds
 
 **10.** Coefficient ของ feature เท่ากับ 0.4 จงหา odds ratio และตีความ
 
-**11.** ให้ \(h(x)=\sigma(-3+x_1+2x_2)\) จงหา decision boundary
+**11.** ให้ $h(x)=\sigma(-3+x_1+2x_2)$ จงหา decision boundary
 
-**12.** ถ้า \(y=1,\hat{p}=0.2\) จงหา BCE loss
+**12.** ถ้า $y=1,\hat{p}=0.2$ จงหา BCE loss
 
 ### Analyze
 
@@ -1028,19 +1028,19 @@ $$
 
 ## 25. Model Answers with Reasoning
 
-**1.** \(y\in\{0,1\}\)
+**1.** $y\in\{0,1\}$
 
-**2.** \(\sigma(0)=1/(1+1)=0.5\)
+**2.** $\sigma(0)=1/(1+1)=0.5$
 
-**3.** \(\theta^Tx=0\) เพราะ \(\sigma(0)=0.5\)
+**3.** $\theta^Tx=0$ เพราะ $\sigma(0)=0.5$
 
 **4.** Output ของเส้นตรงไม่ถูกจำกัดและอาจต่ำกว่า 0 หรือสูงกว่า 1 ขณะที่ probability ต้องอยู่ใน [0,1]
 
-**5.** Probability \(p\) อยู่ 0–1; odds = \(p/(1-p)\) อยู่ 0–∞; log-odds = \(\ln[p/(1-p)]\) อยู่ -∞–+∞ และ Logistic Regression ทำให้ log-odds เป็น linear predictor
+**5.** Probability $p$ อยู่ 0–1; odds = $p/(1-p)$ อยู่ 0–∞; log-odds = $\ln[p/(1-p)]$ อยู่ -∞–+∞ และ Logistic Regression ทำให้ log-odds เป็น linear predictor
 
-**6.** ถ้า \(y=1\) แต่ \(\hat{p}\to0\), \(-\ln\hat{p}\to∞\); ถ้า \(y=0\) แต่ \(\hat{p}\to1\), \(-\ln(1-\hat{p})\to∞\)
+**6.** ถ้า $y=1$ แต่ $\hat{p}\to0$, $-\ln\hat{p}\to∞$; ถ้า $y=0$ แต่ $\hat{p}\to1$, $-\ln(1-\hat{p})\to∞$
 
-**7.** Chain rule ให้ sigmoid derivative \(h(1-h)\) ซึ่งตัดกับ denominators \(h\) และ \(1-h\) ใน derivative ของ log terms เหลือ \(h-y\)
+**7.** Chain rule ให้ sigmoid derivative $h(1-h)$ ซึ่งตัดกับ denominators $h$ และ $1-h$ ใน derivative ของ log terms เหลือ $h-y$
 
 **8.**
 
@@ -1096,12 +1096,12 @@ $$
 
 - Logistic Regression แปลง linear score เป็น probability ด้วย sigmoid
 - โมเดล linear ใน log-odds ไม่ใช่ linear ใน probability
-- coefficient หนึ่งหน่วยเปลี่ยน log-odds \(\theta_j\) และคูณ odds ด้วย \(e^{\theta_j}\)
+- coefficient หนึ่งหน่วยเปลี่ยน log-odds $\theta_j$ และคูณ odds ด้วย $e^{\theta_j}$
 - threshold แยกขั้น probability estimation ออกจาก class decision
-- threshold 0.5 ให้ boundary \(\theta^Tx=0\) แต่ไม่จำเป็นต้องเหมาะกับทุกธุรกิจ
+- threshold 0.5 ให้ boundary $\theta^Tx=0$ แต่ไม่จำเป็นต้องเหมาะกับทุกธุรกิจ
 - Polynomial features สร้าง nonlinear boundary ใน original feature space ได้
 - BCE/NLL มาจาก Bernoulli likelihood และลงโทษ confident errors อย่างรุนแรง
-- gradient simplify เป็น average ของ \((prediction-target)\times feature\)
+- gradient simplify เป็น average ของ $(prediction-target)\times feature$
 - Accuracy ไม่พอสำหรับ class imbalance; ต้องดู precision, recall, F1 และ ranking metrics
 - AUC กับ calibration วัดคนละมิติ และต้องเลือก threshold ตาม cost/capacity
 
@@ -1117,8 +1117,8 @@ $$
 | NLL | Negative Log-Likelihood |
 | Odds | อัตราส่วน probability ของเกิดเหตุการณ์ต่อไม่เกิด |
 | Odds ratio | ตัวคูณของ odds เมื่อ predictor เพิ่มหนึ่งหน่วย |
-| Positive class | class ที่นิยามเป็น \(y=1\) |
-| Sigmoid | ฟังก์ชันแปลงค่าจริงเป็นช่วง \((0,1)\) |
+| Positive class | class ที่นิยามเป็น $y=1$ |
+| Sigmoid | ฟังก์ชันแปลงค่าจริงเป็นช่วง $(0,1)$ |
 | Threshold | จุดตัด probability เพื่อสร้าง class label |
 
 ## Source Coverage and Learning Gap Audit
