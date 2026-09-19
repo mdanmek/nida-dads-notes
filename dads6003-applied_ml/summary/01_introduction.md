@@ -38,19 +38,19 @@ Machine Learning (ML) คือแนวทางสร้างระบบท�
 - **Feature** คือคุณลักษณะที่ใช้เป็นข้อมูลเข้า เช่น อายุ รายได้ จำนวนครั้งที่ซื้อ
 - **Target / label** คือค่าที่ต้องการให้โมเดลทำนาย เช่น ยอดขายในเดือนหน้า หรือสถานะทุจริต
 
-มักเขียน observation ลำดับที่ \(i\) เป็นเวกเตอร์คุณลักษณะ
+มักเขียน observation ลำดับที่ $i$ เป็นเวกเตอร์คุณลักษณะ
 
 $$
 \mathbf{x}_i = (x_{i1},x_{i2},\ldots,x_{ip}) \in \mathbb{R}^{p}
 $$
 
-โดย \(p\) คือจำนวน features และ target ของ observation นั้นคือ \(y_i\)
+โดย $p$ คือจำนวน features และ target ของ observation นั้นคือ $y_i$
 
 ### 3.2 Model, parameter และ hyperparameter
 
-- **Model** คือฟังก์ชันที่แปลง input เป็น prediction: \(\hat{y}=f(\mathbf{x})\)
+- **Model** คือฟังก์ชันที่แปลง input เป็น prediction: $\hat{y}=f(\mathbf{x})$
 - **Parameter** คือค่าที่โมเดลเรียนรู้จากข้อมูล เช่น coefficient ของ Linear Regression
-- **Hyperparameter** คือค่าที่กำหนดก่อนหรือระหว่างการทดลอง เช่น จำนวนเพื่อนบ้าน \(k\) ของ KNN หรือความลึกสูงสุดของ Decision Tree
+- **Hyperparameter** คือค่าที่กำหนดก่อนหรือระหว่างการทดลอง เช่น จำนวนเพื่อนบ้าน $k$ ของ KNN หรือความลึกสูงสุดของ Decision Tree
 
 ## 4. Machine Learning คืออะไร
 
@@ -76,7 +76,7 @@ $$
 
 ### 4.3 นิยามแบบ Task–Experience–Performance ของ Tom Mitchell
 
-จากเอกสารหน้า 6 โปรแกรมถือว่าเรียนรู้จาก **ประสบการณ์ \(E\)** ในงาน **\(T\)** และวัดด้วย **\(P\)** หากประสิทธิภาพในงาน \(T\) ตามมาตรวัด \(P\) ดีขึ้นเมื่อได้รับประสบการณ์ \(E\) มากขึ้น
+จากเอกสารหน้า 6 โปรแกรมถือว่าเรียนรู้จาก **ประสบการณ์ $E$** ในงาน **$T$** และวัดด้วย **$P$** หากประสิทธิภาพในงาน $T$ ตามมาตรวัด $P$ ดีขึ้นเมื่อได้รับประสบการณ์ $E$ มากขึ้น
 
 - **Task (T):** งานที่ต้องทำ
 - **Experience (E):** ข้อมูลหรือปฏิสัมพันธ์ที่ใช้เรียนรู้
@@ -95,11 +95,11 @@ $$
 
 โจทย์ “สร้าง AI ลดการขาดสต็อก” ยังไม่ชัดพอ ควรแปลงเป็น:
 
-- \(T\): ทำนายจำนวนใช้ของแต่ละ SKU–สาขาใน 7 วันข้างหน้า
-- \(E\): ยอดใช้ย้อนหลัง ราคา promotion วันหยุด และ lead time
-- \(P\): Weighted Absolute Percentage Error และมูลค่าการขาดสต็อก
+- $T$: ทำนายจำนวนใช้ของแต่ละ SKU–สาขาใน 7 วันข้างหน้า
+- $E$: ยอดใช้ย้อนหลัง ราคา promotion วันหยุด และ lead time
+- $P$: Weighted Absolute Percentage Error และมูลค่าการขาดสต็อก
 
-การระบุ \(P\) เป็นเรื่องสำคัญ เพราะโมเดลที่คะแนนทางสถิติดีที่สุดอาจไม่ใช่โมเดลที่สร้างคุณค่าทางธุรกิจสูงสุด
+การระบุ $P$ เป็นเรื่องสำคัญ เพราะโมเดลที่คะแนนทางสถิติดีที่สุดอาจไม่ใช่โมเดลที่สร้างคุณค่าทางธุรกิจสูงสุด
 
 ## 5. ประเภทของ Machine Learning
 
@@ -121,11 +121,11 @@ $$
 D=\{(\mathbf{x}_1,y_1),(\mathbf{x}_2,y_2),\ldots,(\mathbf{x}_n,y_n)\}
 $$
 
-เป้าหมายคือเรียนรู้ฟังก์ชัน \(f\) จากตัวอย่าง เพื่อทำนาย \(y\) ของข้อมูลใหม่ \(\mathbf{x}\)
+เป้าหมายคือเรียนรู้ฟังก์ชัน $f$ จากตัวอย่าง เพื่อทำนาย $y$ ของข้อมูลใหม่ $\mathbf{x}$
 
 #### Regression
 
-หาก \(y_i\in\mathbb{R}\) หรือเป็นค่าตัวเลขต่อเนื่อง โจทย์มักเป็น **Regression** เช่น:
+หาก $y_i\in\mathbb{R}$ หรือเป็นค่าตัวเลขต่อเนื่อง โจทย์มักเป็น **Regression** เช่น:
 
 - ทำนายยอดขาย
 - ทำนายระยะเวลาส่งสินค้า
@@ -139,7 +139,7 @@ $$
 
 #### Classification
 
-หาก \(y_i\in\{c_1,c_2,\ldots,c_k\}\) ซึ่งเป็นกลุ่มที่กำหนดไว้ โจทย์เป็น **Classification** เช่น:
+หาก $y_i\in\{c_1,c_2,\ldots,c_k\}$ ซึ่งเป็นกลุ่มที่กำหนดไว้ โจทย์เป็น **Classification** เช่น:
 
 - fraud / not fraud
 - ลูกค้าจะ churn / ไม่ churn
@@ -170,7 +170,7 @@ $$
 
 | วิธี | แนวคิด | เหมาะเมื่อ | ข้อจำกัดเด่น |
 |---|---|---|---|
-| K-means | แบ่งข้อมูลเป็น \(k\) กลุ่มโดยลดระยะจาก centroid | กลุ่มค่อนข้างกลมและกำหนด \(k\) ได้ | ไวต่อ scale, outlier และค่าเริ่มต้น |
+| K-means | แบ่งข้อมูลเป็น $k$ กลุ่มโดยลดระยะจาก centroid | กลุ่มค่อนข้างกลมและกำหนด $k$ ได้ | ไวต่อ scale, outlier และค่าเริ่มต้น |
 | DBSCAN | กลุ่มคือบริเวณที่มีความหนาแน่นต่อเนื่อง | กลุ่มรูปร่างไม่ปกติและมี noise | เลือกพารามิเตอร์ยากเมื่อ density ต่างกันมาก |
 | PCA | หาแกนใหม่ที่อธิบาย variance สูงสุด | ลดมิติ/ลดความสัมพันธ์เชิงเส้น | component ตีความยากและจับโครงสร้างไม่เชิงเส้นไม่ได้ดี |
 
@@ -182,10 +182,10 @@ $$
 
 - **Agent:** ผู้ตัดสินใจ
 - **Environment:** สภาพแวดล้อมที่ agent ปฏิสัมพันธ์
-- **State \(s_t\):** สถานการณ์ ณ เวลา \(t\)
-- **Action \(a_t\):** การกระทำที่ agent เลือก
-- **Reward \(r_t\):** ผลตอบแทนที่ได้รับ
-- **Policy \(\pi(a\mid s)\):** กลยุทธ์การเลือก action จาก state
+- **State $s_t$:** สถานการณ์ ณ เวลา $t$
+- **Action $a_t$:** การกระทำที่ agent เลือก
+- **Reward $r_t$:** ผลตอบแทนที่ได้รับ
+- **Policy $\pi(a\mid s)$:** กลยุทธ์การเลือก action จาก state
 
 วงจรพื้นฐานคือ agent สังเกต state → เลือก action → environment เปลี่ยน state และส่ง reward → agent ปรับ policy เพื่อเพิ่มผลตอบแทนสะสมระยะยาว
 
@@ -223,10 +223,10 @@ $$
 จากเอกสารหน้า 14:
 
 1. Desired outcome หรือ Business Requirement คืออะไร
-2. Dataset ควรมีลักษณะอย่างไร — นี่คือ Experience \(E\)
+2. Dataset ควรมีลักษณะอย่างไร — นี่คือ Experience $E$
 3. เป็น supervised, unsupervised หรือ reinforcement problem
 4. จะใช้อัลกอริทึมใด — solution/representation
-5. จะวัดความสำเร็จอย่างไร — Performance \(P\)
+5. จะวัดความสำเร็จอย่างไร — Performance $P$
 6. จะดูแลโมเดลที่สร้างแล้วอย่างไร
 7. มี challenge หรือ pitfall อะไรบ้าง
 
@@ -283,8 +283,8 @@ Representation คือรูปแบบหรือ hypothesis space ที�
 จากเอกสารหน้า 17:
 
 1. **Numerical functions**
-   - Linear Regression: \(\hat{y}=\theta_0+\boldsymbol{\theta}^{T}\mathbf{x}\)
-   - Logistic Regression: \(\hat{p}=\sigma(\theta_0+\boldsymbol{\theta}^{T}\mathbf{x})\)
+   - Linear Regression: $\hat{y}=\theta_0+\boldsymbol{\theta}^{T}\mathbf{x}$
+   - Logistic Regression: $\hat{p}=\sigma(\theta_0+\boldsymbol{\theta}^{T}\mathbf{x})$
    - โดย sigmoid คือ
 
 $$
@@ -303,13 +303,13 @@ $$
 
 Optimization คือกระบวนการค้นหา parameters ที่ทำให้ objective/loss ดีที่สุด เอกสารหน้า 18 ระบุ Gradient Descent, Stochastic Gradient Descent, RMSProp, AdaGrad, Newton's method, Hessian-free method และ Conjugate Gradient
 
-ตัวอย่าง ถ้า loss function คือ \(J(\boldsymbol{\theta})\) Gradient Descent ปรับ parameter ตามทิศทางตรงข้าม gradient:
+ตัวอย่าง ถ้า loss function คือ $J(\boldsymbol{\theta})$ Gradient Descent ปรับ parameter ตามทิศทางตรงข้าม gradient:
 
 $$
 \boldsymbol{\theta}_{t+1}=\boldsymbol{\theta}_t-\eta\nabla J(\boldsymbol{\theta}_t)
 $$
 
-โดย \(\eta\) คือ learning rate ถ้าสูงเกินไปอาจข้ามจุดต่ำสุดหรือไม่ converge ถ้าต่ำเกินไปจะเรียนรู้ช้า
+โดย $\eta$ คือ learning rate ถ้าสูงเกินไปอาจข้ามจุดต่ำสุดหรือไม่ converge ถ้าต่ำเกินไปจะเรียนรู้ช้า
 
 | วิธี | ลักษณะย่อ | จุดเด่น/ข้อควรระวัง |
 |---|---|---|
@@ -325,7 +325,7 @@ $$
 
 #### Regression metrics
 
-ให้ค่าจริงเป็น \(y_i\) และค่าทำนายเป็น \(\hat{y}_i\)
+ให้ค่าจริงเป็น $y_i$ และค่าทำนายเป็น $\hat{y}_i$
 
 $$
 \mathrm{MAE}=\frac{1}{n}\sum_{i=1}^{n}|y_i-\hat{y}_i|
@@ -345,7 +345,7 @@ $$
 | MSE | ยกกำลังสอง error | ต้องการลงโทษ error ขนาดใหญ่แรง และใช้เป็น loss ที่หาอนุพันธ์ง่าย |
 | RMSE | รากที่สองของ MSE | ต้องการตีความในหน่วยเดิม แต่ยังลงโทษ error ใหญ่แรง |
 
-ตัวอย่าง ค่าจริง \([10,20,30]\) และค่าทำนาย \([12,18,35]\) มี errors \([2,-2,5]\)
+ตัวอย่าง ค่าจริง $[10,20,30]$ และค่าทำนาย $[12,18,35]$ มี errors $[2,-2,5]$
 
 $$
 \mathrm{MAE}=\frac{2+2+5}{3}=3
@@ -399,9 +399,9 @@ $$
 ### กรณี A: มีประวัติเคสผิดปกติที่ยืนยันแล้ว
 
 - ประเภท: Supervised binary classification
-- \(T\): ทำนายว่าเอกสารเสี่ยงหรือไม่
-- \(E\): ราคา จำนวน รายการ vendor material group ผู้อนุมัติ และ label จากผล audit
-- \(P\): Recall ที่ระดับ precision ขั้นต่ำ หรือมูลค่าความเสียหายที่ตรวจจับได้
+- $T$: ทำนายว่าเอกสารเสี่ยงหรือไม่
+- $E$: ราคา จำนวน รายการ vendor material group ผู้อนุมัติ และ label จากผล audit
+- $P$: Recall ที่ระดับ precision ขั้นต่ำ หรือมูลค่าความเสียหายที่ตรวจจับได้
 - ข้อควรระวัง: label มีน้อย, class imbalance, การเปลี่ยนพฤติกรรม และ leakage จากข้อมูลหลังอนุมัติ
 
 ### กรณี B: ไม่มี label เคสผิดปกติ
@@ -501,7 +501,7 @@ Lab นี้ฝึกขั้นตอนที่มักถูกข้า�
 ### Definitions to remember
 
 - นิยาม ML ของ Arthur Samuel
-- กรอบ Task \(T\), Experience \(E\), Performance \(P\) ของ Tom Mitchell
+- กรอบ Task $T$, Experience $E$, Performance $P$ ของ Tom Mitchell
 - supervised, unsupervised และ reinforcement learning
 - feature, target, model, parameter และ hyperparameter
 - representation, optimization และ evaluation
@@ -575,9 +575,9 @@ Lab นี้ฝึกขั้นตอนที่มักถูกข้า�
 
 **3.** Regression เพราะ target เป็นค่าตัวเลขต่อเนื่อง
 
-**4.** \(T\) คือจำแนก spam/legitimate, \(E\) คืออีเมลย้อนหลังพร้อม label และ \(P\) อาจเป็น precision, recall หรือ F1 โดยต้องเลือกให้สอดคล้องกับต้นทุนของการบล็อกอีเมลดีและการปล่อย spam หลุด
+**4.** $T$ คือจำแนก spam/legitimate, $E$ คืออีเมลย้อนหลังพร้อม label และ $P$ อาจเป็น precision, recall หรือ F1 โดยต้องเลือกให้สอดคล้องกับต้นทุนของการบล็อกอีเมลดีและการปล่อย spam หลุด
 
-**5.** Supervised learning ใช้คู่ \((\mathbf{x},y)\) เพื่อเรียนรู้การทำนาย target ส่วน unsupervised learning มีเพียง \(\mathbf{x}\) และมุ่งค้นหาโครงสร้าง กลุ่ม มิติ หรือ anomaly โดยไม่มีคำตอบกำกับ
+**5.** Supervised learning ใช้คู่ $(\mathbf{x},y)$ เพื่อเรียนรู้การทำนาย target ส่วน unsupervised learning มีเพียง $\mathbf{x}$ และมุ่งค้นหาโครงสร้าง กลุ่ม มิติ หรือ anomaly โดยไม่มีคำตอบกำกับ
 
 **6.** เพราะเมื่อเลือก hyperparameter จาก test score ข้อมูล test ได้มีอิทธิพลต่อการสร้างโมเดลแล้ว คะแนนที่รายงานจะ optimistic และไม่ใช่การวัด generalization ที่เป็นอิสระ
 
