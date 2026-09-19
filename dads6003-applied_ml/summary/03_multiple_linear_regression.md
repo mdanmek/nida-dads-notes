@@ -1,8 +1,9 @@
 # DADS6003 Applied Machine Learning — Week 03: Multiple Linear Regression
 
-> **แหล่งเนื้อหาหลัก:** `dads6003_week03_multiple_linear_regression.pdf` จำนวน 11 หน้า  
-> **ผู้สอนในเอกสาร:** Ekarat Rattagan  
-> **วันที่ในเอกสาร:** 21 มกราคม 2026  
+> **แหล่งเนื้อหาหลัก:** `lecture/dads6003_03_multiple_linear_regression.pdf` จำนวน 11 หน้า
+> **เอกสารอ่านประกอบ:** `read/read02_multiple_linear_regression.pdf` จำนวน 9 หน้า
+> **ผู้สอนในเอกสาร:** Ekarat Rattagan
+> **วันที่ในเอกสาร:** 21 มกราคม 2026
 > **ขอบเขต:** Multiple Linear Regression, matrix representation, feature scaling, BGD/SGD/Mini-batch GD, learning-rate scheduling และ Polynomial Regression
 
 ## 1. ภาพรวมบทเรียน
@@ -16,8 +17,7 @@ $$
 Week 03 ขยายไปสู่ **Multiple Linear Regression** ซึ่งใช้ features หลายตัวพร้อมกัน:
 
 $$
-h_{\theta}(\mathbf{x})
-=\theta_0+\theta_1x_1+\theta_2x_2+\cdots+\theta_dx_d
+h_{\theta}(\mathbf{x}) =\theta_0+\theta_1x_1+\theta_2x_2+\cdots+\theta_dx_d
 $$
 
 การเพิ่ม features ช่วยให้โมเดลอธิบาย target จากหลายปัจจัย แต่ก็มาพร้อมประเด็นใหม่ ได้แก่ scale ที่ต่างกัน, coefficient ที่ต้องตีความแบบ “ควบคุมตัวแปรอื่นคงที่”, multicollinearity และต้นทุนการ optimize เมื่อข้อมูลมีขนาดใหญ่
@@ -74,14 +74,7 @@ notation \(x_{i,j}\) หมายถึงค่าที่ row หรือ sa
 เพื่อเขียน intercept เป็น matrix multiplication เราเพิ่มคอลัมน์ \(x_{i,0}=1\):
 
 $$
-X=
-\begin{bmatrix}
-1&x_{1,1}&x_{1,2}&\cdots&x_{1,d}\\
-1&x_{2,1}&x_{2,2}&\cdots&x_{2,d}\\
-\vdots&\vdots&\vdots&\ddots&\vdots\\
-1&x_{N,1}&x_{N,2}&\cdots&x_{N,d}
-\end{bmatrix}
-\in\mathbb{R}^{N\times(d+1)}
+X= \begin{bmatrix} 1&x_{1,1}&x_{1,2}&\cdots&x_{1,d}\\ 1&x_{2,1}&x_{2,2}&\cdots&x_{2,d}\\ \vdots&\vdots&\vdots&\ddots&\vdots\\ 1&x_{N,1}&x_{N,2}&\cdots&x_{N,d} \end{bmatrix} \in\mathbb{R}^{N\times(d+1)}
 $$
 
 > **คำอธิบายเพิ่มเติม:** สไลด์เรียกข้อมูลว่า \(X\in\mathbb{R}^{N\times d}\) แต่แผนภาพมีคอลัมน์ 1 สำหรับ intercept แล้ว ในโน้ตนี้จึงแยกให้ชัด: raw feature matrix มี \(d\) columns ส่วน design matrix หลังเพิ่ม intercept มี \(d+1\) columns
@@ -89,33 +82,19 @@ $$
 กำหนด parameter vector และ target vector:
 
 $$
-\boldsymbol{\theta}=
-\begin{bmatrix}
-\theta_0\\\theta_1\\\vdots\\\theta_d
-\end{bmatrix}
-\in\mathbb{R}^{(d+1)\times1},
-\qquad
-\mathbf{y}=
-\begin{bmatrix}
-y_1\\y_2\\\vdots\\y_N
-\end{bmatrix}
-\in\mathbb{R}^{N\times1}
+\boldsymbol{\theta}= \begin{bmatrix} \theta_0\\\theta_1\\\vdots\\\theta_d \end{bmatrix} \in\mathbb{R}^{(d+1)\times1}, \qquad \mathbf{y}= \begin{bmatrix} y_1\\y_2\\\vdots\\y_N \end{bmatrix} \in\mathbb{R}^{N\times1}
 $$
 
 ดังนั้น prediction ทุก samples คือ
 
 $$
-\hat{\mathbf{y}}=X\boldsymbol{\theta}
-\in\mathbb{R}^{N\times1}
+\hat{\mathbf{y}}=X\boldsymbol{\theta} \in\mathbb{R}^{N\times1}
 $$
 
 ### 3.2 Dimension check
 
 $$
-\underbrace{X}_{N\times(d+1)}
-\underbrace{\boldsymbol{\theta}}_{(d+1)\times1}
-=
-\underbrace{\hat{\mathbf{y}}}_{N\times1}
+\underbrace{X}_{N\times(d+1)} \underbrace{\boldsymbol{\theta}}_{(d+1)\times1} = \underbrace{\hat{\mathbf{y}}}_{N\times1}
 $$
 
 การตรวจมิติก่อนคำนวณช่วยจับข้อผิดพลาด เช่น transpose ผิดหรือจำนวน coefficients ไม่ตรงกับ features
@@ -125,22 +104,13 @@ $$
 จากเอกสารหน้า 3:
 
 $$
-h_{\theta}(\mathbf{x})
-=\theta_0+\theta_1x_1+\cdots+\theta_jx_j+\cdots+\theta_dx_d
-=\boldsymbol{\theta}^T\mathbf{x}
+h_{\theta}(\mathbf{x}) =\theta_0+\theta_1x_1+\cdots+\theta_jx_j+\cdots+\theta_dx_d =\boldsymbol{\theta}^T\mathbf{x}
 $$
 
 ในสมการสุดท้ายต้องนิยาม \(x_0=1\) และเขียน
 
 $$
-\mathbf{x}=
-\begin{bmatrix}
-x_0\\x_1\\\vdots\\x_d
-\end{bmatrix},qquad
-\boldsymbol{\theta}^T=
-\begin{bmatrix}
-\theta_0&\theta_1&\cdots&\theta_d
-\end{bmatrix}
+\mathbf{x}= \begin{bmatrix} x_0\\x_1\\\vdots\\x_d \end{bmatrix},\qquad \boldsymbol{\theta}^T= \begin{bmatrix} \theta_0&\theta_1&\cdots&\theta_d \end{bmatrix}
 $$
 
 ### 4.1 การตีความ coefficient
@@ -148,8 +118,7 @@ $$
 สมมติแบบจำลองราคาบ้าน:
 
 $$
-\widehat{Price}
-=500{,}000+30{,}000(Area)+120{,}000(Bedrooms)
+\widehat{Price} =500{,}000+30{,}000(Area)+120{,}000(Bedrooms)
 $$
 
 หาก Area วัดเป็น 10 ตารางเมตร:
@@ -174,33 +143,25 @@ $$
 จากเอกสารหน้า 4:
 
 $$
-J(\theta_0,\theta_1,\ldots,\theta_d)
-=\frac{1}{N}\sum_{i=1}^{N}
-\left(h_{\theta}(\mathbf{x}_i)-y_i\right)^2
+J(\theta_0,\theta_1,\ldots,\theta_d) =\frac{1}{N}\sum_{i=1}^{N} (h_{\theta}(\mathbf{x}_i)-y_i)^2
 $$
 
 เป้าหมายคือ
 
 $$
-(\hat{\theta}_0,\hat{\theta}_1,\ldots,\hat{\theta}_d)
-=\underset{\theta_0,\theta_1,\ldots,\theta_d}{\arg\min}
-J(\theta_0,\theta_1,\ldots,\theta_d)
+(\hat{\theta}_0,\hat{\theta}_1,\ldots,\hat{\theta}_d) =\underset{\theta_0,\theta_1,\ldots,\theta_d}{\arg\min} J(\theta_0,\theta_1,\ldots,\theta_d)
 $$
 
 ในรูปเมทริกซ์:
 
 $$
-J(\boldsymbol{\theta})
-=\frac{1}{N}
-(X\boldsymbol{\theta}-\mathbf{y})^T
-(X\boldsymbol{\theta}-\mathbf{y})
+J(\boldsymbol{\theta}) =\frac{1}{N} (X\boldsymbol{\theta}-\mathbf{y})^T (X\boldsymbol{\theta}-\mathbf{y})
 $$
 
 และ gradient เต็มตามนิยาม MSE คือ
 
 $$
-\nabla J(\boldsymbol{\theta})
-=\frac{2}{N}X^T(X\boldsymbol{\theta}-\mathbf{y})
+\nabla J(\boldsymbol{\theta}) =\frac{2}{N}X^T(X\boldsymbol{\theta}-\mathbf{y})
 $$
 
 > **ความสอดคล้องกับสไลด์:** สไลด์หน้า 5 ใช้ update term \(\frac{1}{N}\sum e_ix_{i,j}\) โดยไม่มี 2 เช่นเดียวกับ Week 02 ค่าคงที่ 2 สามารถดูดรวมใน learning rate ได้ หรือ cost อาจนิยามเป็น \(\frac{1}{2N}\sum e_i^2\) เพื่อให้อนุพันธ์ไม่มี 2
@@ -210,19 +171,13 @@ $$
 จากเอกสารหน้า 4–5:
 
 $$
-\theta_j^{(t+1)}
-=\theta_j^{(t)}-eta
-\frac{\partial J(\boldsymbol{\theta}^{(t)})}{\partial\theta_j}
+\theta_j^{(t+1)} =\theta_j^{(t)}-\eta \frac{\partial J(\boldsymbol{\theta}^{(t)})}{\partial\theta_j}
 $$
 
 โดยใช้สูตรตามสไลด์:
 
 $$
-\theta_j^{(t+1)}
-:=\theta_j^{(t)}-eta\frac{1}{N}
-\sum_{i=1}^{N}
-\left(h_{\theta}(\mathbf{x}_i)-y_i\right)x_{i,j},
-\qquad j=0,1,\ldots,d
+\theta_j^{(t+1)} :=\theta_j^{(t)}-\eta\frac{1}{N} \sum_{i=1}^{N} (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}, \qquad j=0,1,\ldots,d
 $$
 
 และ \(x_{i,0}=1\)
@@ -230,10 +185,7 @@ $$
 ### 6.1 Matrix update
 
 $$
-\boldsymbol{\theta}^{(t+1)}
-:=\boldsymbol{\theta}^{(t)}
--\eta\frac{1}{N}X^T
-(X\boldsymbol{\theta}^{(t)}-\mathbf{y})
+\boldsymbol{\theta}^{(t+1)} :=\boldsymbol{\theta}^{(t)} -\eta\frac{1}{N}X^T (X\boldsymbol{\theta}^{(t)}-\mathbf{y})
 $$
 
 ### 6.2 ขั้นตอนหนึ่ง iteration
@@ -258,54 +210,31 @@ $$
 กำหนด \(\boldsymbol{\theta}^{(0)}=[1,1,1]^T\), \(\eta=0.1\) และใช้สูตรตามสไลด์
 
 $$
-X=
-\begin{bmatrix}
-1&1&2\\
-1&2&1
-\end{bmatrix},qquad
-\mathbf{y}=
-\begin{bmatrix}8\\9\end{bmatrix}
+X= \begin{bmatrix} 1&1&2\\ 1&2&1 \end{bmatrix},\qquad \mathbf{y}= \begin{bmatrix}8\\9\end{bmatrix}
 $$
 
 prediction:
 
 $$
-\hat{\mathbf{y}}
-=X\boldsymbol{\theta}^{(0)}
-=\begin{bmatrix}4\\4\end{bmatrix}
+\hat{\mathbf{y}} =X\boldsymbol{\theta}^{(0)} =\begin{bmatrix}4\\4\end{bmatrix}
 $$
 
 residual:
 
 $$
-\mathbf{e}
-=\hat{\mathbf{y}}-\mathbf{y}
-=\begin{bmatrix}-4\\-5\end{bmatrix}
+\mathbf{e} =\hat{\mathbf{y}}-\mathbf{y} =\begin{bmatrix}-4\\-5\end{bmatrix}
 $$
 
 gradient:
 
 $$
-\mathbf{g}
-=\frac{1}{2}X^T\mathbf{e}
-=\frac{1}{2}
-\begin{bmatrix}
--9\\-14\\-13
-\end{bmatrix}
-=\begin{bmatrix}
--4.5\\-7\\-6.5
-\end{bmatrix}
+\mathbf{g} =\frac{1}{2}X^T\mathbf{e} =\frac{1}{2} \begin{bmatrix} -9\\-14\\-13 \end{bmatrix} =\begin{bmatrix} -4.5\\-7\\-6.5 \end{bmatrix}
 $$
 
 update:
 
 $$
-\boldsymbol{\theta}^{(1)}
-=\begin{bmatrix}1\\1\\1\end{bmatrix}
--0.1
-\begin{bmatrix}-4.5\\-7\\-6.5\end{bmatrix}
-=\boxed{
-\begin{bmatrix}1.45\\1.70\\1.65\end{bmatrix}}
+\boldsymbol{\theta}^{(1)} =\begin{bmatrix}1\\1\\1\end{bmatrix} -0.1 \begin{bmatrix}-4.5\\-7\\-6.5\end{bmatrix} =\boxed{ \begin{bmatrix}1.45\\1.70\\1.65\end{bmatrix}}
 $$
 
 ก่อน update, \(MSE=(16+25)/2=20.5\) หลัง update predictions เป็น \([6.45,6.50]\) และ MSE ลดเหลือประมาณ \(4.32625\) แสดงว่าก้าวนี้เคลื่อนลงตาม cost surface
@@ -328,7 +257,7 @@ $$
 x'=\frac{30-10}{50-10}=0.5
 $$
 
-**จุดเด่น:** ช่วงค่าชัดเจนและเข้าใจง่าย  
+**จุดเด่น:** ช่วงค่าชัดเจนและเข้าใจง่าย
 **ข้อจำกัด:** ไวต่อ outliers เพราะใช้ min และ max
 
 ### 8.2 Z-score Standardization
@@ -372,10 +301,7 @@ $$
 ### 9.1 Batch Gradient Descent
 
 $$
-\theta_j^{(t+1)}
-:=\theta_j^{(t)}-eta\frac{1}{N}
-\sum_{i=1}^{N}
-(h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
+\theta_j^{(t+1)} :=\theta_j^{(t)}-\eta\frac{1}{N} \sum_{i=1}^{N} (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
 $$
 
 - ใช้ทุก \(N\) samples ต่อ update
@@ -385,9 +311,7 @@ $$
 ### 9.2 Stochastic Gradient Descent
 
 $$
-\theta_j^{(t+1)}
-:=\theta_j^{(t)}-eta
-(h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
+\theta_j^{(t+1)} :=\theta_j^{(t)}-\eta (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
 $$
 
 โดยสุ่ม sample \(\mathbf{x}_i\) ต่อ iteration
@@ -415,8 +339,7 @@ $$
 ### 10.1 Inverse Time Decay
 
 $$
-\eta_{t+1}
-=\frac{\eta_0}{1+\eta_0\lambda t}
+\eta_{t+1} =\frac{\eta_0}{1+\eta_0\lambda t}
 $$
 
 โดย:
@@ -428,10 +351,7 @@ $$
 ตัวอย่างจากเอกสาร ให้ \(\eta_0=0.01,\lambda=0.1,t=1\):
 
 $$
-\eta_2
-=\frac{0.01}{1+(0.01)(0.1)(1)}
-=\frac{0.01}{1.001}
-\approx0.009990
+\eta_2 =\frac{0.01}{1+(0.01)(0.1)(1)} =\frac{0.01}{1.001} \approx0.009990
 $$
 
 สไลด์ปัดเป็น 0.0099 ความหมายคือ learning rate ลดลงเล็กน้อยหลัง update แรก
@@ -447,10 +367,7 @@ $$
 จากเอกสารหน้า 9 Mini-batch ใช้ \(b\) samples โดย \(1<b<N\) เช่น \(b=10\)
 
 $$
-\theta_j^{(t+1)}
-:=\theta_j^{(t)}-eta\frac{1}{b}
-\sum_{i\in B_t}
-(h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
+\theta_j^{(t+1)} :=\theta_j^{(t)}-\eta\frac{1}{b} \sum_{i\in B_t} (h_{\theta}(\mathbf{x}_i)-y_i)x_{i,j}
 $$
 
 โดย \(B_t\) คือ mini-batch ใน iteration \(t\)
@@ -479,9 +396,7 @@ $$
 สำหรับสอง features และ degree 2:
 
 $$
-h_{\theta}(\mathbf{x})
-=\theta_0+\theta_1x_1+\theta_2x_2
-+\theta_3x_1x_2+\theta_4x_1^2+\theta_5x_2^2
+h_{\theta}(\mathbf{x}) =\theta_0+\theta_1x_1+\theta_2x_2 +\theta_3x_1x_2+\theta_4x_1^2+\theta_5x_2^2
 $$
 
 ### 12.1 ทำไมเรียกว่า Polynomial แต่ยังเป็น Linear Regression
@@ -491,8 +406,7 @@ $$
 กำหนด transformed features:
 
 $$
-z_1=x_1,\quad z_2=x_2,\quad
-z_3=x_1x_2,\quad z_4=x_1^2,\quad z_5=x_2^2
+z_1=x_1,\quad z_2=x_2,\quad z_3=x_1x_2,\quad z_4=x_1^2,\quad z_5=x_2^2
 $$
 
 จะได้
@@ -516,8 +430,7 @@ $$
 marginal effect ของ \(x_1\) คือ
 
 $$
-\frac{\partial h}{\partial x_1}
-=\theta_1+\theta_3x_2
+\frac{\partial h}{\partial x_1} =\theta_1+\theta_3x_2
 $$
 
 ดังนั้นเมื่อมี interaction จะตีความ \(\theta_1\) เดี่ยว ๆ ว่าเป็นผลของ \(x_1\) ทุกระดับไม่ได้ แต่เป็นผลเมื่อ \(x_2=0\)
@@ -527,8 +440,7 @@ $$
 จำนวน monomials ที่ degree ไม่เกิน \(r\) จาก \(d\) features รวม intercept คือ
 
 $$
-\binom{d+r}{r}
-=\frac{(d+r)!}{r!d!}
+\binom{d+r}{r} =\frac{(d+r)!}{r!d!}
 $$
 
 เอกสารเขียน \(n=\#features+\#degree\) และ \(r=\#degree\) จึงเท่ากับ \(\binom{n}{r}\)
@@ -536,10 +448,7 @@ $$
 สำหรับ \(d=2,r=2\):
 
 $$
-\binom{2+2}{2}
-=\binom{4}{2}
-=\frac{4!}{2!(4-2)!}
-=6
+\binom{2+2}{2} =\binom{4}{2} =\frac{4!}{2!(4-2)!} =6
 $$
 
 หก terms คือ
@@ -566,28 +475,19 @@ $$
 ให้ sample \((x_1,x_2)=(2,3)\) และ degree 2 feature vector คือ
 
 $$
-\boldsymbol{\phi}(\mathbf{x})
-=\begin{bmatrix}
-1&x_1&x_2&x_1x_2&x_1^2&x_2^2
-\end{bmatrix}^T
-=\begin{bmatrix}
-1&2&3&6&4&9
-\end{bmatrix}^T
+\boldsymbol{\phi}(\mathbf{x}) =\begin{bmatrix} 1&x_1&x_2&x_1x_2&x_1^2&x_2^2 \end{bmatrix}^T =\begin{bmatrix} 1&2&3&6&4&9 \end{bmatrix}^T
 $$
 
 หาก
 
 $$
-\boldsymbol{\theta}
-=\begin{bmatrix}1&2&-1&0.5&0.2&0.1\end{bmatrix}^T
+\boldsymbol{\theta} =\begin{bmatrix}1&2&-1&0.5&0.2&0.1\end{bmatrix}^T
 $$
 
 prediction คือ
 
 $$
-h_{\theta}
-=1(1)+2(2)-1(3)+0.5(6)+0.2(4)+0.1(9)
-=6.7
+h_{\theta} =1(1)+2(2)-1(3)+0.5(6)+0.2(4)+0.1(9) =6.7
 $$
 
 ## 14. Assumptions และความเสี่ยงของ Multiple Linear Regression
@@ -657,8 +557,7 @@ $$
 ### 16.2 MSE และ RMSE
 
 $$
-MSE=\frac{1}{N}\sum_{i=1}^{N}(y_i-\hat{y}_i)^2,
-\qquad RMSE=\sqrt{MSE}
+MSE=\frac{1}{N}\sum_{i=1}^{N}(y_i-\hat{y}_i)^2, \qquad RMSE=\sqrt{MSE}
 $$
 
 RMSE ลงโทษ error ใหญ่แรงและอยู่ในหน่วยเดิมของ target
@@ -666,9 +565,7 @@ RMSE ลงโทษ error ใหญ่แรงและอยู่ในห�
 ### 16.3 Coefficient of Determination
 
 $$
-R^2
-=1-\frac{\sum_i(y_i-\hat{y}_i)^2}
-{\sum_i(y_i-\bar{y})^2}
+R^2 =1-\frac{\sum_i(y_i-\hat{y}_i)^2} {\sum_i(y_i-\bar{y})^2}
 $$
 
 - \(R^2=1\): fit สมบูรณ์บนชุดที่ประเมิน
@@ -680,8 +577,7 @@ $$
 Training \(R^2\) ไม่ลดเมื่อเพิ่ม features แม้ feature ไม่มีประโยชน์ Adjusted \(R^2\) จึงปรับโทษจำนวน predictors:
 
 $$
-\bar{R}^2
-=1-(1-R^2)\frac{N-1}{N-d-1}
+\bar{R}^2 =1-(1-R^2)\frac{N-1}{N-d-1}
 $$
 
 แต่การเลือกโมเดลเพื่อ prediction ควรใช้ validation/cross-validation ร่วมด้วย ไม่ควรพึ่ง Adjusted \(R^2\) อย่างเดียว
@@ -705,12 +601,7 @@ $$
 ต้องการทำนาย Spending Amount รายเดือน:
 
 $$
-\widehat{Spending}
-=\theta_0
-+\theta_1Quantity
-+\theta_2UnitPrice
-+\theta_3ExchangeRate
-+\theta_4LeadTime
+\widehat{Spending} =\theta_0 +\theta_1Quantity +\theta_2UnitPrice +\theta_3ExchangeRate +\theta_4LeadTime
 $$
 
 ประเด็นที่ต้องพิจารณา:
@@ -731,34 +622,34 @@ $$
 
 ## 19. Common Misconceptions
 
-1. **“Multiple Linear Regression หมายถึง target หลายตัว”**  
+1. **“Multiple Linear Regression หมายถึง target หลายตัว”**
    คำว่า multiple หมายถึง predictors หลายตัว ส่วน target ในบทนี้ยังเป็นหนึ่งตัว
 
-2. **“Coefficient คือ correlation ของ feature กับ target”**  
+2. **“Coefficient คือ correlation ของ feature กับ target”**
    Coefficient เป็น partial association เมื่อควบคุม included features อื่นคงที่ ไม่เท่ากับ pairwise correlation
 
-3. **“Feature scale ต่างกันทำให้ OLS model family เปลี่ยน”**  
+3. **“Feature scale ต่างกันทำให้ OLS model family เปลี่ยน”**
    การ scale แบบ invertible ไม่เปลี่ยน predictive family แต่เปลี่ยน coefficient units, conditioning และความเร็ว GD
 
-4. **“Scaling ก่อนหรือหลัง split ให้ผลเหมือนกัน”**  
+4. **“Scaling ก่อนหรือหลัง split ให้ผลเหมือนกัน”**
    Fit scaler ก่อน split ทำให้ validation/test statistics รั่วเข้า training pipeline
 
-5. **“SGD เร็วกว่าเสมอและจึงดีกว่า BGD เสมอ”**  
+5. **“SGD เร็วกว่าเสมอและจึงดีกว่า BGD เสมอ”**
    SGD update ถูกกว่าแต่ noisy คุณภาพและเวลาโดยรวมขึ้นกับข้อมูล hardware learning rate และ stopping rule
 
-6. **“หนึ่ง epoch เท่ากับหนึ่ง iteration”**  
+6. **“หนึ่ง epoch เท่ากับหนึ่ง iteration”**
    เท่ากันเฉพาะ BGD; mini-batch มีหลาย iterations ต่อ epoch
 
-7. **“Polynomial Regression เป็น nonlinear model ใน parameters”**  
+7. **“Polynomial Regression เป็น nonlinear model ใน parameters”**
    ยัง linear ใน parameters แม้ nonlinear ใน original inputs
 
-8. **“Degree สูงขึ้นย่อมดีขึ้น”**  
+8. **“Degree สูงขึ้นย่อมดีขึ้น”**
    Training error อาจลด แต่จำนวน terms และ overfitting เพิ่ม ต้องใช้ validation และ regularization
 
-9. **“Interaction term มีไว้เพิ่ม accuracy อย่างเดียว”**  
+9. **“Interaction term มีไว้เพิ่ม accuracy อย่างเดียว”**
    interaction ควรมี domain rationale และเปลี่ยนวิธีตีความ main effects
 
-10. **“\(R^2\) สูงแปลว่าโมเดลถูกต้อง”**  
+10. **“\(R^2\) สูงแปลว่าโมเดลถูกต้อง”**
    ยังอาจมี leakage, overfitting, biased residuals หรือไม่มี causal meaning
 
 ## Hands-on Lab: Multiple และ Polynomial Regression โดยไม่ให้ข้อมูลรั่ว
@@ -896,25 +787,19 @@ Pipeline ป้องกันไม่ให้ผู้ใช้เผลอ f
 ### Equations to remember
 
 $$
-h_{\theta}(\mathbf{x})=\theta_0+\sum_{j=1}^{d}\theta_jx_j
-=\boldsymbol{\theta}^T\mathbf{x}
+h_{\theta}(\mathbf{x})=\theta_0+\sum_{j=1}^{d}\theta_jx_j =\boldsymbol{\theta}^T\mathbf{x}
 $$
 
 $$
-J(\boldsymbol{\theta})=\frac{1}{N}\sum_{i=1}^{N}
-(h_{\theta}(\mathbf{x}_i)-y_i)^2
+J(\boldsymbol{\theta})=\frac{1}{N}\sum_{i=1}^{N} (h_{\theta}(\mathbf{x}_i)-y_i)^2
 $$
 
 $$
-\boldsymbol{\theta}^{(t+1)}
-=\boldsymbol{\theta}^{(t)}-eta\frac{1}{N}X^T
-(X\boldsymbol{\theta}^{(t)}-\mathbf{y})
+\boldsymbol{\theta}^{(t+1)} =\boldsymbol{\theta}^{(t)}-\eta\frac{1}{N}X^T (X\boldsymbol{\theta}^{(t)}-\mathbf{y})
 $$
 
 $$
-x'_{minmax}=\frac{x-x_{min}}{x_{max}-x_{min}},
-\qquad
-x'_{z}=\frac{x-\mu}{\sigma}
+x'_{minmax}=\frac{x-x_{min}}{x_{max}-x_{min}}, \qquad x'_{z}=\frac{x-\mu}{\sigma}
 $$
 
 $$
@@ -1017,8 +902,7 @@ $$
 **10.**
 
 $$
-\eta_{5}=\frac{0.1}{1+(0.1)(0.5)(4)}
-=\frac{0.1}{1.2}\approx0.08333
+\eta_{5}=\frac{0.1}{1+(0.1)(0.5)(4)} =\frac{0.1}{1.2}\approx0.08333
 $$
 
 **11.**
@@ -1068,11 +952,23 @@ $$
 | SGD | Gradient Descent ที่ใช้หนึ่ง sample ต่อ update |
 | Standardization | การลบ mean และหารด้วย standard deviation |
 
+## Source Coverage and Learning Gap Audit
+
+| แหล่ง/หัวข้อ | ส่วนที่สอน | สิ่งที่ขยายจากแหล่งเรียน |
+|---|---|---|
+| Lecture: matrix model และ gradient descent | ส่วน 3–7 | เติม dimension check และ trace หนึ่ง iteration |
+| Lecture: scaling, SGD และ learning-rate decay | ส่วน 8–11 | เพิ่ม leakage, epoch/iteration และ trade-off |
+| Lecture: polynomial regression | ส่วน 12–13 | เพิ่ม interactions, term count และ curse of dimensionality |
+| Reading: multiple regression interpretation | ส่วน 4, 14–16 | เพิ่ม partial association, omitted-variable risk และ diagnostics |
+
+Learning Gap Audit เน้นว่าการเพิ่ม feature ไม่ได้แปลว่า coefficient มีความหมายเชิงสาเหตุ และ polynomial expansion ไม่ได้ทำให้โมเดลเป็น nonlinear in parameters โดยอัตโนมัติ ทุก preprocessing step ต้องเรียนจาก training data เท่านั้น ส่วนการเลือก degree และ penalty ด้วย cross-validation เชื่อมไปยังบท Regularization และ Model Evaluation
+
 ## 25. References
 
 ### เอกสารประกอบการสอน
 
-- Rattagan, E. (2026). `dads6003_week03_multiple_linear_regression.pdf`: *Week 3: Multiple Linear Regression*, หน้า 1–11.
+- Rattagan, E. (2026). `lecture/dads6003_03_multiple_linear_regression.pdf`: *Week 3: Multiple Linear Regression*, หน้า 1–11.
+- Course reading. `read/read02_multiple_linear_regression.pdf`: *Multiple Regression Analysis*.
 
 ### แหล่งที่อ้างในเอกสาร
 
