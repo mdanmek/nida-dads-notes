@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+<title id="title">จำนวนรายการสัญญาที่เข้าแต่ละ Pattern</title>
+<desc id="desc">Pattern 1 จำนวน 9,413 รายการ Pattern 2 จำนวน 1,343 รายการ และเข้า Pattern 1 กับ Pattern 2 จำนวน 161 รายการ</desc>
+<rect width="1200" height="680" fill="#ffffff"/>
+<style>
+text { font-family: "Noto Sans Thai", "Tahoma", sans-serif; fill: #344054; }
+.title { font-size: 34px; font-weight: 700; }
+.subtitle { font-size: 20px; fill: #667085; }
+.label { font-size: 22px; }
+.value { font-size: 22px; font-weight: 700; }
+.axis { font-size: 17px; fill: #667085; }
+.grid { stroke: #E4E7EC; stroke-width: 1; }
+</style>
+<text class="title" x="70" y="70">จำนวนรายการสัญญาที่เข้าแต่ละ Pattern</text>
+<text class="subtitle" x="70" y="108">ขอบเขต: วิธีเฉพาะเจาะจงและวงเงินสัญญาไม่เกิน 500,000 บาท</text>
+<line class="grid" x1="390" y1="160" x2="390" y2="570"/>
+<line class="grid" x1="553" y1="160" x2="553" y2="570"/>
+<line class="grid" x1="716" y1="160" x2="716" y2="570"/>
+<line class="grid" x1="879" y1="160" x2="879" y2="570"/>
+<line class="grid" x1="1042" y1="160" x2="1042" y2="570"/>
+<text class="axis" x="390" y="602" text-anchor="middle">0</text>
+<text class="axis" x="553" y="602" text-anchor="middle">2,500</text>
+<text class="axis" x="716" y="602" text-anchor="middle">5,000</text>
+<text class="axis" x="879" y="602" text-anchor="middle">7,500</text>
+<text class="axis" x="1042" y="602" text-anchor="middle">10,000</text>
+<text class="label" x="360" y="222" text-anchor="end">Pattern 1: เกิดซ้ำใกล้เพดาน</text>
+<rect x="390" y="180" width="614" height="64" rx="6" fill="#5B7FA3"/>
+<text class="value" x="1020" y="222">9,413</text>
+<text class="label" x="360" y="362" text-anchor="end">Pattern 2: พึ่งพาในชื่อหน่วยงาน</text>
+<rect x="390" y="320" width="88" height="64" rx="6" fill="#5B7FA3"/>
+<text class="value" x="494" y="362">1,343</text>
+<text class="label" x="360" y="502" text-anchor="end">เข้า Pattern 1 และ Pattern 2</text>
+<rect x="390" y="460" width="12" height="64" rx="6" fill="#D9822B"/>
+<text class="value" x="418" y="502">161</text>
+<text class="axis" x="716" y="646" text-anchor="middle">จำนวนรายการสัญญา</text>
+</svg>
