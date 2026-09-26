@@ -7,7 +7,7 @@
 > **หลักสูตร:** วิทยาศาสตรมหาบัณฑิต สาขาการวิเคราะห์ข้อมูลและวิทยาการข้อมูล / สาขาวิทยาการคอมพิวเตอร์และระบบสารสนเทศ  
 > **ภาคการศึกษา:** 1/2569 ชั้นปีที่ 1
 
-ชุด canonical ที่แนะนำให้อ่านคือไฟล์ `011`–`014`, `021`–`023` และ `031`–`033` ซึ่งอยู่ในโฟลเดอร์ `summary/` นี้โดยตรง ให้ใช้เลขและลิงก์จากสารบัญนี้เป็นหลักเพื่อไม่สับสนกับชื่อไฟล์จากการสรุปรุ่นก่อนหน้า
+ชุด canonical ที่แนะนำให้อ่านคือไฟล์ `011`–`014`, `021`–`023`, `031`–`033` และ `041`–`043` ซึ่งอยู่ในโฟลเดอร์ `summary/` นี้โดยตรง ให้ใช้เลขและลิงก์จากสารบัญนี้เป็นหลักเพื่อไม่สับสนกับชื่อไฟล์จากการสรุปรุ่นก่อนหน้า
 
 ## ภาพรวมรายวิชาจาก Course Syllabus
 
@@ -107,6 +107,20 @@ DADS6002 เป็นวิชาหลักหรือวิชาบัง�
 
 อย่าเริ่มจากท่อง syntax เพราะการเลือก RowKey และ Column Family เป็นการตัดสินใจด้านแบบจำลองข้อมูลที่กำหนดทั้งตำแหน่ง Region รูปแบบการอ่าน และความเสี่ยง hotspot ชุดนี้จึงวางคำอธิบายและตัวอย่างก่อนตารางคำสั่งเสมอ
 
+## 04 — Data Ingestion
+
+แหล่งหลัก: `dads6002_04_data_ingestion.pdf` จำนวน 22 หน้า ชุดนี้อธิบายเส้นทางที่ข้อมูลจากระบบภายนอกเข้าสู่ Hadoop และ Streaming Platform โดยแยก Batch Table Transfer, Log/Event Collection และ Distributed Event Streaming ออกจากกัน
+
+1. [บทที่ 04.1: Data Ingestion และ Sqoop](041_data_ingestion_and_sqoop.md) — Ingestion Pattern, RDBMS → HDFS/Hive/HBase, Mapper Parallelism, Validation และสถานะปัจจุบันของ Sqoop
+2. [บทที่ 04.2: Flume, Avro และ Event Data Flow](042_flume_avro_and_event_flows.md) — Source–Channel–Sink, Reliability, Multi-agent/Fan-in Flow และ Product Impression Example
+3. [บทที่ 04.3: Kafka Streaming Foundations](043_kafka_streaming_foundations.md) — Broker, Topic, Partition, Offset, Replication, Producer, Consumer Group, Ordering และ KRaft
+
+### วิธีอ่านชุด Data Ingestion สำหรับผู้เริ่มต้น
+
+เริ่ม 04.1 ด้วยคำถามว่า “ข้อมูลมาจากระบบใด มาเป็นรอบหรือต่อเนื่อง และปลายทางต้องใช้อย่างไร” จากนั้นใช้ Sqoop เป็นตัวอย่างของ Batch Bulk Transfer แล้วอ่าน 04.2 เพื่อติดตาม Event ต่อเนื่องผ่าน Source → Channel → Sink เมื่อเข้าใจการเก็บและส่ง Event แล้วจึงอ่าน 04.3 เพื่อดูว่า Kafka ทำให้ Event เดิมถูกเก็บแบบ Durable Log และเปิดให้ Consumer Groups หลายชุดอ่านอย่างอิสระได้อย่างไร
+
+เครื่องมือในสไลด์สะท้อนทั้ง Legacy Hadoop และแนวคิดที่ยังใช้ในปัจจุบัน ชุดนี้จึงแยกสิ่งที่ควรรู้เพื่อสอบออกจากสิ่งที่ควรใช้ตัดสินใจในระบบใหม่ เช่น Sqoop ถูก Retire แล้ว และ Kafka 4.x ใช้ KRaft แทน ZooKeeper
+
 ## Recommended Learning Path
 
 ```mermaid
@@ -120,9 +134,12 @@ flowchart TD
     G --> H["03.1 HBase Data Model"]
     H --> I["03.2 Architecture and Storage"]
     I --> J["03.3 Shell and RowKey Design"]
+    J --> K["04.1 Batch Ingestion"]
+    K --> L["04.2 Flume Event Flow"]
+    L --> M["04.3 Kafka Streaming"]
 ```
 
-ลำดับนี้เริ่มจากเหตุผลที่ต้องใช้ distributed system ต่อด้วย storage/resource management, distributed processing และ workflow ก่อนยกระดับสู่ SQL-based analytics ด้วย Hive แล้วจึงใช้ข้อจำกัดของงาน batch เป็นสะพานไปสู่ HBase สำหรับการอ่านและเขียนข้อมูลรายแถวด้วย RowKey ที่ต้องการ latency ต่ำกว่า
+ลำดับนี้เริ่มจากเหตุผลที่ต้องใช้ Distributed System ต่อด้วย Storage/Resource Management, Distributed Processing และ Workflow ก่อนยกระดับสู่ SQL-based Analytics ด้วย Hive แล้วจึงใช้ข้อจำกัดของงาน Batch เป็นสะพานไปสู่ HBase สำหรับการอ่านและเขียนข้อมูลรายแถว จากนั้นบท 04 ตอบคำถามที่อยู่ก่อนทุกระบบเหล่านี้ว่า ข้อมูลจาก RDBMS, Logs และ Events จะเข้าสู่แพลตฟอร์มอย่างถูกต้องและตรวจสอบได้อย่างไร
 
 ## เส้นทาง Theory → Lab → Validation
 
@@ -145,6 +162,8 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 
 เมื่อเชื่อมไปยัง HBase ให้แยก workload ก่อน: Hive ยังเหมาะกับการ scan และสรุปข้อมูลจำนวนมาก ส่วน HBase เหมาะกับการค้นหรือแก้ไข record ที่ทราบ RowKey และต้องตอบสนองเร็วกว่า การเลือกเครื่องมือจึงขึ้นกับ access pattern ไม่ใช่การตัดสินว่าเครื่องมือใด “ใหม่กว่า” หรือ “ดีกว่า” โดยไม่มีบริบท
 
+เมื่อเข้าสู่ Data Ingestion ให้ย้อนมองต้นทางของข้อมูลทั้งหมด Sqoop แสดง Batch Transfer จาก RDBMS, Flume แสดง Event Flow จาก Source ผ่าน Buffer ไป Destination และ Kafka แสดง Durable Event Log ที่แยก Producer ออกจาก Consumer หลายกลุ่ม ความต่างนี้ทำให้เลือกเครื่องมือจาก Source Type, Latency, Replay, Ordering และ Consumer Pattern แทนการเลือกจากชื่อเครื่องมือ
+
 ## Cumulative Learning Objectives
 
 - เชื่อม 5Vs กับ storage, processing, latency และ data-quality requirements
@@ -157,6 +176,11 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - อธิบาย HBase data model และระบุพิกัดของ Cell จาก RowKey, Column Family, Qualifier และ Version
 - trace HBase write/read path พร้อมอธิบายความทนทาน การ flush และ compaction
 - ออกแบบ RowKey จาก access pattern พร้อมวิเคราะห์ลำดับแบบ byte และความเสี่ยง hotspot
+- จำแนก Batch, Incremental, CDC และ Streaming Ingestion ได้
+- trace Sqoop Import และวิเคราะห์ผลของ Mapper Parallelism ต่อ Source Database ได้
+- trace Flume Event ผ่าน Source, Channel และ Sink พร้อมวิเคราะห์ Failure/Duplicate ได้
+- อธิบาย Kafka Topic, Partition, Offset, Replication และ Consumer Group ได้
+- วิเคราะห์ Ordering, Partition Key, Consumer Parallelism และ Lag ได้
 - รัน Lab Hadoop/Hive พร้อมแยก local/HDFS, ตรวจ data contract และอธิบาย failure ได้
 
 ## Numbering Standard
@@ -166,15 +190,16 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 | `01.x` | ชุด Hadoop จากเอกสารหมายเลข 01 | `01.3` = MapReduce |
 | `02.x` | ชุด Hive จากเอกสารหมายเลข 02 | `02.2` = HQL และ loading |
 | `03.x` | ชุด HBase จากเอกสารหมายเลข 03 | `03.2` = architecture และ storage |
+| `04.x` | ชุด Data Ingestion จากเอกสารหมายเลข 04 | `04.3` = Kafka streaming foundations |
 | ชื่อไฟล์ `0xy_...md` | ตัดจุดออกเพื่อให้ sort ง่าย | `023_...md` = บทที่ 02.3 |
 
 เลขในชื่อไฟล์ หัวเรื่อง ลิงก์ข้ามบท และสารบัญต้องใช้ mapping เดียวกันนี้
 
 ## Integrated Capstone
 
-ออกแบบ analytical pipeline สำหรับข้อมูลการสั่งซื้อของโรงพยาบาล ตั้งแต่รับไฟล์เข้า HDFS จัดสรร resource ด้วย YARN ประมวลผลและ orchestration งาน สร้าง Hive external staging table แปลงเป็น curated table แล้วสรุปยอดร่วมกับ vendor master จากนั้นออกแบบ HBase table สำหรับค้นสถานะคำสั่งซื้อหรือยอดล่าสุดของโรงพยาบาลแบบ RowKey lookup
+ออกแบบ Analytical Pipeline สำหรับข้อมูลการสั่งซื้อของโรงพยาบาล โดยรับข้อมูล Master/Transaction จาก RDBMS แบบ Batch และรับสถานะคำสั่งซื้อแบบ Event จาก Streaming Platform นำ Raw Data เข้า HDFS จัดสรร Resource ด้วย YARN ประมวลผลและ Orchestration งาน สร้าง Hive External Staging Table แปลงเป็น Curated Table แล้วสรุปยอดร่วมกับ Vendor Master จากนั้นออกแบบ HBase Table สำหรับค้นสถานะคำสั่งซื้อหรือยอดล่าสุดของโรงพยาบาลแบบ RowKey Lookup
 
-ผลงานต้องแสดง architecture, grain, partition design, HQL, HBase RowKey/Column Family, failure recovery และ reconciliation ของ row count กับยอดเงิน พร้อมอธิบายว่าข้อมูลส่วนใดควรอยู่ใน Hive หรือ HBase ตาม access pattern
+ผลงานต้องแสดง Architecture, Ingestion Pattern, Event Key, Grain, Partition Design, HQL, HBase RowKey/Column Family, Failure Recovery และ Reconciliation ของ Row Count กับยอดเงิน พร้อมอธิบายว่าข้อมูลส่วนใดควรอยู่ใน Hive, HBase หรือ Kafka ตาม Access Pattern
 
 ## Cumulative Exam Blueprint
 
@@ -186,17 +211,21 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 | วิเคราะห์ aggregation/join correctness | 02.3 | Analyze/Evaluate |
 | อธิบาย HBase data model และ read/write path | 03.1–03.2 | Explain/Analyze |
 | ออกแบบ RowKey และวิเคราะห์ hotspot | 03.3 | Apply/Evaluate |
+| เลือก Batch/Streaming Ingestion และตรวจความครบถ้วน | 04.1–04.2 | Apply/Analyze |
+| วิเคราะห์ Kafka partitioning, ordering และ consumer groups | 04.3 | Analyze/Evaluate |
 | ออกแบบ pipeline end-to-end | ทุกบท | Create |
 
 ## Final Revision Checklist
 
-- [ ] อธิบายลำดับ 01.1 → 03.3 และ dependency ของแต่ละบทได้
+- [ ] อธิบายลำดับ 01.1 → 04.3 และ dependency ของแต่ละบทได้
 - [ ] วาด HDFS/YARN/MapReduce flow จากความจำได้
 - [ ] แยก table, partition และ bucket ได้
 - [ ] อธิบาย schema-on-read และ SerDe ได้
 - [ ] ตรวจ row multiplication และ unmatched keys หลัง join ได้
 - [ ] ระบุพิกัด Cell และ trace เส้นทาง WAL → MemStore → HFile ได้
 - [ ] อธิบายว่า RowKey ทำให้ scan order และ hotspot เปลี่ยนอย่างไรได้
+- [ ] เปรียบเทียบ Sqoop, Flume และ Kafka จาก Source, Latency, Replay และ Consumer Pattern ได้
+- [ ] คำนวณ Active Kafka Consumers จากจำนวน Partitions และอธิบาย Ordering Boundary ได้
 - [ ] ออกแบบ retry, validation และ reconciliation สำหรับ pipeline ได้
 - [ ] ทำ Lab 01–02 โดยทำนายผล เก็บหลักฐาน และซ่อม deliberate failure ได้
 
@@ -206,18 +235,21 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - `dads6002_01_hadoop.pdf` หน้า 1–43 ครอบคลุมในบท 01.1–01.4
 - `dads6002_02_hive.pdf` หน้า 1–21 ครอบคลุมในบท 02.1–02.3
 - `dads6002_03_hbase.pdf` หน้า 1–16 ครอบคลุมในบท 03.1–03.3
+- `dads6002_04_data_ingestion.pdf` หน้า 1–22 ครอบคลุมในบท 04.1–04.3
 - `lab_01_hadoop.pdf` หน้า 1–5 และ Python mapper/reducer ครอบคลุมในบท 01.2–01.3
 - `lab_02_hive.pdf` หน้า 1–5 ครอบคลุมในบท 02.2–02.3
 
 ## Suite Review
 
-- เลขบท canonical สอดคล้องกัน: `01.1–01.4`, `02.1–02.3` และ `03.1–03.3`
+- เลขบท canonical สอดคล้องกัน: `01.1–01.4`, `02.1–02.3`, `03.1–03.3` และ `04.1–04.3`
 - ทุกบทมี source range, prerequisites, teaching layer, practice, exam focus และ mastery checks
 - Hadoop → Hive เชื่อมผ่าน HDFS, MapReduce, metadata และ SQL abstraction
 - Hive → HBase เชื่อมผ่านความต่างระหว่าง batch analytics กับ low-latency row access
+- HBase → Data Ingestion เชื่อมด้วยคำถามว่าข้อมูลจาก RDBMS, Logs และ Events เข้าสู่ Storage/Serving Systems อย่างไร
 - Hive หน้า 1–5 มีบ้านหลักใน 02.1, หน้า 6–15 ใน 02.2 และหน้า 16–21 ใน 02.3 โดยไม่มีช่วงหน้าตกหล่น
 - Lab ทุกชุดมีบ้านหลักตามแนวคิด ไม่สร้างไฟล์ซ้ำ และเพิ่ม prediction, expected evidence, deliberate failure กับ validation แล้ว
 - HBase หน้า 1–3 และ 7–8 มีบ้านหลักใน 03.1, หน้า 3–6 ใน 03.2 และหน้า 9–16 ใน 03.3 โดยส่วนที่ซ้ำกันใช้เป็นสะพานเชื่อม ไม่ทำให้หัวข้อหลักตกหล่น
+- Data Ingestion หน้า 1–6 มีบ้านหลักใน 04.1, หน้า 7–16 ใน 04.2 และหน้า 17–22 ใน 04.3 โดยแยก Legacy Context ออกจาก Current Context
 
 ## References
 
@@ -230,3 +262,6 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - [Apache Airflow Documentation](https://airflow.apache.org/docs/apache-airflow/stable/)
 - [Apache Hive Documentation](https://hive.apache.org/docs/latest/)
 - [Apache HBase Documentation](https://hbase.apache.org/docs/)
+- [Apache Sqoop in the Apache Attic](https://attic.apache.org/projects/sqoop.html)
+- [Apache Flume Documentation](https://flume.apache.org/)
+- [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
