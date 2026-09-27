@@ -74,17 +74,11 @@ DADS6002 เป็นวิชาหลักหรือวิชาบัง�
 
 ## 02 — Hive
 
-แหล่งหลัก: `dads6002_02_hive.pdf` จำนวน 21 หน้า และ `lab_02_hive.pdf` จำนวน 5 หน้า ชุดนี้ปรับด้วยมาตรฐานการอธิบายแบบขยายความ โดยรักษาเหตุผลจากต้นฉบับ แปลศัพท์เมื่อพบครั้งแรก และใช้ตัวอย่างเดียวเชื่อมจากไฟล์ดิบไปจนถึงผลวิเคราะห์
+- [02 — Apache Hive: จากไฟล์บน HDFS สู่ตารางที่ Query และวิเคราะห์ได้](02_hive.md)
 
-1. [บทที่ 02.1: พื้นฐาน Hive และการจัดวางข้อมูล](021_hive_foundations_and_storage.md) — เข้าใจว่า Hive ทำให้ไฟล์กลายเป็นตารางที่ค้นหาได้อย่างไร และ table, partition, bucket ทำหน้าที่ต่างกันตรงไหน
-2. [บทที่ 02.2: HQL, Schema, SerDe และการนำข้อมูลเข้า](022_hql_schema_serde_and_loading.md) — สร้างคำอธิบายตาราง แปลข้อความเป็นคอลัมน์ และตรวจความผิดพลาดที่อาจไม่เกิด error ตอน load
-3. [บทที่ 02.3: การสรุปข้อมูลและการเชื่อมตาราง](023_hive_analytics_and_joins.md) — ติดตามว่า `GROUP BY` เปลี่ยน grain อย่างไร และเลือก join จากประชากรที่ต้องรักษา
+บทเรียนรวมใช้ Lecture 21 หน้าและ Lab 5 หน้า เริ่มจากข้อจำกัดของการมองข้อมูลเป็นเพียงไฟล์ แล้วติดตามว่า Hive ใช้ Metastore, Table Definition และ SerDe ทำให้ไฟล์ถูกอ่านเป็น Row และ Column ได้อย่างไร จากนั้นจึงเชื่อม Storage Layout, Schema-on-read, Loading, Aggregation และ Join เป็นเรื่องเดียว ภายในมีภาพ Data Flow และโครงสร้างที่ช่วยให้เห็นสิ่งซึ่งมองไม่เห็น รวมถึง Lab, Validation, Troubleshooting และโจทย์บรรยายพร้อมแนวคำตอบ
 
-### วิธีอ่านชุด Hive สำหรับผู้เริ่มต้น
-
-ให้อ่านสามบทตามลำดับโดยใช้คำถามเดียวเป็นแกน เริ่มจาก “ไฟล์จริงกับคำอธิบายไฟล์อยู่ที่ใด” ใน 02.1 ต่อด้วย “Hive แยกหนึ่งบรรทัดเป็นคอลัมน์อย่างไร” ใน 02.2 และจบที่ “เมื่อแถวพร้อมแล้ว ระบบรวมและจับคู่แถวอย่างไร” ใน 02.3 หากตอบคำถามของบทก่อนยังไม่ได้ ไม่ควรข้ามไปจำ syntax ของบทถัดไป
-
-ศัพท์อังกฤษถูกเก็บไว้เพื่อให้ตรงกับสไลด์และเอกสารระบบ แต่ทุกคำหลักต้องมีคำแปลและตัวอย่างเมื่อพบครั้งแรก ตารางสรุปและรายการคำสั่งเป็นส่วนทบทวนหลังคำอธิบาย ไม่ใช่สิ่งที่ใช้แทนการทำความเข้าใจ
+ไฟล์เดิม `021–023` ยังคงเก็บไว้ชั่วคราวเพื่อเปรียบเทียบความครอบคลุม แต่เส้นทางอ่านหลักคือ `02_hive.md`
 
 ## 03 — HBase
 
@@ -118,9 +112,7 @@ DADS6002 เป็นวิชาหลักหรือวิชาบัง�
 
 ```mermaid
 flowchart TD
-    A["01 Hadoop<br/>Big Data → HDFS → YARN → MapReduce → Orchestration"] --> D["02.1 Hive Foundations"]
-    D --> F["02.2 HQL and Loading"]
-    F --> G["02.3 Analytics and Joins"]
+    A["01 Hadoop<br/>Big Data → HDFS → YARN → MapReduce → Orchestration"] --> G["02 Hive<br/>Files → Schema → HQL → Analytics"]
     G --> H["03.1 HBase Data Model"]
     H --> I["03.2 Architecture and Storage"]
     I --> J["03.3 Shell and RowKey Design"]
@@ -139,8 +131,8 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 |---|---|---|---|
 | [Lab 01 Hadoop หน้า 1–3](../lab/lab_01_hadoop.pdf) | [01 Hadoop — ส่วน HDFS และ Lab](01_hadoop.md) | local file ↔ HDFS, `put/get/cp/rm` | HDFS path, ขนาด และเนื้อหาตรงกัน |
 | [Lab 01 Hadoop หน้า 4–5](../lab/lab_01_hadoop.pdf) | [01 Hadoop — ส่วน MapReduce และ Streaming](01_hadoop.md) | local pipeline และ Hadoop Streaming Word Count | key counts และผลรวม tokens ตรง input |
-| [Lab 02 Hive หน้า 1–4](../lab/lab_02_hive.pdf) | [02.2 HQL, Schema, SerDe และ Loading](022_hql_schema_serde_and_loading.md) | DDL, MovieLens, managed/external, RegexSerDe | row count, sample fields และ null checks ผ่าน |
-| [Lab 02 Hive หน้า 3–5](../lab/lab_02_hive.pdf) | [02.3 Analytics และ Joins](023_hive_analytics_and_joins.md) | aggregate users และ web logs | group grain และผลรวม counts reconcile |
+| [Lab 02 Hive หน้า 1–4](../lab/lab_02_hive.pdf) | [02 Hive — HQL, Schema, SerDe และ Loading](02_hive.md) | DDL, MovieLens, managed/external, RegexSerDe | row count, sample fields และ null checks ผ่าน |
+| [Lab 02 Hive หน้า 3–5](../lab/lab_02_hive.pdf) | [02 Hive — Aggregation และ Joins](02_hive.md) | aggregate users และ web logs | group grain และผลรวม counts reconcile |
 
 วิธีอ่านที่แนะนำคืออ่านคำอธิบายจนตอบได้ว่า input → mechanism → output คืออะไร จากนั้นทำนายผลก่อนรัน Lab เก็บผลตรวจสอบ และจงใจทำ failure ที่กำหนดไว้หนึ่งครั้ง การจำคำสั่งโดยไม่ทำสามขั้นนี้อาจช่วยให้พิมพ์ตามได้ แต่ยังไม่พอสำหรับการสอบวิเคราะห์หรือวินิจฉัยระบบจริง
 
@@ -178,10 +170,10 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 | รูปแบบ | ความหมาย | ตัวอย่าง |
 |---|---|---|
 | `01` | บทเรียนรวม Hadoop จาก Lecture และ Lab หมายเลข 01 | `01_hadoop.md` |
-| `02.x` | ชุด Hive จากเอกสารหมายเลข 02 | `02.2` = HQL และ loading |
+| `02` | บทเรียนรวม Hive จาก Lecture และ Lab หมายเลข 02 | `02_hive.md` |
 | `03.x` | ชุด HBase จากเอกสารหมายเลข 03 | `03.2` = architecture และ storage |
 | `04.x` | ชุด Data Ingestion จากเอกสารหมายเลข 04 | `04.3` = Kafka streaming foundations |
-| ชื่อไฟล์ `0xy_...md` | ตัดจุดออกเพื่อให้ sort ง่าย | `023_...md` = บทที่ 02.3 |
+| ชื่อไฟล์ `0xy_...md` | รูปแบบเดิมที่เก็บไว้ชั่วคราวระหว่างตรวจบทเรียนรวม | `023_...md` = ไฟล์ Hive เดิมส่วนที่ 3 |
 
 เลขในชื่อไฟล์ หัวเรื่อง ลิงก์ข้ามบท และสารบัญต้องใช้ mapping เดียวกันนี้
 
@@ -197,8 +189,8 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 |---|---|---|
 | อธิบาย distributed storage/compute | 01.1–01.3 | Explain/Apply |
 | วิเคราะห์ failure และ orchestration | 01.2–01.4 | Analyze/Evaluate |
-| ออกแบบ Hive storage/schema | 02.1–02.2 | Apply/Analyze |
-| วิเคราะห์ aggregation/join correctness | 02.3 | Analyze/Evaluate |
+| ออกแบบ Hive storage/schema | 02 | Apply/Analyze |
+| วิเคราะห์ aggregation/join correctness | 02 | Analyze/Evaluate |
 | อธิบาย HBase data model และ read/write path | 03.1–03.2 | Explain/Analyze |
 | ออกแบบ RowKey และวิเคราะห์ hotspot | 03.3 | Apply/Evaluate |
 | เลือก Batch/Streaming Ingestion และตรวจความครบถ้วน | 04.1–04.2 | Apply/Analyze |
@@ -223,20 +215,19 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 
 - `dads6002_00_course_syllabus.pdf` หน้า 1–7 ครอบคลุมข้อมูลรายวิชา เป้าหมาย คำอธิบาย ผลการเรียนรู้ แผนสัปดาห์ การประเมิน และเอกสารหลักในไฟล์นี้
 - `dads6002_01_hadoop.pdf` หน้า 1–43 ครอบคลุมในบท 01.1–01.4
-- `dads6002_02_hive.pdf` หน้า 1–21 ครอบคลุมในบท 02.1–02.3
+- `dads6002_02_hive.pdf` หน้า 1–21 และ `lab_02_hive.pdf` หน้า 1–5 ครอบคลุมใน `02_hive.md`
 - `dads6002_03_hbase.pdf` หน้า 1–16 ครอบคลุมในบท 03.1–03.3
 - `dads6002_04_data_ingestion.pdf` หน้า 1–22 ครอบคลุมในบท 04.1–04.3
 - `lab_01_hadoop.pdf` หน้า 1–5 และ Python mapper/reducer ครอบคลุมในบท 01.2–01.3
-- `lab_02_hive.pdf` หน้า 1–5 ครอบคลุมในบท 02.2–02.3
 
 ## Suite Review
 
-- เลขบท canonical สอดคล้องกัน: `01.1–01.4`, `02.1–02.3`, `03.1–03.3` และ `04.1–04.3`
+- บท Hadoop และ Hive ใช้ไฟล์รวม `01_hadoop.md` และ `02_hive.md`; HBase และ Data Ingestion ยังใช้ไฟล์แยกเดิมระหว่างรอปรับ
 - ทุกบทมี source range, prerequisites, teaching layer, practice, exam focus และ mastery checks
 - Hadoop → Hive เชื่อมผ่าน HDFS, MapReduce, metadata และ SQL abstraction
 - Hive → HBase เชื่อมผ่านความต่างระหว่าง batch analytics กับ low-latency row access
 - HBase → Data Ingestion เชื่อมด้วยคำถามว่าข้อมูลจาก RDBMS, Logs และ Events เข้าสู่ Storage/Serving Systems อย่างไร
-- Hive หน้า 1–5 มีบ้านหลักใน 02.1, หน้า 6–15 ใน 02.2 และหน้า 16–21 ใน 02.3 โดยไม่มีช่วงหน้าตกหล่น
+- Hive Lecture หน้า 1–21 และ Lab หน้า 1–5 เชื่อมต่อกันใน `02_hive.md` โดยไม่มีช่วงหน้าตกหล่น
 - Lab ทุกชุดมีบ้านหลักตามแนวคิด ไม่สร้างไฟล์ซ้ำ และเพิ่ม prediction, expected evidence, deliberate failure กับ validation แล้ว
 - HBase หน้า 1–3 และ 7–8 มีบ้านหลักใน 03.1, หน้า 3–6 ใน 03.2 และหน้า 9–16 ใน 03.3 โดยส่วนที่ซ้ำกันใช้เป็นสะพานเชื่อม ไม่ทำให้หัวข้อหลักตกหล่น
 - Data Ingestion หน้า 1–6 มีบ้านหลักใน 04.1, หน้า 7–16 ใน 04.2 และหน้า 17–22 ใน 04.3 โดยแยก Legacy Context ออกจาก Current Context
