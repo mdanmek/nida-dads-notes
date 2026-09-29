@@ -153,7 +153,7 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - trace Flume Event ผ่าน Source, Channel และ Sink พร้อมวิเคราะห์ Failure/Duplicate ได้
 - อธิบาย Kafka Topic, Partition, Offset, Replication และ Consumer Group ได้
 - วิเคราะห์ Ordering, Partition Key, Consumer Parallelism และ Lag ได้
-- รัน Lab Hadoop, Hive และ HBase พร้อมแยก storage layer, ตรวจ data contract และอธิบาย failure ได้
+- รัน Lab Hadoop, Hive, HBase และ Data Ingestion พร้อมแยก storage layer, ตรวจ data contract และอธิบาย failure ได้
 
 ## Numbering Standard
 
@@ -199,7 +199,7 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - [ ] เปรียบเทียบ Sqoop, Flume และ Kafka จาก Source, Latency, Replay และ Consumer Pattern ได้
 - [ ] คำนวณ Active Kafka Consumers จากจำนวน Partitions และอธิบาย Ordering Boundary ได้
 - [ ] ออกแบบ retry, validation และ reconciliation สำหรับ pipeline ได้
-- [ ] ทำ Lab 01–03 โดยทำนายผล เก็บหลักฐาน และซ่อม deliberate failure ได้
+- [ ] ทำ Lab 01–04 โดยทำนายผล เก็บหลักฐาน และซ่อม deliberate failure ได้
 
 ## Source Coverage
 
@@ -213,7 +213,7 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 ## Suite Review
 
 - บท Hadoop, Hive, HBase และ Data Ingestion ใช้ไฟล์รวม `01_hadoop.md`, `02_hive.md`, `03_hbase.md` และ `04_data_ingestion.md`
-- ทุกบทมี source range, prerequisites, teaching layer, practice, exam focus และ mastery checks
+- ทุกบทเรียบเรียงเป็นบทบรรยายต่อเนื่อง มีภาพอธิบายระบบที่มองไม่เห็น ตัวอย่าง Lab และโจทย์บรรยายพร้อมแนวคำตอบ โดยไม่แทรก checklist ที่ตัดจังหวะการอ่าน
 - Hadoop → Hive เชื่อมผ่าน HDFS, MapReduce, metadata และ SQL abstraction
 - Hive → HBase เชื่อมผ่านความต่างระหว่าง batch analytics กับ low-latency row access
 - HBase → Data Ingestion เชื่อมด้วยคำถามว่าข้อมูลจาก RDBMS, Logs และ Events เข้าสู่ Storage/Serving Systems อย่างไร
