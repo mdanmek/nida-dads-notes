@@ -7,7 +7,7 @@
 > **หลักสูตร:** วิทยาศาสตรมหาบัณฑิต สาขาการวิเคราะห์ข้อมูลและวิทยาการข้อมูล / สาขาวิทยาการคอมพิวเตอร์และระบบสารสนเทศ  
 > **ภาคการศึกษา:** 1/2569 ชั้นปีที่ 1
 
-ไฟล์ Hadoop ฉบับหลักเปลี่ยนเป็น `01_hadoop.md` ซึ่งรวมเนื้อหาจาก Lecture และ Lab ไว้ในเส้นเรื่องเดียว ไฟล์ย่อย `011`–`014` ยังเก็บไว้ชั่วคราวระหว่างการตรวจย้ายเนื้อหา แต่ไม่ใช่ฉบับที่แนะนำให้อ่าน ส่วนหัวข้ออื่นจะทยอยรวมเมื่อผ่านการเรียบเรียงและตรวจสอบแล้ว
+บทเรียนที่มีเอกสารแล้วจัดเป็นไฟล์รวมตามหมายเลข Lecture ได้แก่ `01_hadoop.md`, `02_hive.md`, `03_hbase.md` และ `04_data_ingestion.md` โดยผสาน Lecture กับ Lab ไว้ในเส้นเรื่องเดียว ไฟล์ย่อยรูปแบบ `0xy_...md` ยังเก็บไว้ชั่วคราวเพื่อเปรียบเทียบความครอบคลุม แต่ไม่ใช่เส้นทางอ่านหลัก
 
 ## ภาพรวมรายวิชาจาก Course Syllabus
 
@@ -90,17 +90,13 @@ DADS6002 เป็นวิชาหลักหรือวิชาบัง�
 
 ## 04 — Data Ingestion
 
-แหล่งหลัก: `dads6002_04_data_ingestion.pdf` จำนวน 22 หน้า ชุดนี้อธิบายเส้นทางที่ข้อมูลจากระบบภายนอกเข้าสู่ Hadoop และ Streaming Platform โดยแยก Batch Table Transfer, Log/Event Collection และ Distributed Event Streaming ออกจากกัน
+แหล่งหลัก: `dads6002_04_data_ingestion.pdf` จำนวน 22 หน้า และ `lab_04_data_ingestion.pdf` จำนวน 13 หน้า
 
-1. [บทที่ 04.1: Data Ingestion และ Sqoop](041_data_ingestion_and_sqoop.md) — Ingestion Pattern, RDBMS → HDFS/Hive/HBase, Mapper Parallelism, Validation และสถานะปัจจุบันของ Sqoop
-2. [บทที่ 04.2: Flume, Avro และ Event Data Flow](042_flume_avro_and_event_flows.md) — Source–Channel–Sink, Reliability, Multi-agent/Fan-in Flow และ Product Impression Example
-3. [บทที่ 04.3: Kafka Streaming Foundations](043_kafka_streaming_foundations.md) — Broker, Topic, Partition, Offset, Replication, Producer, Consumer Group, Ordering และ KRaft
+- [04 — Data Ingestion: จากข้อมูลภายนอกสู่ Hadoop และ Event Streaming](04_data_ingestion.md)
 
-### วิธีอ่านชุด Data Ingestion สำหรับผู้เริ่มต้น
+บทเรียนรวมเริ่มจากคำถามว่าข้อมูลเกิดเป็นตาราง ไฟล์ หรือ event และต้องสดเพียงใด แล้วใช้ Sqoop อธิบาย Batch Table Transfer, ใช้ Flume อธิบาย Source–Channel–Sink และใช้ Kafka อธิบาย Durable Event Log ที่หลาย Consumer Groups อ่านอย่างอิสระ ภายในมีภาพ Data Flow, Lab MySQL → HDFS/Hive/HBase, Product Impression Pipeline และ Kafka Producer/Consumer พร้อมโจทย์บรรยายและแนวคำตอบ
 
-เริ่ม 04.1 ด้วยคำถามว่า “ข้อมูลมาจากระบบใด มาเป็นรอบหรือต่อเนื่อง และปลายทางต้องใช้อย่างไร” จากนั้นใช้ Sqoop เป็นตัวอย่างของ Batch Bulk Transfer แล้วอ่าน 04.2 เพื่อติดตาม Event ต่อเนื่องผ่าน Source → Channel → Sink เมื่อเข้าใจการเก็บและส่ง Event แล้วจึงอ่าน 04.3 เพื่อดูว่า Kafka ทำให้ Event เดิมถูกเก็บแบบ Durable Log และเปิดให้ Consumer Groups หลายชุดอ่านอย่างอิสระได้อย่างไร
-
-เครื่องมือในสไลด์สะท้อนทั้ง Legacy Hadoop และแนวคิดที่ยังใช้ในปัจจุบัน ชุดนี้จึงแยกสิ่งที่ควรรู้เพื่อสอบออกจากสิ่งที่ควรใช้ตัดสินใจในระบบใหม่ เช่น Sqoop ถูก Retire แล้ว และ Kafka 4.x ใช้ KRaft แทน ZooKeeper
+ไฟล์เดิม `041–043` ยังคงเก็บไว้ชั่วคราวเพื่อเปรียบเทียบความครอบคลุม แต่เส้นทางอ่านหลักคือ `04_data_ingestion.md` เนื้อหาแยกบริบทของระบบเดิมออกจากปัจจุบัน เช่น Sqoop ถูก retire แล้ว และ Kafka รุ่นใหม่ใช้ KRaft แทน ZooKeeper
 
 ## Recommended Learning Path
 
@@ -108,9 +104,7 @@ DADS6002 เป็นวิชาหลักหรือวิชาบัง�
 flowchart TD
     A["01 Hadoop<br/>Big Data → HDFS → YARN → MapReduce → Orchestration"] --> G["02 Hive<br/>Files → Schema → HQL → Analytics"]
     G --> J["03 HBase<br/>RowKey → Region → Read / Write Path"]
-    J --> K["04.1 Batch Ingestion"]
-    K --> L["04.2 Flume Event Flow"]
-    L --> M["04.3 Kafka Streaming"]
+    J --> K["04 Data Ingestion<br/>Batch → Event Pipeline → Event Log"]
 ```
 
 ลำดับนี้เริ่มจากเหตุผลที่ต้องใช้ Distributed System ต่อด้วย Storage/Resource Management, Distributed Processing และ Workflow ก่อนยกระดับสู่ SQL-based Analytics ด้วย Hive แล้วจึงใช้ข้อจำกัดของงาน Batch เป็นสะพานไปสู่ HBase สำหรับการอ่านและเขียนข้อมูลรายแถว จากนั้นบท 04 ตอบคำถามที่อยู่ก่อนทุกระบบเหล่านี้ว่า ข้อมูลจาก RDBMS, Logs และ Events จะเข้าสู่แพลตฟอร์มอย่างถูกต้องและตรวจสอบได้อย่างไร
@@ -126,6 +120,9 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 | [Lab 02 Hive หน้า 1–4](../lab/lab_02_hive.pdf) | [02 Hive — HQL, Schema, SerDe และ Loading](02_hive.md) | DDL, MovieLens, managed/external, RegexSerDe | row count, sample fields และ null checks ผ่าน |
 | [Lab 02 Hive หน้า 3–5](../lab/lab_02_hive.pdf) | [02 Hive — Aggregation และ Joins](02_hive.md) | aggregate users และ web logs | group grain และผลรวม counts reconcile |
 | [Lab 03 HBase หน้า 1–7](../lab/lab_03_hbase.pdf) | [03 HBase — Data Model, Shell และ RowKey](03_hbase.md) | namespace, table, put/get, versions, scan, filter และ delete | Cell coordinates, version count, byte order และ scan boundary ตรงที่ทำนาย |
+| [Lab 04 Data Ingestion หน้า 1–5](../lab/lab_04_data_ingestion.pdf) | [04 Data Ingestion — Sqoop](04_data_ingestion.md) | MySQL → HDFS/Hive/HBase | row count, schema, key range และ business totals reconcile |
+| [Lab 04 Data Ingestion หน้า 6–11](../lab/lab_04_data_ingestion.pdf) | [04 Data Ingestion — Flume](04_data_ingestion.md) | product impression ผ่าน client/collector ไป HDFS | event count, duplicate, channel state และ HDFS files ตรวจสอบได้ |
+| [Lab 04 Data Ingestion หน้า 12–13](../lab/lab_04_data_ingestion.pdf) | [04 Data Ingestion — Kafka](04_data_ingestion.md) | console producer/consumer ใน architecture รุ่นเก่า | trace topic/partition/offset และแยก ZooKeeper ออกจาก KRaft ปัจจุบันได้ |
 
 วิธีอ่านที่แนะนำคืออ่านคำอธิบายจนตอบได้ว่า input → mechanism → output คืออะไร จากนั้นทำนายผลก่อนรัน Lab เก็บผลตรวจสอบ และจงใจทำ failure ที่กำหนดไว้หนึ่งครั้ง การจำคำสั่งโดยไม่ทำสามขั้นนี้อาจช่วยให้พิมพ์ตามได้ แต่ยังไม่พอสำหรับการสอบวิเคราะห์หรือวินิจฉัยระบบจริง
 
@@ -165,7 +162,7 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 | `01` | บทเรียนรวม Hadoop จาก Lecture และ Lab หมายเลข 01 | `01_hadoop.md` |
 | `02` | บทเรียนรวม Hive จาก Lecture และ Lab หมายเลข 02 | `02_hive.md` |
 | `03` | บทเรียนรวม HBase จาก Lecture และ Lab หมายเลข 03 | `03_hbase.md` |
-| `04.x` | ชุด Data Ingestion จากเอกสารหมายเลข 04 | `04.3` = Kafka streaming foundations |
+| `04` | บทเรียนรวม Data Ingestion จาก Lecture และ Lab หมายเลข 04 | `04_data_ingestion.md` |
 | ชื่อไฟล์ `0xy_...md` | รูปแบบเดิมที่เก็บไว้ชั่วคราวระหว่างตรวจบทเรียนรวม | `023_...md` = ไฟล์ Hive เดิมส่วนที่ 3 |
 
 เลขในชื่อไฟล์ หัวเรื่อง ลิงก์ข้ามบท และสารบัญต้องใช้ mapping เดียวกันนี้
@@ -186,13 +183,13 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 | วิเคราะห์ aggregation/join correctness | 02 | Analyze/Evaluate |
 | อธิบาย HBase data model และ read/write path | 03 | Explain/Analyze |
 | ออกแบบ RowKey และวิเคราะห์ hotspot | 03 | Apply/Evaluate |
-| เลือก Batch/Streaming Ingestion และตรวจความครบถ้วน | 04.1–04.2 | Apply/Analyze |
-| วิเคราะห์ Kafka partitioning, ordering และ consumer groups | 04.3 | Analyze/Evaluate |
+| เลือก Batch/Streaming Ingestion และตรวจความครบถ้วน | 04 | Apply/Analyze |
+| วิเคราะห์ Kafka partitioning, ordering และ consumer groups | 04 | Analyze/Evaluate |
 | ออกแบบ pipeline end-to-end | ทุกบท | Create |
 
 ## Final Revision Checklist
 
-- [ ] อธิบายลำดับ 01.1 → 04.3 และ dependency ของแต่ละบทได้
+- [ ] อธิบายลำดับ 01 → 04 และ dependency ของแต่ละบทได้
 - [ ] วาด HDFS/YARN/MapReduce flow จากความจำได้
 - [ ] แยก table, partition และ bucket ได้
 - [ ] อธิบาย schema-on-read และ SerDe ได้
@@ -210,12 +207,12 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - `dads6002_01_hadoop.pdf` หน้า 1–43 ครอบคลุมในบท 01.1–01.4
 - `dads6002_02_hive.pdf` หน้า 1–21 และ `lab_02_hive.pdf` หน้า 1–5 ครอบคลุมใน `02_hive.md`
 - `dads6002_03_hbase.pdf` หน้า 1–16 และ `lab_03_hbase.pdf` หน้า 1–7 ครอบคลุมใน `03_hbase.md`
-- `dads6002_04_data_ingestion.pdf` หน้า 1–22 ครอบคลุมในบท 04.1–04.3
+- `dads6002_04_data_ingestion.pdf` หน้า 1–22 และ `lab_04_data_ingestion.pdf` หน้า 1–13 ครอบคลุมในบท 04
 - `lab_01_hadoop.pdf` หน้า 1–5 และ Python mapper/reducer ครอบคลุมในบท 01.2–01.3
 
 ## Suite Review
 
-- บท Hadoop, Hive และ HBase ใช้ไฟล์รวม `01_hadoop.md`, `02_hive.md` และ `03_hbase.md`; Data Ingestion ยังใช้ไฟล์แยกเดิมระหว่างรอปรับ
+- บท Hadoop, Hive, HBase และ Data Ingestion ใช้ไฟล์รวม `01_hadoop.md`, `02_hive.md`, `03_hbase.md` และ `04_data_ingestion.md`
 - ทุกบทมี source range, prerequisites, teaching layer, practice, exam focus และ mastery checks
 - Hadoop → Hive เชื่อมผ่าน HDFS, MapReduce, metadata และ SQL abstraction
 - Hive → HBase เชื่อมผ่านความต่างระหว่าง batch analytics กับ low-latency row access
@@ -223,7 +220,7 @@ Lab ไม่ได้แยกเป็นบทใหม่ เพราะค
 - Hive Lecture หน้า 1–21 และ Lab หน้า 1–5 เชื่อมต่อกันใน `02_hive.md` โดยไม่มีช่วงหน้าตกหล่น
 - Lab ทุกชุดมีบ้านหลักตามแนวคิด ไม่สร้างไฟล์ซ้ำ และเพิ่ม prediction, expected evidence, deliberate failure กับ validation แล้ว
 - HBase Lecture หน้า 1–16 และ Lab หน้า 1–7 เชื่อมต่อกันใน `03_hbase.md` โดยไม่มีช่วงหน้าตกหล่น
-- Data Ingestion หน้า 1–6 มีบ้านหลักใน 04.1, หน้า 7–16 ใน 04.2 และหน้า 17–22 ใน 04.3 โดยแยก Legacy Context ออกจาก Current Context
+- Data Ingestion หน้า 1–22 และ Lab หน้า 1–13 มีบ้านหลักใน `04_data_ingestion.md` โดยแยก Legacy Context ออกจาก Current Context
 
 ## References
 
