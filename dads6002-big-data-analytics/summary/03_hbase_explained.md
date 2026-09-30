@@ -1,10 +1,6 @@
-# 03 — Apache HBase (ฉบับอธิบายเพิ่มสำหรับผู้ไม่มีพื้นฐาน)
+# 03 — Apache HBase
 
-> **ที่มา:** ปรับปรุงจากสรุป `03_hbase.md` (Lecture หน้า 1–16, Lab หน้า 1–7)
-> **สถานะ:** ตรวจเทียบกับ slide `dads6002_03_hbase.pdf` ครบทั้ง 16 หน้าแล้ว (คำว่า "สไลด์หน้า N" ในเอกสารนี้ = เลขหน้าที่พิมพ์มุมขวาล่างของ PDF ซึ่งหนึ่งหน้ามี 2 สไลด์)
-> **สัญลักษณ์:** 📄 = ตรงกับสไลด์ (ระบุหน้า) | 💡 = ความรู้เพิ่มเติมนอกสไลด์ ข้ามได้ถ้าอาจารย์ไม่ได้สอน | ⚠️ = จุดที่สไลด์กับระบบจริงต่างกัน หรือสไลด์พิมพ์ผิด (สรุปไว้ในหัวข้อ 15)
-> **หลักตอบข้อสอบ:** ถ้าสไลด์กับ 💡 ต่างกัน ให้ตอบตามสไลด์เป็นหลัก แล้วค่อยเสริมรายละเอียด
-> **Lab:** หัวข้อ 10 ทำตามไฟล์ `lab_03_hbase.md` (Gemini แปลงจาก PDF) ผลลัพธ์ที่ระบุว่า "คาดว่าจะได้" มาจากการวิเคราะห์ ไม่ได้รันบน HBase จริง; หัวข้อ 10B เป็นแบบฝึกเสริมที่ไม่อยู่ใน lab
+> **การทดลอง:** หัวข้อ 10 เป็นชุดปฏิบัติการตามลำดับ ผลลัพธ์ที่ระบุว่า "คาดว่าจะได้" มาจากการวิเคราะห์กฎการทำงานของระบบ ยังไม่ได้รันบน HBase จริง ให้เทียบกับผลในเครื่องของคุณอีกครั้ง หัวข้อ 10B เป็นแบบฝึกเสริม
 
 [← Course Syllabus](00_course_syllabus.md) | [บทก่อนหน้า: Hive](02_hive.md)
 
@@ -38,7 +34,7 @@ flowchart LR
 | ศัพท์ | ความหมายแบบสั้น |
 |---|---|
 | **Cluster / Node** | กลุ่มคอมพิวเตอร์หลายเครื่องที่ทำงานร่วมกัน แต่ละเครื่องคือ node |
-| **HDFS** | ระบบไฟล์ที่กระจายไฟล์ไปเก็บหลาย node และทำสำเนา (replication) ไว้กันเครื่องพัง เหมาะกับไฟล์ใหญ่ที่เขียนต่อท้ายหรือเขียนใหม่ทั้งไฟล์ แต่ **ไม่เหมาะกับการแก้กลางไฟล์** สไลด์หน้า 1 เรียกคุณสมบัตินี้ว่า **WORM** (Write Once, Read Many = เขียนครั้งเดียว อ่านได้หลายครั้ง) |
+| **HDFS** | ระบบไฟล์ที่กระจายไฟล์ไปเก็บหลาย node และทำสำเนา (replication) ไว้กันเครื่องพัง เหมาะกับไฟล์ใหญ่ที่เขียนต่อท้ายหรือเขียนใหม่ทั้งไฟล์ แต่ **ไม่เหมาะกับการแก้กลางไฟล์** คุณสมบัตินี้เรียกว่า **WORM** (Write Once, Read Many = เขียนครั้งเดียว อ่านได้หลายครั้ง) |
 | **RDBMS** | ฐานข้อมูลเชิงสัมพันธ์ เช่น MySQL, PostgreSQL ข้อมูลเป็นตารางที่ทุกแถวมีคอลัมน์ชุดเดียวกัน ใช้ SQL และ JOIN ได้ |
 | **Hive** | เครื่องมือบน Hadoop ที่ให้เขียนคำสั่งคล้าย SQL (HQL) แล้วแปลงเป็นงานประมวลผลแบบ batch (ใช้ HDFS + MapReduce) ไปอ่านไฟล์ใน HDFS |
 | **Batch processing** | ประมวลผลข้อมูลก้อนใหญ่ในรอบเดียว ใช้เวลาเป็นนาทีถึงชั่วโมง เหมาะกับสรุปผล/รายงาน |
@@ -59,7 +55,7 @@ flowchart LR
 - **แบบ A — รายงาน:** "จำนวนการแจ้งเตือนรายวันในรอบ 3 ปี" ต้องอ่านข้อมูลมหาศาลแล้วรวมผล รอเป็นนาทีได้ → **Hive เหมาะ**
 - **แบบ B — หน้าจอปฏิบัติการ:** "เปิดสถานะล่าสุดของอุปกรณ์ `DEV-0098` เดี๋ยวนี้ และบันทึกค่าชีพจรใหม่ทุกไม่กี่วินาที" → ถ้าใช้ Hive ทุกคำขอต้องเริ่ม batch job ไปสแกนไฟล์ ช้าเกินไป → **HBase เหมาะ**
 
-### 📄 เหตุผลที่สไลด์หน้า 1 ให้ว่าทำไมต้องมี HBase
+### เหตุผลที่ต้องมี HBase
 
 1. Hive วิเคราะห์ด้วย SQL บนข้อมูลใน HDFS แบบ **batch** (ใช้ HDFS + MapReduce)
 2. เพราะ HDFS เป็น **WORM** Hive จึงไม่ถูกออกแบบให้ **อ่าน/เขียนแบบสุ่ม เรียลไทม์ latency ต่ำ**
@@ -88,7 +84,7 @@ flowchart LR
 (RowKey, Column Family, Column Qualifier, Timestamp)  →  Value
 ```
 
-💡 ภาพนี้ตรงกับที่อธิบายในเอกสาร Apache HBase (sorted map) ช่วยให้เข้าใจว่าทำไม HBase ถึงเก่งเรื่อง "หาตาม key" และ "อ่านเป็นช่วง key"
+ภาพนี้ตรงกับที่อธิบายในเอกสาร [Apache HBase: Data Model](https://hbase.apache.org/docs/datamodel/) (sorted map) ช่วยให้เข้าใจว่าทำไม HBase ถึงเก่งเรื่อง "หาตาม key" และ "อ่านเป็นช่วง key"
 
 ### 3.2 ตัวอย่างค่าหนึ่งจุด (Cell)
 
@@ -109,7 +105,7 @@ Value:         37.2
 
 ชื่อคอลัมน์เขียนเป็น `family:qualifier` เช่น `reading:temperature`
 
-📄 สไลด์หน้า 8 เขียนพิกัดของ cell แบบย่อว่า `{ rowkey, column, timestamp }` โดย "column" ในที่นี้คือ `family:qualifier` ส่วนสไลด์หน้า 7 นิยาม cell ว่า **จุดตัดของ row และ column**
+พิกัดของ cell เขียนแบบย่อได้ว่า `{ rowkey, column, timestamp }` โดย "column" ในที่นี้คือ `family:qualifier` และ cell คือ **จุดตัดของ row และ column**
 
 ### 3.3 ลำดับชั้น (จากนอกเข้าใน)
 
@@ -128,41 +124,41 @@ flowchart TD
 - HBase **เรียง Row ตามลำดับ byte ของ RowKey** เสมอ (ดูผลกระทบในหัวข้อ 4)
 - RowKey ไม่มีชนิดข้อมูลแบบ `INT` หรือ `VARCHAR` แอปพลิเคชันต้องแปลงค่าเป็น byte array เอง วิธีแปลงจึงกำหนดลำดับของแถว
 - RowKey ทำหน้าที่พร้อมกันหลายอย่าง: ระบุแถว, เป็น index หลัก, กำหนดลำดับการ scan และกำหนดว่าแถวไปอยู่ Region ไหน
-- 📄 สไลด์หน้า 3: RowKey ไม่มี data type เก็บเป็น byte array (จึงเป็น string, เลขฐานสอง หรือ serialized structure ก็ได้) และตาราง **เรียงตาม RowKey และถูก index อัตโนมัติ**
-- 📄 สไลด์หน้า 8: HBase **ไม่รองรับ join** และมี **index เดียวคือ RowKey** ถ้าออกแบบ RowKey ผิดกับ query ที่ต้องใช้ จะแก้ยาก → **เริ่มออกแบบจาก "คำถามที่จะถาม" ไม่ใช่จากรายชื่อฟิลด์**
+- RowKey ไม่มี data type เก็บเป็น byte array (จึงเป็น string, เลขฐานสอง หรือ serialized structure ก็ได้) และตาราง **เรียงตาม RowKey และถูก index อัตโนมัติ**
+- HBase **ไม่รองรับ join** และมี **index เดียวคือ RowKey** ถ้าออกแบบ RowKey ผิดกับ query ที่ต้องใช้ จะแก้ยาก → **เริ่มออกแบบจาก "คำถามที่จะถาม" ไม่ใช่จากรายชื่อฟิลด์**
 
 ### 3.5 Column Family และ Column Qualifier
 
 **Column Family**
-- 📄 สไลด์หน้า 7: ต้องนิยาม family **ก่อน** เริ่มใส่ข้อมูลลงในแถว/คอลัมน์นั้น
-- สไลด์หน้า 8 บอกว่า family และ column เพิ่ม/ลบได้แบบ dynamic ซึ่งไม่ขัดกับข้างบน: **qualifier** เพิ่มได้ทันทีตอนเขียนข้อมูล ส่วน **family** เพิ่มภายหลังได้ด้วย `disable` → `alter` → `enable` (ดูหัวข้อ 9.3)
+- ต้องนิยาม family **ก่อน** เริ่มใส่ข้อมูลลงในแถว/คอลัมน์นั้น
+- ตำราหลายเล่มบอกว่า family และ column เพิ่ม/ลบได้แบบ dynamic ซึ่งไม่ขัดกับข้างบน: **qualifier** เพิ่มได้ทันทีตอนเขียนข้อมูล ส่วน **family** เพิ่มภายหลังได้ด้วย `disable` → `alter` → `enable` (ดูหัวข้อ 9.3)
 - เป็น **หน่วยจัดเก็บจริง** (คอลัมน์ในกลุ่มเดียวกันถูกเก็บไว้ด้วยกัน) และเป็นจุดตั้งค่า เช่น compression, จำนวน versions, TTL (อายุข้อมูล)
 - ควรจัดข้อมูลที่ **มักอ่านพร้อมกัน และมีอายุ/นโยบายเก็บคล้ายกัน** ไว้ family เดียวกัน
-- **อย่าสร้าง family ต่อ field** เพราะแต่ละ family เพิ่ม MemStore และไฟล์ต่อ Region ทำให้เปลืองทรัพยากร (💡 โดยทั่วไปแนะนำให้มี family น้อยๆ เช่น 1–3)
+- **อย่าสร้าง family ต่อ field** เพราะแต่ละ family เพิ่ม MemStore และไฟล์ต่อ Region ทำให้เปลืองทรัพยากร (โดยทั่วไปแนะนำให้มี family น้อยๆ เช่น 1–3)
 
 **Column Qualifier**
 - คือส่วนหลัง `:` เช่น `profile:name`, `profile:address`
 - เพิ่มได้ทันทีโดยไม่ต้องแก้ schema
 - แต่ละ row มี qualifier ต่างกันได้
 
-**ตัวอย่างตาราง Person (📄 สไลด์หน้า 7: RowKey = Person ID)**
+**ตัวอย่างตาราง Person (RowKey = Person ID)**
 
 | RowKey | `personal-data:name` | `personal-data:address` | `Demographic:birthdate` | `Demographic:gender` |
 |---|---|---|---|---|
 | P001 | Mali | Bangkok | 1990-04-11 | F |
 | P002 | Anan | *(ไม่มี)* | 1985-08-20 | *(ไม่มี)* |
 
-- family ที่ต้องประกาศ: `personal-data`, `Demographic` (ชื่อตามสไลด์)
+- family ที่ต้องประกาศ: `personal-data`, `Demographic` (ชื่อตามตัวอย่างในวิชานี้)
 - `personal-data:address` ของ P002 **ไม่ได้ถูกเก็บเป็น NULL** แต่ไม่มี cell นี้อยู่จริง
 
 ### 3.6 Cell, Timestamp และ Version
 
 - Cell ถูกระบุด้วย `{RowKey, Family, Qualifier, Timestamp}`
 - ถ้า `put` ซ้ำที่ `RowKey + family:qualifier` เดิม ระบบสร้าง cell **ใหม่ที่ timestamp ใหม่** ไม่ได้เขียนทับค่าเดิมทันที การอ่านปกติจะได้ **ค่าล่าสุดก่อน**
-- 📄 สไลด์หน้า 7: timestamp เก็บเป็น **long integer หน่วยมิลลิวินาทีนับจาก 1 ม.ค. 1970 UTC**
-- 📄 สไลด์หน้า 8: มิติเวลาถูกเรียง **จากใหม่ไปเก่า** ดังนั้นตอนอ่านจะเจอค่าล่าสุดก่อนเสมอ
+- timestamp เก็บเป็น **long integer หน่วยมิลลิวินาทีนับจาก 1 ม.ค. 1970 UTC**
+- มิติเวลาถูกเรียง **จากใหม่ไปเก่า** ดังนั้นตอนอ่านจะเจอค่าล่าสุดก่อนเสมอ
 - จะเก็บย้อนหลังกี่ version ขึ้นกับการตั้งค่า `VERSIONS` ของ **Column Family**
-- ตามสไลด์ค่าเริ่มต้นคือ **1 version** → ห้ามสรุปว่า "ทุกการแก้ไขมีประวัติให้ย้อนดู"
+- ค่าเริ่มต้นคือ **1 version** → ห้ามสรุปว่า "ทุกการแก้ไขมีประวัติให้ย้อนดู"
 
 **ทำไมหลาย version ไม่เท่ากับ audit log**
 version ที่เก็บไว้อาจหายได้จาก TTL, compaction และ delete marker ถ้าเป็นข้อมูลที่ต้องพิสูจน์ประวัติได้ (การแพทย์ การเงิน) ควรออกแบบตาราง event/audit แยกและกำหนด retention ชัดเจน
@@ -173,7 +169,7 @@ version ที่เก็บไว้อาจหายได้จาก TTL, 
 
 - **NoSQL** = คำกว้างๆ สำหรับฐานข้อมูลที่ไม่ยึด relational model เป็นแกนหลัก มีหลายชนิด: document, key-value, graph, **column-family (HBase อยู่กลุ่มนี้)**
 - HBase มีต้นแบบจาก **Google Bigtable**
-- สไลด์ใช้คำว่า schema-less แต่ควรเข้าใจว่าเป็น **schema-flexible**:
+- บางตำราใช้คำว่า schema-less แต่ควรเข้าใจว่าเป็น **schema-flexible**:
   - **ต้องกำหนดล่วงหน้า:** table, column family (และ RowKey ที่ต้องออกแบบ)
   - **ยืดหยุ่น:** qualifier ในแต่ละ row
 
@@ -182,14 +178,14 @@ version ที่เก็บไว้อาจหายได้จาก TTL, 
 ### 3.8 Strong Consistency มีขอบเขตแค่ไหน
 
 - **Strong consistency:** เมื่อเขียนแถวสำเร็จแล้ว การอ่านหลังจากนั้นต้องเห็นค่าใหม่ ไม่เห็นค่าเก่าเหมือนการเขียนยังไม่เกิด
-- 💡 เหตุที่ทำได้: แต่ละ Region ถูกให้บริการโดย **RegionServer เพียงตัวเดียว** ในเวลาหนึ่ง (หัวข้อ 5) ทุกอ่าน/เขียนของแถวนั้นจึงผ่านที่เดียวกัน
+- เหตุที่ทำได้: แต่ละ Region ถูกให้บริการโดย **RegionServer เพียงตัวเดียว** ในเวลาหนึ่ง (หัวข้อ 5) ทุกอ่าน/เขียนของแถวนั้นจึงผ่านที่เดียวกัน
 - **ขอบเขต:** การรับประกัน (atomicity) อยู่ที่ **ระดับ row** ไม่ใช่ transaction ข้ามหลาย row
 
 ตัวอย่าง:
-- เพิ่มตัวนับ `share` ในแถวเดียว → ทำแบบ atomic ได้ ✅
-- หักสต็อกแถว A แล้วเพิ่มสต็อกแถว B → ระบบไม่การันตีว่าสำเร็จทั้งคู่หรือไม่สำเร็จทั้งคู่ ถ้าธุรกิจต้องการ all-or-nothing ข้ามแถว ต้องปรับ data model (เช่น ใส่ข้อมูลที่ต้องเปลี่ยนพร้อมกันไว้ใน row เดียวกัน) หรือเลือกฐานข้อมูลที่รองรับ transaction ข้ามแถว ❌
+- เพิ่มตัวนับ `share` ในแถวเดียว → ทำแบบ atomic ได้
+- หักสต็อกแถว A แล้วเพิ่มสต็อกแถว B → ระบบไม่การันตีว่าสำเร็จทั้งคู่หรือไม่สำเร็จทั้งคู่ ถ้าธุรกิจต้องการ all-or-nothing ข้ามแถว ต้องปรับ data model (เช่น ใส่ข้อมูลที่ต้องเปลี่ยนพร้อมกันไว้ใน row เดียวกัน) หรือเลือกฐานข้อมูลที่รองรับ transaction ข้ามแถว
 
-### 3.9 📄 HBase เทียบกับ RDBMS (สไลด์หน้า 8 ข้อสอบมักถาม)
+### 3.9 HBase เทียบกับ RDBMS
 
 | หัวข้อ | HBase | RDBMS |
 |---|---|---|
@@ -201,8 +197,9 @@ version ที่เก็บไว้อาจหายได้จาก TTL, 
 | การขยายระบบ | Horizontal scalability แค่เพิ่มเครื่อง | Shard และ scale ยาก |
 | ชนิดข้อมูลที่เหมาะ | Semi-structured และ unstructured | Structured |
 
-📄 สไลด์หน้า 7 ให้ข้อดีของการเก็บแบบ column ว่า **คำนวณ aggregation ตามคอลัมน์บนข้อมูลชุดใหญ่ได้ แม้ไม่ใช่ทุกแถวจะมีค่าในคอลัมน์นั้น**
-💡 คำว่า column-oriented ในที่นี้ ที่ถูกต้องกว่าคือ **column-family oriented** (เก็บข้อมูลจัดกลุ่มตาม family) ไม่ใช่ columnar storage แบบฐานข้อมูลวิเคราะห์อย่าง Parquet
+ข้อดีของการเก็บแบบ column คือ **คำนวณ aggregation ตามคอลัมน์บนข้อมูลชุดใหญ่ได้ แม้ไม่ใช่ทุกแถวจะมีค่าในคอลัมน์นั้น**
+
+คำว่า column-oriented ในที่นี้ ที่ถูกต้องกว่าคือ **column-family oriented** (เก็บข้อมูลจัดกลุ่มตาม family) ไม่ใช่ columnar storage แบบฐานข้อมูลวิเคราะห์อย่าง Parquet
 
 ### 3.10 ควรใช้ HBase เมื่อไร
 
@@ -229,7 +226,7 @@ HBase ไม่รู้ว่า `'100'` คือเลขหนึ่งร�
                       (ค่าที่ขึ้นต้นด้วย '1' มาก่อนค่าที่ขึ้นต้นด้วย '2' เสมอ)
 ```
 
-📄 ตัวอย่างในสไลด์หน้า 13 (เลข 1–100 เก็บเป็น string) จะเรียงเป็น `1, 10, 100, 11, 12, …, 19, 2, 20, 21, …, 9, 90, 91, …, 99` เรียกว่า **lexicographical order**
+ตัวอย่าง: เลข 1–100 ที่เก็บเป็น string จะเรียงเป็น `1, 10, 100, 11, 12, …, 19, 2, 20, 21, …, 9, 90, 91, …, 99` เรียกว่า **lexicographical order**
 
 ถ้าต้องการให้เรียงตามค่าจริง:
 - **Zero-pad** ให้ความยาวเท่ากัน: `000001`, `000002`, `000100`
@@ -260,15 +257,15 @@ HBase ไม่รู้ว่า `'100'` คือเลขหนึ่งร�
 
 ### 4.3 Range Scan
 
-📄 สไลด์หน้า 13: Scan เริ่มที่ key แรกที่ **มากกว่าหรือเท่ากับ** `STARTROW` และหยุด **ก่อน** จุดหยุด (จุดหยุดไม่รวม) สไลด์เรียกจุดหยุดว่า `ENDROW` (shell รุ่นที่ใช้กันทั่วไปเรียก `STOPROW`) ทั้งสองค่า **ไม่ต้องตรงกับ row ที่มีอยู่จริง** และถ้าไม่ระบุจุดหยุด จะ scan ไปจนสุดตาราง
+Scan เริ่มที่ key แรกที่ **มากกว่าหรือเท่ากับ** `STARTROW` และหยุด **ก่อน** จุดหยุด (จุดหยุดไม่รวม) จุดหยุดเรียกว่า `ENDROW` ในบางเอกสาร และ `STOPROW` ใน shell รุ่นที่ใช้กันทั่วไป (สองชื่อนี้ความหมายเหมือนกัน) ทั้งสองค่า **ไม่ต้องตรงกับ row ที่มีอยู่จริง** และถ้าไม่ระบุจุดหยุด จะ scan ไปจนสุดตาราง
 
-ตัวอย่างจากสไลด์:
+ตัวอย่างที่ใช้ `ENDROW`:
 
 ```ruby
 scan 'linkshare', {COLUMN => 'link:title', STARTROW => 'org.hbase.www', ENDROW => 'org.hive.www'}
 ```
 
-ผล: ได้ row ตั้งแต่ `org.hbase.www` จนถึงก่อน `org.hive.www` (สไลด์พิมพ์ `link:little` ซึ่งเป็น typo ของ `link:title`)
+ผล: ได้ row ตั้งแต่ `org.hbase.www` จนถึงก่อน `org.hive.www`
 
 ตัวอย่างต่อไปนี้ใช้ชื่อ option ว่า `STOPROW`
 
@@ -281,11 +278,11 @@ scan 'linkshare', {
 
 **ทำไมใช้ `'org.apache/'` เป็นจุดหยุด?** ในตาราง ASCII อักขระ `.` (0x2E) ตามด้วย `/` (0x2F) ทันที ดังนั้นทุก key ที่ขึ้นต้นด้วย `org.apache.` จะอยู่ระหว่างสองค่านี้พอดี เป็นเทคนิคทำ "prefix scan"
 
-⚠️ `ENDROW` (สไลด์) กับ `STOPROW` (shell ที่ใช้กันทั่วไป) ความหมายเหมือนกัน ตอบข้อสอบตามสไลด์ได้ แต่ถ้ารันแล้ว error ให้ดู `help 'scan'`
+`ENDROW` กับ `STOPROW` ความหมายเหมือนกัน ถ้ารันแล้ว error ให้ดู `help 'scan'` ของรุ่นที่ใช้
 
 ### 4.4 Filter
 
-📄 สไลด์หน้า 14: HBase มี filter class ให้กรองผลของ `get`/`scan` ดูรายการทั้งหมดด้วย `show_filters`
+HBase มี filter class ให้กรองผลของ `get`/`scan` ดูรายการทั้งหมดด้วย `show_filters`
 
 | Filter | ใช้ทำอะไร |
 |---|---|
@@ -293,7 +290,7 @@ scan 'linkshare', {
 | **ValueFilter** | กรอง column ในแต่ละ row ตาม *ค่า* ของมัน |
 | **ColumnRangeFilter** | ตัด "ชิ้น" ของคอลัมน์ในแถวที่กว้างมาก (คอลัมน์ที่ค่าอยู่ในช่วง) |
 | **SingleColumnValueFilter** | กรอง row ตามค่าของคอลัมน์ที่ระบุคอลัมน์เดียว |
-| **RegexStringComparator** | ทดสอบว่า regular expression ตรงกับค่า cell หรือไม่ (💡 จริงๆ เป็น comparator ที่ใช้ร่วมกับ filter อื่น) |
+| **RegexStringComparator** | ทดสอบว่า regular expression ตรงกับค่า cell หรือไม่ (จริงๆ เป็น comparator ที่ใช้ร่วมกับ filter อื่น) |
 
 Filter ให้ RegionServer **กรองก่อนส่งผลกลับ**
 
@@ -303,7 +300,7 @@ Filter ให้ RegionServer **กรองก่อนส่งผลกลั
 
 ### 4.5 Hotspot: ความเร็ว scan แลกกับการกระจายภาระ
 
-📄 **ตามสไลด์หน้า 10:** HBase เก็บ row เรียงตาม key ทำให้ key ที่คล้ายกันไปอยู่ region server เดียวกัน ข้อดีคือ range scan เร็ว ข้อเสียคือภาระอ่าน/เขียนไม่สมดุล บาง key ถูกเรียกบ่อยจนกลายเป็น **hotspot**
+HBase เก็บ row เรียงตาม key ทำให้ key ที่คล้ายกันไปอยู่ region server เดียวกัน ข้อดีคือ range scan เร็ว ข้อเสียคือภาระอ่าน/เขียนไม่สมดุล บาง key ถูกเรียกบ่อยจนกลายเป็น **hotspot**
 
 **กรณีคลาสสิก:** rows ที่ key ติดกันอยู่ Region เดียวกัน (ทำให้ range scan เร็ว) แต่ถ้า key ใหม่ **เพิ่มขึ้นเรื่อยๆ** เช่น ใช้ timestamp นำหน้า ทุก write ใหม่จะไปลงที่ Region สุดท้ายเสมอ
 
@@ -383,31 +380,31 @@ flowchart TD
 - **Control plane** (งานควบคุม): HMaster มอบหมาย Region, จัดสมดุลโหลด, งานแอดมิน
 - **Data plane** (งานข้อมูลจริง): Client คุยกับ RegionServer **โดยตรง** หลังรู้ตำแหน่งแล้ว
 
-📄 ภาพสถาปัตยกรรมในสไลด์หน้า 4 (ของ Cloudera) แสดงว่า HBase ประกอบด้วย **API, Master, RegionServers (ภายในมี HFile + Memstore + Write-Ahead Log)** ทำงานบน **HDFS** และใช้ **ZooKeeper**
+ภาพรวมสถาปัตยกรรม: HBase ประกอบด้วย **API, Master, RegionServers (ภายในมี HFile + Memstore + Write-Ahead Log)** ทำงานบน **HDFS** และใช้ **ZooKeeper**
 
 ### 5.4 บทบาทแต่ละส่วน
 
 **HMaster**
-- 📄 สไลด์หน้า 4: (1) ประสานงาน RegionServers: assign region, re-assign เมื่อต้อง recovery หรือ load balancing และ **เฝ้าดู RegionServer ทุกตัว โดยรับแจ้งเตือนจาก ZooKeeper** (2) Admin functions: เป็นช่องทางสร้าง/ลบ/แก้ไข table
+- หน้าที่: (1) ประสานงาน RegionServers: assign region, re-assign เมื่อต้อง recovery หรือ load balancing และ **เฝ้าดู RegionServer ทุกตัว โดยรับแจ้งเตือนจาก ZooKeeper** (2) Admin functions: เป็นช่องทางสร้าง/ลบ/แก้ไข table
 - ไม่ใช่ทางผ่านของทุก `get`/`put`
 - ถ้า HMaster หยุดชั่วคราว Region ที่ทำงานอยู่อาจยังให้บริการได้ แต่งานแอดมิน การย้าย Region และ recovery จะกระทบ → ระบบจริงควรมี HMaster สำรอง
 
 **RegionServer**
 - รับ read/write ของ Region ที่ตนถืออยู่
 - ดูแล WAL, MemStore, BlockCache, Store/HFile
-- 📄 สไลด์หน้า 5: RegionServer รันบน HDFS data node (เครื่องเดียวกัน เพื่ออ่านข้อมูลใกล้ตัว หรือ locality) แต่ **เป็นคนละ service** ไม่ใช่ตัวเดียวกัน
+- RegionServer รันบน HDFS data node (เครื่องเดียวกัน เพื่ออ่านข้อมูลใกล้ตัว หรือ locality) แต่ **เป็นคนละ service** ไม่ใช่ตัวเดียวกัน
 
 **ZooKeeper และ `hbase:meta`**
-- 📄 สไลด์หน้า 6: ZooKeeper เป็นตัวประสานงานแบบกระจาย ดูแลว่า **server ไหนยังมีชีวิต/พร้อมใช้** และ **แจ้งเตือนเมื่อ server ล้ม** โดย server จะส่ง **heartbeat** ให้ ZooKeeper เป็นระยะ ถ้าเงียบไปถือว่าอาจล้ม
-- 📄 ตารางแค็ตตาล็อก **META table** เก็บตำแหน่งของทุก Region พร้อม starting rowkey ของแต่ละ Region (ชื่อปัจจุบัน `hbase:meta`)
+- ZooKeeper เป็นตัวประสานงานแบบกระจาย ดูแลว่า **server ไหนยังมีชีวิต/พร้อมใช้** และ **แจ้งเตือนเมื่อ server ล้ม** โดย server จะส่ง **heartbeat** ให้ ZooKeeper เป็นระยะ ถ้าเงียบไปถือว่าอาจล้ม
+- ตารางแค็ตตาล็อก **META table** เก็บตำแหน่งของทุก Region พร้อม starting rowkey ของแต่ละ Region (ชื่อปัจจุบัน `hbase:meta`)
 - Client ต้องรู้ก่อนว่า RowKey ที่ต้องการอยู่ Region ไหน RegionServer ไหน
-- 📄 **ลำดับตามสไลด์หน้า 6 (ข้อสอบมักถาม):**
+- **ลำดับการหาตำแหน่งข้อมูล (ข้อสอบมักถาม):**
   1. Client ถาม **ZooKeeper** ว่า RegionServer ตัวไหนดูแล META table
   2. Client ไปถาม **META table** ว่า RowKey นี้อยู่ Region ไหน / RegionServer ไหน
   3. Client ติดต่อ **RegionServer** นั้นเพื่ออ่าน/เขียน
-  4. 💡 Client **เก็บ (cache) ตำแหน่งไว้** ครั้งต่อไปไม่ต้องถามซ้ำ (สไลด์ไม่ได้พูดถึงข้อนี้)
+  4. Client **เก็บ (cache) ตำแหน่งไว้** ครั้งต่อไปไม่ต้องถามซ้ำ
 - ถ้า Region ย้ายหรือ split จนตำแหน่งที่ cache ไว้ผิด client จะ refresh
-- 💡 HBase รุ่นใหม่ๆ อาจใช้กลไก bootstrap ต่างจากนี้ แต่แก่นเหมือนเดิมคือ "หาตำแหน่ง → คุย RegionServer โดยตรง" ข้อสอบให้ตอบตามลำดับในสไลด์
+- HBase รุ่นใหม่ๆ อาจใช้กลไก bootstrap ต่างจากนี้ แต่แก่นเหมือนเดิมคือ "หาตำแหน่ง → คุย RegionServer โดยตรง" ถ้าข้อสอบถามลำดับ ให้ตอบตามสี่ขั้นข้างบน
 
 ### สรุปหัวข้อ 5
 1. Table → Regions (ตามช่วง key) → RegionServers (1 Region : 1 server ณ เวลาหนึ่ง)
@@ -456,9 +453,9 @@ sequenceDiagram
 
 ลองตัดออกทีละอย่าง:
 
-- **มีแค่ MemStore ไม่มี WAL:** เครื่องดับ → ข้อมูลใน memory หายทั้งที่ตอบ "สำเร็จ" ไปแล้ว ❌
-- **เขียน HFile ทุกครั้งที่ put ไม่มี MemStore:** สร้างไฟล์เล็กๆ จำนวนมหาศาล I/O เยอะ ❌
-- **WAL + MemStore:** WAL รับประกันไม่หาย (durability) ส่วน MemStore รวมการเขียนแบบสุ่มหลายครั้งให้กลายเป็นการเขียนไฟล์ที่เรียงลำดับแล้วรอบเดียว ✅
+- **มีแค่ MemStore ไม่มี WAL:** เครื่องดับ → ข้อมูลใน memory หายทั้งที่ตอบ "สำเร็จ" ไปแล้ว
+- **เขียน HFile ทุกครั้งที่ put ไม่มี MemStore:** สร้างไฟล์เล็กๆ จำนวนมหาศาล I/O เยอะ
+- **WAL + MemStore:** WAL รับประกันไม่หาย (durability) ส่วน MemStore รวมการเขียนแบบสุ่มหลายครั้งให้กลายเป็นการเขียนไฟล์ที่เรียงลำดับแล้วรอบเดียว
 
 นี่คือคำตอบของ "HDFS แก้กลางไฟล์ไม่ได้ แล้ว HBase ทำ update ได้อย่างไร" → ไม่ได้แก้ของเดิม แต่ **เพิ่ม cell รุ่นใหม่** (ใน WAL/MemStore แล้วค่อยลง HFile ใหม่) แล้วตอนอ่านเลือกรุ่นล่าสุด
 
@@ -503,16 +500,16 @@ flowchart LR
     X --> R["Result"]
 ```
 
-💡 **Bloom filter** คือโครงสร้างข้อมูลเล็กๆ ที่ตอบได้ว่า "key นี้ *ไม่มีแน่นอน* ในไฟล์นี้" หรือ "*อาจมี*" ช่วยข้ามไฟล์ที่ไม่ต้องเปิด (อาจตอบผิดแบบ "อาจมี" ทั้งที่ไม่มีได้ แต่ไม่ตอบ "ไม่มี" ทั้งที่มีอยู่)
+**Bloom filter** คือโครงสร้างข้อมูลเล็กๆ ที่ตอบได้ว่า "key นี้ *ไม่มีแน่นอน* ในไฟล์นี้" หรือ "*อาจมี*" ช่วยข้ามไฟล์ที่ไม่ต้องเปิด (อาจตอบผิดแบบ "อาจมี" ทั้งที่ไม่มีได้ แต่ไม่ตอบ "ไม่มี" ทั้งที่มีอยู่)
 
-📄 **ตามสไลด์หน้า 6 (ใช้ประโยคนี้ตอบข้อสอบเป็นหลัก):** ทุกการอ่านค้น **BlockCache และ MemStore** ด้วย rowkey ก่อน ถ้าไม่พบจึงค้น **HFiles ด้วย binary search**
+**สรุปสั้นสำหรับตอบข้อสอบ:** ทุกการอ่านค้น **BlockCache และ MemStore** ด้วย rowkey ก่อน ถ้าไม่พบจึงค้น **HFiles ด้วย binary search**
 
-💡 **รายละเอียดเพิ่ม (ระบบจริง):** ค่าล่าสุดอาจอยู่ใน MemStore ขณะที่ค่าเก่าอยู่ใน HFile จึงต้องรวมผลจากหลายแหล่งแล้วเลือกที่ timestamp ใหม่สุด และอาจต้องตรวจ HFile หลายไฟล์ ยิ่งมีไฟล์ซ้อนกันมาก การอ่านยิ่งช้า (**read amplification**) → นี่คือเหตุผลที่ต้องมี compaction
+**รายละเอียดในระบบจริง:** ค่าล่าสุดอาจอยู่ใน MemStore ขณะที่ค่าเก่าอยู่ใน HFile จึงต้องรวมผลจากหลายแหล่งแล้วเลือกที่ timestamp ใหม่สุด และอาจต้องตรวจ HFile หลายไฟล์ ยิ่งมีไฟล์ซ้อนกันมาก การอ่านยิ่งช้า (**read amplification**) → นี่คือเหตุผลที่ต้องมี compaction
 
 ### 7.2 BlockCache
 
 - เก็บ blocks ที่อ่านบ่อยใน memory ลดการอ่านดิสก์
-- 📄 สไลด์หน้า 5: เมื่อเต็ม ข้อมูลที่ **ถูกใช้ล่าสุดนานที่สุด (LRU: Least Recently Used)** จะถูกไล่ออก (evict)
+- เมื่อเต็ม ข้อมูลที่ **ถูกใช้ล่าสุดนานที่สุด (LRU: Least Recently Used)** จะถูกไล่ออก (evict)
 - restart RegionServer → cache ว่างเปล่า ("เย็น") อ่านช้าชั่วคราว
 - **ช่วยเรื่องความเร็ว ไม่ใช่ความทนทาน** ข้อมูลจริงอยู่ใน HFile/WAL
 
@@ -528,9 +525,9 @@ flowchart LR
 
 **Delete ทำงานอย่างไร:** `delete` ไม่ได้ลบ byte ทันที แต่สร้าง **delete marker (tombstone)** ตอน compaction (โดยเฉพาะ major) จึงลบข้อมูลจริงออก
 
-📄 **ตามสไลด์หน้า 6 (ตอบข้อสอบตามนี้):** minor compaction ทำ **อัตโนมัติ** รวม HFile เล็กบางส่วนเป็นหนึ่งไฟล์ เพื่อให้ binary search ครั้งต่อไปเร็วขึ้น ส่วน major compaction ต้อง **สั่งเอง** เพื่อรวม HFile ทั้งหมดของ table เป็นหนึ่งไฟล์
+**สรุปสั้นสำหรับตอบข้อสอบ:** minor compaction ทำ **อัตโนมัติ** รวม HFile เล็กบางส่วนเป็นหนึ่งไฟล์ เพื่อให้ binary search ครั้งต่อไปเร็วขึ้น ส่วน major compaction ต้อง **สั่งเอง** เพื่อรวม HFile ทั้งหมดของ table เป็นหนึ่งไฟล์
 
-💡 **รายละเอียดเพิ่ม:** จริงๆ ทำในขอบเขตแต่ละ Store/Region ไม่ใช่ทั้ง table ข้ามทุก Region และคำสั่งใน shell คือ `major_compact 'ชื่อตาราง'` (สไลด์เขียน `major_compaction`) 
+**รายละเอียดเพิ่ม:** จริงๆ ทำในขอบเขตแต่ละ Store/Region ไม่ใช่ทั้ง table ข้ามทุก Region และคำสั่งใน shell คือ `major_compact 'ชื่อตาราง'`
 
 ### 7.4 ติดตาม Cell หนึ่งตลอดวงจร (Worked Trace)
 
@@ -567,7 +564,7 @@ flowchart LR
 
 ## 9. HBase Shell: อธิบายทีละคำสั่ง
 
-เปิด shell (📄 สไลด์หน้า 9):
+เปิด shell:
 
 ```bash
 hbase shell
@@ -577,7 +574,7 @@ hbase shell
 
 **กฎที่ต้องรู้:**
 - Shell ใช้ไวยากรณ์แบบ Ruby → ชื่อ table/row/column ใส่ในเครื่องหมาย **single quote**
-- สไลด์ที่ copy จาก PowerPoint อาจมี "smart quotes" (’ ‘ “ ”) ต้องเปลี่ยนเป็น ASCII quote ธรรมดา `'` และ `"` ก่อนรัน ไม่เช่นนั้นจะ error
+- โค้ดที่ copy จากเอกสารหรือ PowerPoint อาจมี "smart quotes" (’ ‘ “ ”) ต้องเปลี่ยนเป็น ASCII quote ธรรมดา `'` และ `"` ก่อนรัน ไม่เช่นนั้นจะ error
 
 ### 9.1 Namespace
 
@@ -605,9 +602,9 @@ describe 'linkshare'
 
 ### 9.3 เปลี่ยน schema (alter)
 
-📄 **ตามสไลด์หน้า 9–10:** สร้างตารางด้วย family เดียว แล้ว "เพิ่ม family ภายหลัง" ต้อง `disable` ก่อนเพื่อไม่ให้ client เข้าถึงระหว่างแก้
+สร้างตารางด้วย family เดียว แล้ว "เพิ่ม family ภายหลัง" ต้อง `disable` ก่อนเพื่อไม่ให้ client เข้าถึงระหว่างแก้
 
-(ถ้าทำตามสไลด์ ให้สร้างตารางด้วย family เดียวแบบนี้แทน 9.2 ไม่ต้องสร้างซ้ำสองแบบ)
+(ถ้าทำตามขั้นนี้ ให้สร้างตารางด้วย family เดียวแบบนี้แทน 9.2 ไม่ต้องสร้างซ้ำสองแบบ)
 
 ```ruby
 create 'linkshare', 'link'          # สร้างตารางที่มี family เดียว
@@ -617,7 +614,7 @@ enable 'linkshare'
 describe 'linkshare'
 ```
 
-**ตัวอย่างที่ 2 (สไลด์หน้า 12): ปรับจำนวน version**
+**ตัวอย่างที่ 2: ปรับจำนวน version**
 
 ```ruby
 disable 'linkshare'
@@ -626,9 +623,9 @@ enable 'linkshare'
 describe 'linkshare'
 ```
 
-- workflow ตามสไลด์: `disable` → `alter` → `enable`
+- ลำดับที่ต้องทำ: `disable` → `alter` → `enable`
 - ระหว่าง disable, client อ่าน/เขียนไม่ได้ → ต้องวางแผนช่วงบำรุงรักษา
-- ⚠️ HBase บางรุ่นทำ online schema change ได้บางกรณี ให้ทำตาม environment ของอาจารย์และดู `help 'alter'`
+- HBase บางรุ่นทำ online schema change ได้บางกรณี ให้ทำตามสภาพแวดล้อมที่ใช้และดู `help 'alter'`
 
 ### 9.4 put และ get
 
@@ -650,7 +647,7 @@ incr 'linkshare', 'org.hbase.www', 'statistics:share', 1
 get_counter 'linkshare', 'org.hbase.www', 'statistics:share'
 ```
 
-📄 สไลด์หน้า 11: counter ผูกกับแต่ละคอลัมน์ของแถว (สไลด์พิมพ์ `'statistics: share'` มีช่องว่างเกิน ที่ถูกคือ `'statistics:share'`)
+counter ผูกกับแต่ละคอลัมน์ของแถว ชื่อคอลัมน์เขียนติดกันเป็น `'statistics:share'` ไม่มีช่องว่างหลัง `:`
 
 **ทำไมไม่ `get` แล้ว `put` บวกเอง?** ถ้า client สองตัวอ่านได้ 10 พร้อมกัน ต่างคนเขียน 11 → ผลลัพธ์ควรเป็น 12 แต่ได้ 11 (**lost update**) `incr` ให้ server บวกแบบ atomic จึงปลอดภัย
 
@@ -668,14 +665,14 @@ get 'linkshare', 'org.hbase.www', {
 
 - อาร์กิวเมนต์ตัวสุดท้ายของ `put` คือ timestamp ที่กำหนดเอง (ms) เพื่อให้ทดลองซ้ำได้
 - จะเห็น 2 versions ได้ **ก็ต่อเมื่อ family ตั้ง `VERSIONS` ≥ 2** (ค่าเริ่มต้น 1 จะเห็นแค่ล่าสุด → ถ้าไม่เห็น ให้ `alter` ตามหัวข้อ 9.3 ก่อน แล้วเขียนใหม่)
-- 📄 สไลด์หน้า 12: ระบุช่วงเวลาด้วย timestamp หน่วย ms หรือระบุจำนวน version ที่ต้องการแทนก็ได้
+- ระบุช่วงเวลาด้วย timestamp หน่วย ms หรือระบุจำนวน version ที่ต้องการแทนก็ได้
 
 ```ruby
 get 'linkshare', 'org.hbase.www', 'link:title', {TIMERANGE => [1399887705673, 1400133976734]}
 ```
 
-  โดยทั่วไป start รวม, end ไม่รวม (💡 ถ้ารูปแบบนี้ error ให้ใช้ `{COLUMN => 'link:title', TIMERANGE => [...]}`)
-- สไลด์: `VERSIONS => 2` ดึง version ย้อนหลัง 2 รุ่น ค่าเริ่มต้นเก็บได้ **1 version** และ version 1 คือรุ่นล่าสุด; ปรับจำนวนสูงสุดด้วย `alter 'linkshare', {NAME => 'link', VERSIONS => 5}`
+  โดยทั่วไป start รวม, end ไม่รวม (ถ้ารูปแบบนี้ error ให้ใช้ `{COLUMN => 'link:title', TIMERANGE => [...]}`)
+- `VERSIONS => 2` ดึง version ย้อนหลัง 2 รุ่น ค่าเริ่มต้นเก็บได้ **1 version** และ version 1 คือรุ่นล่าสุด; ปรับจำนวนสูงสุดด้วย `alter 'linkshare', {NAME => 'link', VERSIONS => 5}`
 
 ### 9.7 get แบบเฉพาะคอลัมน์ / scan
 
@@ -686,7 +683,7 @@ scan 'linkshare', {STARTROW => 'org.apache.', STOPROW => 'org.apache/'}
 ```
 
 - `get` = point get (รู้ RowKey เต็ม) → จุดแข็งของ HBase
-- 📄 สไลด์หน้า 11 มีรูปแบบย่อ: `get 'linkshare', 'org.hbase.www', 'link:title', 'statistics:share'`
+- มีรูปแบบย่อ: `get 'linkshare', 'org.hbase.www', 'link:title', 'statistics:share'`
 - `scan` = อ่านเป็นช่วง
 
 ### 9.8 Filter
@@ -698,14 +695,14 @@ scan 'linkshare', {
 }
 ```
 
-📄 ตัวอย่างในสไลด์หน้า 14:
+ตัวอย่าง:
 
 ```ruby
 scan 'linkshare', {FILTER => "RowFilter(>, 'binary:xyz')"}
 scan 'linkshare', {COLUMN => 'link:title', FILTER => "ValueFilter(<=, 'binary:Apache')"}
 ```
 
-(สไลด์พิมพ์ `'binary:xyz)'` ขาดเครื่องหมาย `'` ปิด) ความหมาย: ตัวแรกได้ row ที่ RowKey มากกว่า `xyz` ตัวที่สองได้ cell ใน `link:title` ที่ค่าน้อยกว่าหรือเท่ากับ `Apache` (เทียบเป็น byte) syntax อาจต่างตามรุ่น ให้ทดสอบด้วย `show_filters` และ `help 'scan'`
+ความหมาย: ตัวแรกได้ row ที่ RowKey มากกว่า `xyz` ตัวที่สองได้ cell ใน `link:title` ที่ค่าน้อยกว่าหรือเท่ากับ `Apache` (เทียบเป็น byte) syntax อาจต่างตามรุ่น ให้ทดสอบด้วย `show_filters` และ `help 'scan'`
 
 ### 9.9 Delete, Flush, Drop
 
@@ -721,13 +718,11 @@ drop 'linkshare'                                    # ลบทั้ง table (
 
 ---
 
-## 10. Lab ตามไฟล์ `lab_03_hbase` (ทำตามลำดับ)
+## 10. ปฏิบัติการ: ชุดคำสั่งตามลำดับ (ทำตามลำดับ)
 
-> **ที่มาและข้อจำกัด:** ส่วนนี้เทียบกับ `lab_03_hbase.md` ที่ Gemini แปลงมาจาก PDF (ไม่ได้ตรวจกับ PDF ต้นฉบับ) ผลลัพธ์ที่ "คาดว่าจะได้" ผมวิเคราะห์จากกฎ byte order และพฤติกรรมของคำสั่ง **ไม่ได้รันบน HBase จริง** ให้เทียบกับผลในเครื่อง lab ของคุณอีกที
+> **ข้อจำกัด:** ผลลัพธ์ที่ระบุว่า "คาดว่าจะได้" วิเคราะห์จากกฎ byte order และพฤติกรรมของคำสั่ง ยังไม่ได้รันบน HBase จริง ให้เทียบกับผลในเครื่องของคุณอีกครั้ง
 >
-> **รอยแปลงของ Gemini ที่ต้องแก้ก่อนรัน**
-> - ขั้น "เปลี่ยนจำนวน version" ไฟล์เขียน `VERSIONS $=>4$` ที่ถูกคือ `VERSIONS => 4`
-> - มีบรรทัด *(Note: ปรับแก้เครื่องหมาย Single quote ...)* ที่ Gemini แทรกเอง ไม่ใช่เนื้อหาของ lab
+> **ข้อควรระวังก่อนรัน**
 > - ใช้ single quote `'` และ `"` ธรรมดาเท่านั้น (ห้าม smart quotes)
 > - ช่องว่างที่ต้องระวัง: `'statistics: share'` และ `'binary: Apache Hbase'` (ดูขั้น 6 และ 9)
 
@@ -752,8 +747,8 @@ list_namespace
 ```
 
 - รูปแบบชื่อตารางที่อยู่ใน namespace คือ `namespace:table`
-- `drop_namespace` ก่อน `drop` table จะ error เพราะ namespace ยังไม่ว่าง (คำสั่งเรียงถูกอยู่แล้วในไฟล์ lab)
-- ✅ ผลที่คาด: หลังจบขั้นนี้ `list_namespace` ไม่มี `ns_test` แล้ว
+- `drop_namespace` ก่อน `drop` table จะ error เพราะ namespace ยังไม่ว่าง
+- ผลที่คาด: หลังจบขั้นนี้ `list_namespace` ไม่มี `ns_test` แล้ว
 
 ### ขั้น 3 — สร้างตาราง `linkshare` และเพิ่ม family
 
@@ -766,7 +761,7 @@ enable 'linkshare'
 describe 'linkshare'
 ```
 
-- ✅ ผลที่คาด: `describe` เห็น 2 family คือ `link` และ `statistics`
+- ผลที่คาด: `describe` เห็น 2 family คือ `link` และ `statistics`
 
 ### ขั้น 4 — เขียนข้อมูล 3 แถว
 
@@ -786,8 +781,8 @@ incr 'linkshare', 'org.hbase.www', 'statistics:share', 2
 get_counter 'linkshare', 'org.hbase.www', 'statistics:share'
 ```
 
-- ✅ ผลที่คาด: ค่า counter = **3** (1 + 2)
-- ⚠️ ไฟล์ lab เขียน `'statistics: share'` (มีช่องว่างหลัง `:`) ซึ่งเป็นค่าเดียวกับที่พบใน slide ถ้าพิมพ์ตามนั้น HBase จะมองเป็น qualifier ที่ชื่อขึ้นต้นด้วยช่องว่าง (`" share"`) ซึ่งเป็นคนละ column กับที่ `incr` ใช้ ผลจึงอาจได้ 0 หรือ error ให้พิมพ์ `'statistics:share'` ไม่มีช่องว่าง
+- ผลที่คาด: ค่า counter = **3** (1 + 2)
+- ถ้าพิมพ์ `'statistics: share'` (มีช่องว่างหลัง `:`) HBase จะมองเป็น qualifier ที่ชื่อขึ้นต้นด้วยช่องว่าง (`" share"`) ซึ่งเป็นคนละ column กับที่ `incr` ใช้ ผลจึงอาจได้ 0 หรือ error ให้พิมพ์ `'statistics:share'` ไม่มีช่องว่าง
 
 ### ขั้น 6 — get
 
@@ -796,8 +791,8 @@ get 'linkshare', 'org.hbase.www', 'link:title'
 get 'linkshare', 'org.hbase.www', 'link:title', 'statistics:share'
 ```
 
-- ✅ ผลที่คาด: คำสั่งแรกได้ `link:title` = `Apache Hbase`; คำสั่งที่สองได้ทั้ง title และ `statistics:share`
-- 💡 ค่า counter ใน `get` แสดงเป็น bytes (`\x00...\x03`) เพราะ HBase เก็บทุกอย่างเป็น byte array ใช้ `get_counter` จึงจะเห็นเป็นเลข 3
+- ผลที่คาด: คำสั่งแรกได้ `link:title` = `Apache Hbase`; คำสั่งที่สองได้ทั้ง title และ `statistics:share`
+- ค่า counter ใน `get` แสดงเป็น bytes (`\x00...\x03`) เพราะ HBase เก็บทุกอย่างเป็น byte array ใช้ `get_counter` จึงจะเห็นเป็นเลข 3
 
 ### ขั้น 7 — Versions
 
@@ -809,7 +804,7 @@ get 'linkshare', 'org.test.www', {COLUMN => 'link:title', VERSIONS => 2}
 ```
 
 - `alter` ตั้งให้ family `link` เก็บได้สูงสุด 4 version (ค่าเริ่มต้นคือ 1)
-- ✅ ผลที่คาด: เห็น 2 บรรทัดของ `link:title` คือ `Apache Test 2` (ใหม่กว่า อยู่บน) และ `Apache Test 1`
+- ผลที่คาด: เห็น 2 บรรทัดของ `link:title` คือ `Apache Test 2` (ใหม่กว่า อยู่บน) และ `Apache Test 1`
 - ถ้าเห็นแค่ version เดียว แปลว่า `VERSIONS` ของ family ยังเป็น 1 ให้ตรวจด้วย `describe` แล้วเขียน put ใหม่อีกสองครั้ง
 - ตอนนี้ตารางมี 4 row: `org.hadoop.www`, `org.hbase.www`, `org.hive.www`, `org.test.www`
 
@@ -830,7 +825,7 @@ scan 'linkshare', {COLUMN => 'link:title', STARTROW => 'org.hadoop.www', ENDROW 
 | `STARTROW => 'org.hbase.www'` | hbase, hive, test | เริ่มที่ key ≥ hbase ไปจนสุดตาราง |
 | `STARTROW => 'org.hadoop.www', ENDROW => 'org.hive.www'` | **hadoop, hbase** (ไม่มี hive) | ENDROW ไม่รวม |
 
-- ⚠️ ถ้า `ENDROW` error ในเครื่อง lab ให้ลอง `STOPROW`
+- ถ้า `ENDROW` error ในเครื่อง lab ให้ลอง `STOPROW`
 
 ### ขั้น 9 — Scan พร้อม Filter
 
@@ -848,7 +843,7 @@ scan 'linkshare', {COLUMN => 'link:title', FILTER => "ValueFilter(>, 'binary:Apa
 | `ValueFilter(<=, 'binary:Apache Hbase')` | hadoop, hbase | `Apache Ha…` < `Apache Hb…`; hbase เท่ากัน; hive (`Hi`) และ test (`T`) มากกว่า |
 | `ValueFilter(>, 'binary:Apache Hbase')` | hive, test | ตรงข้ามกับข้างบน |
 
-- ⚠️ ไฟล์ lab เขียน `'binary: Apache Hbase'` (มีช่องว่างหลัง `:`) ซึ่งอาจถูกอ่านเป็นค่าเปรียบเทียบ `" Apache Hbase"` ที่ขึ้นต้นด้วยช่องว่าง (ช่องว่างมีค่า byte น้อยกว่าตัวอักษร) ทำให้ผลของ `<=` และ `>` เพี้ยนไปจากตารางข้างบน (เช่น `<=` อาจไม่ได้อะไรเลย) ให้ลองทั้งสองแบบแล้วสังเกตความต่าง
+- ถ้าพิมพ์ `'binary: Apache Hbase'` (มีช่องว่างหลัง `:`) จะถูกอ่านเป็นค่าเปรียบเทียบ `" Apache Hbase"` ที่ขึ้นต้นด้วยช่องว่าง (ช่องว่างมีค่า byte น้อยกว่าตัวอักษร) ทำให้ผลของ `<=` และ `>` เพี้ยนไปจากตารางข้างบน (เช่น `<=` อาจไม่ได้อะไรเลย) ให้ลองทั้งสองแบบแล้วสังเกตความต่าง
 - การเปรียบเทียบเป็นแบบ byte จึงเป็น case-sensitive (`H` ≠ `h`)
 
 ### ขั้น 10 — Delete และ Update
@@ -859,7 +854,7 @@ put 'linkshare', 'org.hbase.www', 'link:title', 'new value'
 scan 'linkshare'
 ```
 
-- ✅ ผลที่คาด: `org.hbase.www` มี `link:title` = `new value` (และยังมี `statistics:share` ที่ไม่ได้ถูกลบ)
+- ผลที่คาด: `org.hbase.www` มี `link:title` = `new value` (และยังมี `statistics:share` ที่ไม่ได้ถูกลบ)
 - ข้อสังเกต: **`put` คือการ update** ใน HBase (ไม่มีคำสั่ง update แยก)
 - ข้อควรรู้: `delete` สร้าง delete marker (ไม่ได้ลบ byte ทันที) จึงมีเหตุผลที่ต้องเข้าใจเรื่อง compaction (หัวข้อ 7)
 
@@ -873,11 +868,11 @@ drop 'test'
 list
 ```
 
-- ✅ ผลที่คาด: `list` ครั้งแรกเห็น `test` ครั้งสุดท้ายไม่เห็น
+- ผลที่คาด: `list` ครั้งแรกเห็น `test` ครั้งสุดท้ายไม่เห็น
 - ถ้าอยากล้างตาราง `linkshare` ด้วย ใช้ `disable` แล้ว `drop` เช่นกัน
 
 ### เช็กลิสต์ทบทวนหลังทำ lab
-1. ทำไมต้อง `disable` ก่อน `alter` เพื่อเพิ่ม family (ตอบ: ไม่ให้ client เข้าถึงตารางระหว่างแก้โครงสร้าง — สไลด์หน้า 10)
+1. ทำไมต้อง `disable` ก่อน `alter` เพื่อเพิ่ม family (ตอบ: ไม่ให้ client เข้าถึงตารางระหว่างแก้โครงสร้าง)
 2. ทำไม `ENDROW => 'org.hive.www'` จึงไม่ได้ row hive (ตอบ: จุดหยุดไม่รวม)
 3. ทำไมเห็นแค่ 1 version ถ้าไม่ `alter VERSIONS` (ตอบ: ค่าเริ่มต้นเก็บ 1 version)
 4. ต่างกันอย่างไรระหว่าง `RowFilter` กับ `ValueFilter` (ตอบ: กรองตาม RowKey vs กรองตามค่าของ cell)
@@ -885,7 +880,7 @@ list
 
 ---
 
-## 10B. แบบฝึกเพิ่ม (ไม่อยู่ในไฟล์ lab): ทำนายก่อน → รัน → ตรวจผล
+## 10B. แบบฝึกเพิ่ม (เสริมจากชุดปฏิบัติการในหัวข้อ 10): ทำนายก่อน → รัน → ตรวจผล
 
 > ส่วนนี้มาจากไฟล์สรุปเดิม ใช้ฝึกเสริมเรื่อง byte order และ qualifier เท่านั้น ไม่ใช่ส่วนของ lab จริง
 
@@ -896,7 +891,7 @@ create 'linkshare_lab', 'link', 'statistics'
 describe 'linkshare_lab'
 ```
 
-🧠 **ทำนายก่อนรัน:** `describe` จะแสดง qualifier อะไรบ้างที่ยังไม่ได้ประกาศ?
+**ทำนายก่อนรัน:** `describe` จะแสดง qualifier อะไรบ้างที่ยังไม่ได้ประกาศ?
 **เฉลย:** ไม่แสดง qualifier เลย แสดงแค่ 2 family (`link`, `statistics`)
 
 ### ขั้น 2: เขียนข้อมูล
@@ -919,7 +914,7 @@ scan 'linkshare_lab'
 - `org.hbase.www` มี title และ counter = 1
 - `scan` เรียง `org.apache.www` ก่อน `org.hbase.www` (a < h ตาม byte order)
 
-💡 ค่า counter อาจแสดงเป็น bytes (เช่น `\x00\x00...\x01`) ใน `get` ให้ใช้ `get_counter` เพื่ออ่านเป็นตัวเลข
+ค่า counter อาจแสดงเป็น bytes (เช่น `\x00\x00...\x01`) ใน `get` ให้ใช้ `get_counter` เพื่ออ่านเป็นตัวเลข
 
 ### ขั้น 4: ปรับและวินิจฉัย
 
@@ -941,7 +936,7 @@ list
 |---|---|---|
 | เห็น version เดียว | Family ตั้ง `VERSIONS => 1` | `describe` แล้ว `alter` ปรับ version, เขียนค่าใหม่ |
 | Scan ช่วงไม่ได้ row ที่คาด | byte order หรือ boundary ผิด | ดู RowKey จริง, จำว่า STOPROW ไม่รวม |
-| Command error ทั้งที่พิมพ์ตรงสไลด์ | smart quotes / syntax ต่างรุ่น | เปลี่ยนเป็น `'` ธรรมดา, `help '<command>'` |
+| Command error ทั้งที่พิมพ์ตรงตามตัวอย่าง | smart quotes / syntax ต่างรุ่น | เปลี่ยนเป็น `'` ธรรมดา, `help '<command>'` |
 | Filter ช้าแม้คืนไม่กี่แถว | ไม่มี index, scan ช่วงกว้าง | จำกัด STARTROW/STOPROW หรือ redesign key |
 | alter/drop ไม่ได้ | table ยัง enabled หรือ syntax ต่างรุ่น | `is_enabled`, `disable`, `help` |
 
@@ -1034,51 +1029,14 @@ list
 - แยก Region, RegionServer, HFile และ HDFS block
 - วิเคราะห์ผลของ byte ordering, range scan และ RowKey hotspot
 - อธิบาย versions, filters, counters, flush และ compaction จากสถานการณ์
-- เปรียบเทียบ HBase กับ RDBMS (ตารางสไลด์หน้า 8) และเหตุผลที่ Hive ไม่พอ (WORM)
-- บทบาทของ Master, RegionServer (WAL / BlockCache / MemStore / HFile) และ ZooKeeper + META table (สไลด์หน้า 4–6)
+- เปรียบเทียบ HBase กับ RDBMS  และเหตุผลที่ Hive ไม่พอ (WORM)
+- บทบาทของ Master, RegionServer (WAL / BlockCache / MemStore / HFile) และ ZooKeeper + META table
 - ลำดับ lexicographical ของ RowKey (`1, 10, 100, 11, …, 2`)
-
----
-
-## 15. ผลตรวจเทียบกับ slide และจุดที่ต้องระวัง
-
-### 15.1 ยืนยันแล้วว่าตรงกับสไลด์
-- ค่าเริ่มต้นของ `VERSIONS` = 1 (หน้า 12)
-- ต้อง `disable` ก่อน `alter` (หน้า 10)
-- ลำดับ ZooKeeper → META → region (หน้า 6)
-- ลำดับการอ่าน BlockCache + MemStore → HFiles ด้วย binary search (หน้า 6)
-- MemStore มี 1 ชุดต่อ 1 column family ต่อ 1 region (หน้า 5)
-- BlockCache ไล่ข้อมูลแบบ LRU (หน้า 5)
-
-### 15.2 จุดที่สไลด์กับระบบจริงต่างกัน (ข้อสอบให้ตอบตามสไลด์ แล้วเสริมได้)
-
-| ประเด็น | สไลด์ว่า | ระบบจริง/ข้อควรรู้ |
-|---|---|---|
-| จุดหยุด scan | `ENDROW` (ไม่รวม) | shell ทั่วไปใช้ `STOPROW` ความหมายเหมือนกัน |
-| Major compaction | รวม HFiles ทั้ง table เป็นไฟล์เดียว | ทำต่อ Store/Region; คำสั่งจริง `major_compact` |
-| Read path | ค้น HFiles ด้วย binary search | อาจต้องรวมผลหลายไฟล์ + Bloom filter/index ช่วย |
-| "Column-oriented" | HBase เป็น column-oriented | ที่ถูกกว่าคือ column-family oriented |
-| Family "dynamic" | เพิ่ม/ลบได้ตอน runtime | ต้อง `disable` → `alter` → `enable` |
-
-### 15.3 Typo ในสไลด์ (อย่าลอกไปรันตรงๆ)
-- หน้า 13: `'link:little'` ควรเป็น `'link:title'`
-- หน้า 14: `"RowFilter (>, 'binary:xyz)"` ขาด `'` ปิด ควรเป็น `'binary:xyz'`
-- หน้า 11: `'statistics: share'` มีช่องว่างเกิน
-- หน้า 6: `Major_compaction` ไม่ใช่ชื่อคำสั่งจริง (คือ `major_compact`)
-- ทุกหน้าที่มีโค้ด: smart quotes จาก PowerPoint ต้องเปลี่ยนเป็น `'` และ `"` ธรรมดาก่อนรัน
-
-### 15.4 เนื้อหาในเอกสารนี้ที่ไม่อยู่ในสไลด์ (💡 ข้ามได้ถ้าอาจารย์ไม่เน้น)
-Bloom filter, ขั้นตอนกู้คืนเมื่อ RegionServer ล้มแบบละเอียด, วิธีแก้ hotspot (salting, reverse timestamp, pre-split), เหตุผลของ reversed domain, ข้อจำกัด multi-row transaction, และหัวข้อ 10B (namespace และขั้นตอน lab อยู่ใน `lab_03_hbase` จริง ตรวจแล้วในหัวข้อ 10)
-
-### 15.5 ควรถามอาจารย์
-รูปแบบข้อสอบเป็นแบบท่องขั้นตอน/ศัพท์ หรือวิเคราะห์สถานการณ์ และต้องตอบ hotspot ระดับใด เพื่อปรับน้ำหนักการทบทวน
 
 ---
 
 ## References
 
-- [Lecture — `dads6002_03_hbase.pdf`](../lecture/dads6002_03_hbase.pdf), หน้า 1–16
-- [Lab — `lab_03_hbase.pdf`](../lab/lab_03_hbase.pdf), หน้า 1–7
 - [Apache HBase: Data Model](https://hbase.apache.org/docs/datamodel/)
 - [Apache HBase: Architecture](https://hbase.apache.org/docs/architecture/)
 - [Apache HBase: RegionServer](https://hbase.apache.org/docs/architecture/regionserver/)
