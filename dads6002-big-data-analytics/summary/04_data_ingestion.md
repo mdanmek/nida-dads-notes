@@ -1,6 +1,6 @@
 # 04 — Data Ingestion: จากข้อมูลภายนอกสู่ Hadoop และ Event Streaming
 
-> **เอกสารหลัก:** [Lecture 04 — Data Ingestion](../lecture/dads6002_04_data_ingestion.pdf) หน้า 1–22 และ [Lab 04 — Data Ingestion](../lab/lab_04_data_ingestion.pdf) หน้า 1–13  
+> **เอกสารหลัก:** [Lecture 04 — Data Ingestion](../lecture/dads6002_04_data_ingestion.pdf) หน้า 1–22  
 > **เส้นทางอ่าน:** [← 03 HBase](03_hbase.md) | [สารบัญรายวิชา](00_course_syllabus.md)
 
 ข้อมูลที่เราใช้วิเคราะห์ไม่ได้ถือกำเนิดอยู่ใน HDFS, Hive หรือ HBase ตั้งแต่แรก ข้อมูลยอดขายอาจอยู่ใน MySQL, พฤติกรรมผู้ใช้อาจเกิดเป็น log file บน web server และเหตุการณ์สั่งซื้ออาจไหลเข้ามาตลอดเวลา ก่อนระบบวิเคราะห์จะทำงานได้จึงต้องมีขั้นตอนพาข้อมูลจาก “ที่ที่มันเกิด” ไปยัง “ที่ที่ระบบปลายทางใช้ได้” ขั้นตอนนี้เรียกว่า **Data Ingestion**
@@ -8,6 +8,8 @@
 บทนี้ใช้เครื่องมือสามตัวเพื่อสร้างภาพสามแบบที่ต่างกันชัดเจน Sqoop แสดงการย้ายตารางจำนวนมากเป็นรอบ, Flume แสดงการรับและส่ง event ผ่าน pipeline และ Kafka แสดงการเก็บ event เป็น distributed log ที่หลาย consumer group อ่านตามจังหวะของตนได้ แม้บางเครื่องมือในสไลด์เป็นเทคโนโลยีรุ่นเก่า แต่คำถามเรื่องต้นทาง ความถี่ ความทนทาน การอ่านซ้ำ ลำดับ และการตรวจสอบข้อมูลยังเป็นคำถามเดิมในระบบสมัยใหม่
 
 ## ภาพรวม: ข้อมูลอยู่ตรงไหนและเคลื่อนอย่างไร
+
+**คำถามนำ:** ก่อนเลือกเครื่องมือ เราจะจำแนกได้อย่างไรว่ากำลังย้ายตารางเป็นรอบ ส่ง Event ตามท่อ หรือสร้าง Event Log ที่หลายระบบอ่านซ้ำได้?
 
 ลองมองระบบโรงพยาบาลหนึ่งแห่ง ฐานข้อมูลธุรกรรมเก็บ master data และคำสั่งซื้อเป็นตาราง ทุกครั้งที่ผู้ใช้เปิดหน้าสินค้าจะเกิด event และหลายระบบปลายทางต้องการ event ชุดเดียวกัน ทั้ง data lake, dashboard และระบบแจ้งเตือน เครื่องมือทั้งสามจึงไม่ได้เป็นคำพ้องความหมาย แต่รับผิดชอบคนละรูปแบบของการเคลื่อนข้อมูล
 
@@ -31,6 +33,8 @@ flowchart LR
 | เมื่อระบบล้มจะทำอย่างไร | retry, deduplicate, resume และ reconcile |
 
 ## ส่วนที่ 1 — Sqoop: ย้ายตารางจาก RDBMS เป็นรอบ
+
+**คำถามนำ:** Sqoop แบ่งการดึง Table ขนาดใหญ่ให้หลาย Mappers ทำพร้อมกันอย่างไร และเหตุใดการเพิ่ม Parallelism จึงอาจกระทบฐานข้อมูลต้นทาง?
 
 ### 1. Data Ingestion คืออะไร
 
@@ -80,7 +84,7 @@ Apache Sqoop ถูกออกแบบให้ย้ายข้อมูล�
 
 ### 3. จำนวน Mappers ไม่ใช่เพียงตัวเลือกความเร็ว
 
-ตัวเลือก `-m 1` หรือ `--num-mappers 1` บังคับให้ใช้ Mapper เดียว จึงได้ไฟล์ Part เดียวและเข้าใจง่ายใน Lab แต่ใช้ Parallelism ไม่ได้ หากเพิ่ม Mappers Sqoop ต้องมี Column สำหรับแบ่งช่วง เช่น Primary Key หรือ Column ที่กำหนดผ่าน `--split-by`
+การใช้ Mapper เดียวทำให้ได้ไฟล์ Part เดียวและทำความเข้าใจเส้นทางได้ง่าย แต่ไม่ใช้ Parallelism หากเพิ่ม Mappers Sqoop ต้องมี Column สำหรับแบ่งช่วง เช่น Primary Key หรือ Split Column ที่กระจายข้อมูลเหมาะสม
 
 สมมติ `id` มีค่าตั้งแต่ 1 ถึง 1,000,000 และใช้ 4 Mappers แนวคิดอย่างง่ายคือแบ่งช่วงประมาณนี้:
 
@@ -95,27 +99,7 @@ Apache Sqoop ถูกออกแบบให้ย้ายข้อมูล�
 
 ### 4. Import จาก MySQL ไป HDFS
 
-สไลด์สร้างฐานข้อมูล `energydata` และ Table `avgprice_by_state` ซึ่งมีข้อมูลปี รัฐ ภาคการใช้พลังงาน และราคาเฉลี่ย จากนั้นใช้คำสั่ง Sqoop Import
-
-```bash
-sqoop import \
-  --connect jdbc:mysql://localhost:3306/energydata \
-  --username root \
-  --password-prompt \
-  --table avgprice_by_state \
-  --target-dir /user/cloudera/energydata \
-  --num-mappers 1
-```
-
-ตัวอย่างนี้ปรับเครื่องหมาย Dash และ Quote จากสไลด์ให้เป็นอักขระมาตรฐาน และใช้ `--password-prompt` แทนการเขียน Password ตรงใน Command Line เพราะคำสั่งอาจถูกบันทึกใน Shell History หรือมองเห็นจาก Process List
-
-ตรวจผลเบื้องต้น:
-
-```bash
-hadoop fs -ls /user/cloudera/energydata
-hadoop fs -cat /user/cloudera/energydata/part-m-00000 | head
-hadoop fs -cat /user/cloudera/energydata/part-m-00000 | wc -l
-```
+สไลด์ใช้ฐานข้อมูล `energydata` และ Table `avgprice_by_state` ซึ่งมีข้อมูลปี รัฐ ภาคการใช้พลังงาน และราคาเฉลี่ย เพื่อแสดงการ Import ไปยัง HDFS ผลลัพธ์เป็น Files หลาย Part ตามจำนวน Mappers ไม่ใช่ Table Metadata แบบ Hive และไม่ใช่ Rows ที่เข้าถึงผ่าน RowKey แบบ HBase
 
 การเห็นไฟล์อยู่ใน HDFS ยังไม่เพียงพอ ต้องเปรียบเทียบอย่างน้อย:
 
@@ -127,27 +111,7 @@ hadoop fs -cat /user/cloudera/energydata/part-m-00000 | wc -l
 
 ### 5. Import ไป Hive
 
-สไลด์แสดง `--hive-import` เพื่อสร้างหรือนำข้อมูลเข้า Hive Table โดยตรงจากมุมมองของผู้ใช้ แต่คำว่า “ตรง” ไม่ได้หมายความว่าข้อมูลไม่ผ่าน Storage Layer เพราะข้อมูลของ Hive ยังคงถูกจัดเก็บเป็น Files ใน HDFS หรือ Storage ที่กำหนด Hive เพิ่ม Table Metadata เหนือไฟล์เหล่านั้น
-
-```bash
-sqoop import \
-  --connect jdbc:mysql://localhost:3306/energydata \
-  --username root \
-  --password-prompt \
-  --table avgprice_by_state \
-  --hive-import \
-  --hive-table avgprice \
-  --num-mappers 1
-```
-
-หลัง Import ควรตรวจทั้ง Metadata และ Data:
-
-```sql
-DESCRIBE FORMATTED avgprice;
-SELECT COUNT(*) FROM avgprice;
-SELECT MIN(year), MAX(year) FROM avgprice;
-SELECT * FROM avgprice LIMIT 10;
-```
+สไลด์แสดงการ Import ไป Hive Table โดยตรงจากมุมมองของผู้ใช้ แต่คำว่า “ตรง” ไม่ได้หมายความว่าข้อมูลไม่ผ่าน Storage Layer เพราะข้อมูลของ Hive ยังคงถูกจัดเก็บเป็น Files ใน HDFS หรือ Storage ที่กำหนด Hive เพิ่ม Table Metadata เหนือไฟล์เหล่านั้น หลัง Import จึงต้องตรวจทั้ง Schema ใน Metastore และค่าที่อ่านได้จาก Files จริง
 
 Data Type จาก RDBMS อาจไม่แมปตรงกับ Hive ทุกกรณี โดยเฉพาะ Decimal, Date/Timestamp, Boolean และ Character Encoding จึงต้องตรวจ Schema ไม่ใช่ดูเฉพาะ Sample Rows
 
@@ -158,18 +122,6 @@ Data Type จาก RDBMS อาจไม่แมปตรงกับ Hive ท
 1. Column ใดเป็น **RowKey**
 2. Columns จะอยู่ใน **Column Family** ใด
 
-```bash
-sqoop import \
-  --connect jdbc:mysql://localhost:3306/country_db \
-  --username root \
-  --password-prompt \
-  --table country_tbl \
-  --hbase-table country \
-  --column-family country_cf \
-  --hbase-row-key id \
-  --hbase-create-table \
-  --num-mappers 1
-```
 
 การเลือก Primary Key ของ RDBMS เป็น HBase RowKey ทำได้ในตัวอย่างนี้เพราะ `id` ระบุ Row ได้ไม่ซ้ำ แต่ในงานจริงต้องพิจารณา Access Pattern, RowKey Distribution และ Hotspot ด้วย การคัดลอก Schema จาก RDBMS มา HBase แบบตรงตัวไม่ถือว่าเป็นการออกแบบ HBase ที่ดีโดยอัตโนมัติ
 
@@ -203,6 +155,8 @@ Pipeline ต้องตอบได้ว่าหาก Import ล้มคร
 
 
 ## จาก Batch Table ไปสู่ Event ที่เกิดอย่างต่อเนื่อง
+
+**คำถามนำ:** เมื่อข้อมูลเกิดขึ้นตลอดเวลาและปลายทางอาจหยุดชั่วคราว ระบบจะพัก Event ไว้ที่ใดและรับประกันการส่งต่อในขอบเขตใด?
 
 Sqoop เหมาะเมื่อข้อมูลต้นทางเป็นตารางและยอมรอให้ดึงเป็นรอบได้ แต่ log และ clickstream ไม่หยุดรอรอบกลางคืน ถ้าต้องรับข้อมูลที่เกิดขึ้นเรื่อย ๆ เราต้องมี buffer คั่นระหว่างผู้สร้างข้อมูลกับปลายทาง นี่คือจุดที่ Flume เข้ามาแก้ปัญหา
 
@@ -295,80 +249,26 @@ Client Agent รับ Events ใกล้ Source แล้วส่งไป Co
 
 จุดสำคัญไม่ใช่เพียงรับไฟล์ได้ แต่ต้องกำหนด Event Contract เช่น Field ที่จำเป็น Timestamp Unit, Allowed Actions, Event ID, Character Encoding และวิธีจัดการ Invalid JSON หาก Contract ไม่ชัด ต่อให้ Pipeline ไม่ Error ก็อาจส่งข้อมูลคุณภาพต่ำไป HDFS
 
-### 7. อ่าน Client Agent Configuration
+### 7. อ่านเส้นทางของ Client Agent
 
-```properties
-client.sources = r1
-client.sources.r1.type = spooldir
-client.sources.r1.spoolDir = /tmp/impressions
-client.sources.r1.channels = ch1
-
-client.channels = ch1
-client.channels.ch1.type = FILE
-
-client.sinks = k1
-client.sinks.k1.type = avro
-client.sinks.k1.hostname = localhost
-client.sinks.k1.port = 4141
-client.sinks.k1.channel = ch1
-```
-
-เส้นทางคือ Spool Directory → Source `r1` → File Channel `ch1` → Avro Sink `k1` → Collector Port 4141
+เส้นทางเชิงแนวคิดคือ Spool Directory → Source → File Channel → Avro Sink → Collector การอ่าน Flow ต้องเริ่มจากชนิดของ Component และการเชื่อม Source–Channel–Sink ไม่ใช่จำชื่อ `r1`, `ch1` หรือ `k1`
 
 Spool Directory Source เหมาะกับไฟล์ที่เขียนเสร็จแล้วและนำมาวางใน Directory ไม่ควรให้ Application เขียนต่อท้ายไฟล์เดิมขณะที่ Flume กำลังอ่าน เพราะอาจทำให้ Event Boundary และสถานะไฟล์ไม่เป็นไปตามที่คาด
 
-### 8. อ่าน Collector Agent Configuration
+### 8. อ่านเส้นทางของ Collector Agent
 
-```properties
-collector.sources = r1
-collector.sources.r1.type = avro
-collector.sources.r1.bind = 0.0.0.0
-collector.sources.r1.port = 4141
-collector.sources.r1.channels = ch1
+เส้นทาง Collector คือ Avro Source → File Channel → HDFS Sink การแยก Client กับ Collector เพิ่มจุดพักและ Failure Boundary อีกหนึ่งชั้น จึงต้องตรวจว่า Event ถูก Commit ออกจาก Channel ใดเมื่อใด และหากปลายทางล้ม Event ยังอยู่ที่จุดใด
 
-collector.channels = ch1
-collector.channels.ch1.type = FILE
-collector.channels.ch1.checkpointDir = /tmp/flume/checkpoint
-collector.channels.ch1.dataDirs = /tmp/flume/data
+### 9. Validation ต้องพิสูจน์มากกว่า “มีไฟล์ปลายทาง”
 
-collector.sinks = k1
-collector.sinks.k1.type = hdfs
-collector.sinks.k1.channel = ch1
-collector.sinks.k1.hdfs.path = /user/cloudera/impressions
-collector.sinks.k1.hdfs.filePrefix = impressions
-collector.sinks.k1.hdfs.fileSuffix = .log
-collector.sinks.k1.hdfs.fileType = DataStream
-collector.sinks.k1.hdfs.writeFormat = Text
-collector.sinks.k1.hdfs.batchSize = 1000
-```
-
-เส้นทาง Collector คือ Avro Source → File Channel → HDFS Sink การเห็นชื่อ `r1`, `ch1`, `k1` เพียงอย่างเดียวไม่บอกหน้าที่ ต้องอ่าน Type และการ Bind ระหว่าง Components ด้วย
-
-### 9. การรันและ Validation
-
-```bash
-flume-ng agent --name collector --conf . --conf-file ./collector.conf
-flume-ng agent --name client --conf . --conf-file ./client.conf
-```
-
-สไลด์ใช้ `&` เพื่อรัน Background แต่ผู้เริ่มต้นควรรัน Foreground ก่อนเพื่อเห็น Error Log แล้วจึงจัดการ Process ด้วยเครื่องมือที่เหมาะสม
-
-Validation ขั้นต่ำ:
-
-```bash
-hadoop fs -ls /user/cloudera/impressions
-hadoop fs -cat /user/cloudera/impressions/impressions*.log | head
-hadoop fs -cat /user/cloudera/impressions/impressions*.log | wc -l
-```
-
-ตรวจเพิ่ม:
+การเห็นไฟล์ถูกสร้างไม่ได้พิสูจน์ว่า Event เดินทางครบ ไม่ซ้ำ และยังรักษาความหมายเดิมไว้ การตรวจจึงควรครอบคลุม:
 
 - จำนวน Events ที่ Source สร้าง เทียบกับจำนวน Lines ปลายทาง
 - JSON Parse Success/Failure
 - Duplicate Event ID
 - Channel Fill Percentage และ Sink Error
 - จำนวน/ขนาด HDFS Files เพื่อป้องกัน Small-files Problem
-- Permission ของ Directory; `chmod 777` ในสไลด์เหมาะกับ Lab เก่า ไม่ใช่ Production Security Practice
+- สิทธิ์ของ Directory และ Service Account โดยไม่เปิดสิทธิ์กว้างเกินความจำเป็น
 
 ### 10. Failure Scenarios
 
@@ -382,6 +282,8 @@ hadoop fs -cat /user/cloudera/impressions/impressions*.log | wc -l
 
 
 ## จากท่อส่ง Event ไปสู่ Event Log ที่อ่านซ้ำได้
+
+**คำถามนำ:** หากหลายระบบต้องอ่าน Event ชุดเดียวกันในเวลาต่างกันและบางระบบต้อง Replay ข้อมูลเดิม เหตุใดท่อส่งแบบ Source–Channel–Sink จึงยังไม่เพียงพอ?
 
 Flume ช่วยส่ง event ตามเส้นทาง Source → Channel → Sink แต่เมื่อ event ชุดเดียวต้องถูกใช้โดยหลายระบบและแต่ละระบบต้องอ่านตามจังหวะของตนเอง เราต้องการพื้นที่กลางที่เก็บ event ตามลำดับและจำตำแหน่งการอ่านได้ Kafka จึงไม่ใช่เพียงท่ออีกเส้น แต่เป็น distributed event log
 
@@ -534,6 +436,8 @@ Flume และ Kafka ไม่จำเป็นต้องแทนกัน�
 
 ## เปรียบเทียบ Sqoop, Flume และ Kafka จากปัญหาที่แก้
 
+**คำถามนำ:** เครื่องมือทั้งสามต่างกันที่ชนิดข้อมูลอย่างเดียว หรือแตกต่างถึงรูปแบบเวลา การพักข้อมูล การอ่านซ้ำ และจำนวนผู้บริโภค?
+
 | ประเด็น | Sqoop | Flume | Kafka |
 |---|---|---|---|
 | หน่วยข้อมูลหลัก | rows ในตาราง | events ที่ไหลผ่าน agent | records ใน partition log |
@@ -545,27 +449,9 @@ Flume และ Kafka ไม่จำเป็นต้องแทนกัน�
 
 อย่าจำว่า “Sqoop เก่า, Flume ส่ง log, Kafka ใหม่กว่า” แล้วจบ เพราะคำตอบนั้นยังเลือกสถาปัตยกรรมไม่ได้ ให้เริ่มจาก data contract และรูปแบบการใช้ข้อมูล จากนั้นจึงตัดสินใจว่าเราต้องการ batch transfer, reliable pipeline หรือ durable shared event log
 
-## Lab 04: ทำให้คำสั่งกลายเป็นหลักฐานความเข้าใจ
+## ฝึกเขียนตอบแบบบรรยาย
 
-Lab ใช้ชุดข้อมูลราคาไฟฟ้ารายรัฐและ product impression เพื่อทดลองเส้นทางเดียวกับ Lecture คำสั่งบางส่วนอ้างถึง Cloudera VM, MySQL, ZooKeeper และ Kafka รุ่นเก่า จึงควรอ่านในฐานะหลักฐานของกลไก ไม่ใช่สูตรติดตั้งสำหรับ production รุ่นปัจจุบัน
-
-### ทดลอง Sqoop: MySQL ไป HDFS, Hive และ HBase
-
-เริ่มจากสร้างฐานข้อมูล `energydata` และ table `avgprice_by_state` ใน MySQL แล้ว import ไฟล์ข้อมูลด้วย `LOAD DATA LOCAL INFILE` หลังจากนั้นจึงใช้ Sqoop ย้ายข้อมูลไปสามปลายทาง การทดลองที่ดีต้องเขียนค่าคาดหวังก่อนรัน ได้แก่จำนวน rows, ช่วงปี, จำนวนค่า null และยอดรวมของ measure ที่เลือก แล้วตรวจปลายทางด้วยวิธีที่เหมาะกับ HDFS, Hive หรือ HBase
-
-สิ่งที่ควรสังเกตคือคำสั่งคล้ายกันแต่ปลายทางไม่ได้มีความหมายเหมือนกัน HDFS ได้ files, Hive ได้ files พร้อม table metadata และ HBase ต้องมี RowKey กับ Column Family การเห็นคำสั่งสำเร็จจึงไม่ใช่หลักฐานว่าการออกแบบปลายทางถูกต้อง
-
-### ทดลอง Flume: product impression จาก client ไป collector
-
-Lab ให้สร้าง directory สำหรับ impression files, ดาวน์โหลด generator และ config, แล้วรัน client agent กับ collector agent คนละ terminal ให้ทำนายก่อนว่า event จะอยู่ที่ใดเมื่อ collector หยุด หาก client ใช้ File Channel event ควรรออยู่ใน channel และถูกส่งต่อเมื่อ collector กลับมา แต่การ retry อาจสร้าง duplicate ได้ จึงต้องตรวจทั้งจำนวน records, event identity และไฟล์ HDFS ไม่ใช่ดูเพียงว่ามี output file
-
-### ทดลอง Kafka: producer และ consumer
-
-Lab ดาวน์โหลด Kafka 2.10-0.9.0.1 และเริ่ม ZooKeeper ก่อน broker ซึ่งเป็นขั้นตอนของ Kafka รุ่นเก่า จากนั้นเปิด console producer และ console consumer เพื่อพิมพ์ข้อความและอ่านจากต้น topic การทดลองนี้พิสูจน์เส้นทาง producer → broker/topic partition → consumer แต่ยังไม่พิสูจน์ fault tolerance หรือ consumer-group scaling จนกว่าจะเพิ่ม partitions, consumers และจำลอง restart
-
-ใน Kafka รุ่นใหม่ control plane ใช้ KRaft แทน ZooKeeper แล้ว ดังนั้นอย่านำคำสั่งเริ่ม ZooKeeper จาก Lab ไปสรุปว่าเป็นข้อกำหนดถาวรของ Kafka แนวคิดที่ยังคงอยู่คือ topic, partition, offset, producer, consumer group, retention และ replay
-
-## โจทย์ฝึกคิดแบบบรรยายพร้อมแนวคำตอบ
+ส่วนนี้เป็น **Exam Compression Layer** คำตอบจึงสั้นกว่าส่วนอธิบายหลัก แต่ยังรักษาปัญหา กลไก ตัวอย่าง และ trade-off ที่จำเป็นต่อการได้คะแนน
 
 ### ข้อ 1: เลือก ingestion pattern ให้ข้อมูลสามชนิด
 
@@ -599,6 +485,7 @@ Data Ingestion คือสัญญาระหว่างโลกที่�
 
 ## เอกสารอ้างอิง
 
+- [Lecture — `dads6002_04_data_ingestion.pdf`](../lecture/dads6002_04_data_ingestion.pdf), หน้า 1–22
 - [Apache Sqoop — Apache Attic](https://attic.apache.org/projects/sqoop.html)
 - [Apache Flume User Guide](https://flume.apache.org/releases/content/1.9.0/FlumeUserGuide.html)
 - [Apache Avro Documentation](https://avro.apache.org/docs/)
