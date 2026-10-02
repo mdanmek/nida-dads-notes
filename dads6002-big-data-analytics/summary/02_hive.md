@@ -1,16 +1,16 @@
 # 02 — Apache Hive: จากไฟล์บน HDFS สู่ตารางที่ Query และวิเคราะห์ได้
 
-> **แหล่งเนื้อหาหลัก:** [Lecture — dads6002_02_hive.pdf](../lecture/dads6002_02_hive.pdf) หน้า 1–21 และ [Lab — lab_02_hive.pdf](../lab/lab_02_hive.pdf) หน้า 1–5
+> **แหล่งเนื้อหาหลัก:** [Lecture — dads6002_02_hive.pdf](../lecture/dads6002_02_hive.pdf) หน้า 1–21
 
 [← กลับสู่ Course Syllabus](00_course_syllabus.md) | [บทก่อนหน้า: Hadoop](01_hadoop.md)
 
 เราต้องใช้ความรู้จาก Hadoop เพียงสองเรื่อง เรื่องแรกคือ HDFS เป็นระบบเก็บไฟล์แบบกระจาย ไฟล์หนึ่งอาจแบ่งเป็นหลาย blocks และเก็บอยู่หลายเครื่อง เรื่องที่สองคือ MapReduce เป็นวิธีประมวลผลข้อมูลจำนวนมากแบบ batch โดยแบ่งงานไปทำแล้วนำผลกลับมารวมกัน หากยังจำรายละเอียดไม่ได้ก็อ่านบทนี้ได้ เพราะจะทบทวนเฉพาะส่วนที่ต้องใช้
 
-แกนหลักของบทคือความหมายของ Hive, ความสัมพันธ์ระหว่างข้อมูลจริงกับ Hive Metastore และเหตุผลในการแบ่งข้อมูลเป็น partition ส่วน ACID และ bucket เป็นเนื้อหาสนับสนุน ขณะที่ index ที่ปรากฏในสไลด์เป็นข้อมูลเชิงประวัติศาสตร์ซึ่งต้องแยกออกจากวิธีที่ Hive รุ่นใหม่ใช้
-
 บทนี้ต่อจากชุด Hadoop โดยตรง ในบท 01 เราต้องอธิบายให้ MapReduce รู้ว่าจะสร้าง key อะไรและรวมค่าอย่างไร แม้คำถามจะเป็นเพียง “ยอดจัดซื้อต่อโรงพยาบาลเท่าไร” ภาระดังกล่าวเหมาะกับวิศวกรที่ต้องควบคุมอัลกอริทึม แต่ไม่เหมาะกับนักวิเคราะห์ที่คิดเป็นตาราง คอลัมน์ การกรอง และการรวมยอด Hive จึงไม่ได้มาแทน HDFS หรือ MapReduce แต่เพิ่มชั้นภาษาและ metadata เพื่อแปลคำถามเชิงตารางให้กลายเป็นแผนประมวลผลบนระบบกระจาย
 
 ## 1. Hive คืออะไร
+
+**คำถามนำ:** Hive ทำให้ผู้ใช้ Query ไฟล์จำนวนมากด้วยแนวคิดแบบตารางได้อย่างไร โดยไม่ต้องเขียน MapReduce สำหรับทุกคำถาม?
 
 ### ปัญหาก่อนมี Hive
 
@@ -43,16 +43,16 @@ H002|2026-08-01|1800
 จากนั้นผู้ใช้จึงเขียนคำถามแบบตารางได้:
 
 ```sql
-SELECT hospital, SUM(amount) AS total_amount
+SELECT hospital_id, SUM(amount) AS total_amount
 FROM purchase_log
-GROUP BY hospital;
+GROUP BY hospital_id;
 ```
 
 คำสั่งนี้ไม่ได้เปลี่ยนไฟล์ให้กลายเป็นฐานข้อมูลแบบธุรกรรม แต่บอก Hive ว่าให้จัดกลุ่มแถวตาม `hospital_id` แล้วรวม `amount` ของแต่ละกลุ่ม ผู้ใช้จึงคิดเป็นตาราง คอลัมน์ และผลรวม แทนการเขียนโปรแกรมกระจายงานเอง
 
 สไลด์หน้า 2 ยังกล่าวถึง **User-Defined Function (UDF)** หรือฟังก์ชันที่ผู้ใช้สร้างเพิ่มเอง สมมติข้อมูลชื่อโรงพยาบาลมีรูปแบบไม่เหมือนกัน เราอาจสร้างฟังก์ชัน `normalize_hospital(name)` แล้วเรียกใช้ใน HQL เหมือนฟังก์ชันทั่วไป UDF รับค่าจากแถว คำนวณตามกติกาที่เราเขียน และคืนผลกลับเข้าสู่ query จึงช่วยขยายความสามารถของ HQL แต่ UDF ไม่ได้แทนที่ตัววางแผน query หรือ execution engine; มันเป็นเพียงขั้นคำนวณหนึ่งในแผนงานเท่านั้น รายละเอียดชนิดของฟังก์ชันดูได้จาก [Apache Hive UDFs](https://hive.apache.org/docs/latest/language/hive-udfs/)
 
-### ทำความเข้าใจเรื่องเดียวกันสองรอบ: จากไฟล์สู่ Table ที่ Query ได้
+### จากไฟล์สู่ Table ที่ Query ได้
 
 ก่อนใช้อุปมา ให้แยกของจริงออกเป็นสองส่วนก่อน ส่วนแรกคือ **ข้อมูลจริง** เช่น ข้อความรายการจัดซื้อหลายล้านบรรทัดในไฟล์ ส่วนที่สองคือ **คำอธิบายข้อมูล** เช่น ไฟล์อยู่ที่ไหน แต่ละบรรทัดแบ่งเป็นคอลัมน์อะไร และแต่ละคอลัมน์มีชนิดข้อมูลอะไร HDFS ดูแลส่วนแรก ส่วน Hive เพิ่มและใช้ส่วนที่สองเพื่อให้มองไฟล์เป็นตารางได้
 
@@ -84,6 +84,8 @@ flowchart LR
 
 ## 2. Data กับ Metadata อยู่คนละที่
 
+**คำถามนำ:** ข้อมูลจริงอยู่ที่ใด Metastore เก็บอะไร และเหตุใดระบบจึงต้องแยกสองส่วนนี้ออกจากกัน?
+
 คำว่า **data** ในบทนี้หมายถึงข้อมูลจริงในไฟล์ เช่นสองบรรทัดของ `purchases.txt` ส่วน **metadata** หมายถึงข้อมูลที่ใช้อธิบาย data อีกที เช่น ชื่อตาราง รายชื่อคอลัมน์ ชนิดข้อมูล ตำแหน่งไฟล์ partition และกติกาการแยกแต่ละบรรทัด การแยกสองอย่างนี้ช่วยให้เราเปลี่ยนหรือค้นหาคำอธิบายได้โดยไม่ต้องนำข้อมูลหลายพันล้านแถวไปเก็บในฐานเดียวกับคำอธิบาย
 
 **Hive Metastore** คือบริการที่เก็บและให้ Hive ค้น metadata โดยทั่วไป metadata ถูกเก็บในฐานข้อมูลเชิงสัมพันธ์ เช่น MySQL ตามตัวอย่างในสไลด์ เพราะข้อมูลกลุ่มนี้มีขนาดเล็กกว่าข้อมูลจริงและต้องค้นหรือแก้ไขได้สะดวก ส่วน records จำนวนมากยังคงอยู่ใน HDFS หรือระบบจัดเก็บแบบกระจาย
@@ -111,6 +113,8 @@ flowchart LR
 
 ## 3. ACID และข้อจำกัดเชิงงาน
 
+**คำถามนำ:** การที่ Hive รองรับ `INSERT`, `UPDATE` และ `DELETE` หมายความว่า Hive เหมาะกับงานธุรกรรมแบบเดียวกับฐานข้อมูล OLTP หรือไม่?
+
 ระบบฐานข้อมูลสำหรับงานธุรกรรมมักแก้ไขแถวเล็ก ๆ ได้ตลอดเวลา เช่นเปลี่ยนสถานะใบสั่งซื้อหนึ่งรายการจาก `pending` เป็น `approved` แต่ HDFS และ Hive ถูกออกแบบโดยเน้นการอ่านและประมวลผลข้อมูลจำนวนมากเป็นชุด การเปิดไฟล์ขนาดใหญ่แล้วเขียนใหม่ทั้งไฟล์เพราะเปลี่ยนหนึ่งแถวจะสิ้นเปลืองมาก
 
 Hive รุ่นที่รองรับธุรกรรมจึงไม่ได้แก้ข้อความเดิมกลางไฟล์ทันที การ `INSERT`, `UPDATE` หรือ `DELETE` สร้างไฟล์การเปลี่ยนแปลงขนาดเล็กที่เรียกว่า **delta files** เมื่อมี delta files มากขึ้น การอ่านต้องพิจารณาทั้งไฟล์ฐานและการเปลี่ยนแปลงที่เกิดภายหลัง ระบบจึงมี **compaction** เพื่อรวมไฟล์เหล่านี้เป็นโครงสร้างที่อ่านง่ายขึ้น ภาษาปัจจุบันแยก minor compaction ซึ่งรวม delta files กับ major compaction ซึ่งรวม delta และ base เป็น base ใหม่ [Hive Transactions](https://hive.apache.org/docs/latest/user/hive-transactions/)
@@ -118,6 +122,8 @@ Hive รุ่นที่รองรับธุรกรรมจึงไม
 ดังนั้นข้อความว่า “Hive รองรับ `UPDATE`” บอกเพียงว่ามีความสามารถนี้ ไม่ได้แปลว่า Hive เหมาะกับการแก้ไขแถวถี่ ๆ เท่าฐานข้อมูลธุรกรรม หากระบบต้องเปลี่ยนสถานะการชำระเงินทุกไม่กี่มิลลิวินาทีและให้ผู้ใช้อ่านค่าล่าสุดทันที ควรให้ฐานข้อมูล OLTP ดูแลงานต้นทาง แล้วส่งสำเนาข้อมูลมาวิเคราะห์เป็นชุดใน Hive การเลือกเครื่องมือจึงขึ้นกับรูปแบบงาน ไม่ใช่ดูเพียงว่าคำสั่งนั้นมีอยู่หรือไม่
 
 ## 4. Table, Partition และ Bucket
+
+**คำถามนำ:** เราจะจัดวางไฟล์ทางกายภาพอย่างไรให้ Query อ่านเฉพาะข้อมูลที่จำเป็น โดยไม่สร้าง directory หรือไฟล์ย่อยมากเกินไป?
 
 ### Table
 
@@ -168,6 +174,8 @@ flowchart TD
 
 ## 5. จาก Storage Layout ไปสู่ HQL และ Schema-on-read
 
+ตอนนี้เราเห็นแล้วว่า Table, Partition และ Bucket เชื่อมมุมมองเชิงตรรกะกับตำแหน่งไฟล์อย่างไร ขั้นต่อไปคือทำความเข้าใจว่า HQL และ Schema-on-read ใช้คำอธิบายเหล่านี้แปลง bytes ให้เป็นแถวและคอลัมน์อย่างไร
+
 เมื่อรู้แล้วว่า Hive เชื่อม metadata กับ files อย่างไร คำถามถัดไปคือเราจะสร้าง metadata นั้นอย่างไร และถ้าไฟล์ดิบไม่เป็นตารางเรียบร้อย Hive จะแยก bytes เป็น columns ได้อย่างไร ส่วนถัดไปจึงเริ่มจาก HQL สำหรับสร้าง database/table แล้วตามด้วย managed/external ownership, schema-on-read และ SerDe ลำดับนี้สำคัญ เพราะ syntax `CREATE TABLE` จะมีความหมายก็ต่อเมื่อเราเข้าใจว่ากำลังประกาศสัญญาการอ่านและ lifecycle ของไฟล์ ไม่ใช่เพียงสร้างกล่องว่างแบบฐานข้อมูลธุรกรรม
 
 | กลไก | หน่วยกายภาพ | เหมาะเมื่อ | ความเสี่ยง |
@@ -181,6 +189,8 @@ flowchart TD
 สไลด์กล่าวว่า table สามารถทำ index เพื่อช่วยการค้นหา นี่เป็นข้อมูลเชิงประวัติศาสตร์ แต่ native Hive indexing ถูกนำออกตั้งแต่ Hive 3.0 เอกสาร Apache เสนอแนวทางอื่น เช่น materialized views และ file format แบบ columnar ที่ช่วย selective scan จึงไม่ควรนำ syntax ของ native index จากสไลด์ไปใช้กับ Hive รุ่นใหม่โดยไม่ตรวจ version [Apache Hive Indexing](https://hive.apache.org/docs/latest/language/languagemanual-indexing/)
 
 ## 6. พื้นฐานเชิงตารางก่อนเขียน HQL
+
+**คำถามนำ:** ก่อนเขียน Query เราต้องเข้าใจอะไรเกี่ยวกับหนึ่งแถว คอลัมน์ และ key เพื่อไม่ให้คำสั่งที่รันสำเร็จตอบคำถามผิดเรื่อง?
 
 ก่อนอ่าน syntax ต้องรู้ก่อนว่าเรากำลังอธิบายข้อมูลแบบใด **ตาราง (table)** คือมุมมองข้อมูลเป็นแถวและคอลัมน์ **แถว (row หรือ record)** หนึ่งแถวต้องแทนหน่วยบางอย่างที่ชัดเจน เช่นหนึ่งบรรทัดของใบสั่งซื้อ ไม่ใช่หนึ่ง vendor ขณะที่ **คอลัมน์ (column)** เก็บคุณลักษณะของหน่วยนั้น เช่นรหัสใบสั่งซื้อ รหัส vendor และจำนวนเงิน
 
@@ -244,6 +254,8 @@ LOCATION '/user/student/external_table';
 
 ## 9. Schema-on-read คืออะไร
 
+**คำถามนำ:** ถ้า Hive ตรวจ Schema ตอนอ่านแทนการบังคับรูปแบบทั้งหมดตอนเขียน จะได้ความยืดหยุ่นอะไรและรับความเสี่ยงใดเพิ่มขึ้น?
+
 คำว่า **schema** หมายถึงคำอธิบายโครงสร้าง เช่นมีคอลัมน์อะไร เรียงอย่างไร และแต่ละคอลัมน์เป็นชนิดใด ส่วน **schema-on-read** หมายถึงระบบนำ schema มาใช้ตีความข้อมูลตอนอ่าน ไม่ได้ตรวจและแปลงทุกค่าจนผ่านกฎทั้งหมดตั้งแต่ตอนนำไฟล์เข้ามา
 
 ลองนึกถึงไฟล์ที่มีข้อความ `1001|250.50` เราอาจประกาศว่าค่าแรกคือ `po_id INT` และค่าที่สองคือ `amount DECIMAL` เมื่อ query อ่านบรรทัดนี้ Hive จึงแยก fields แล้วพยายามแปลงชนิดตาม schema หากไฟล์จริงมี `ABC|300.00` ค่า `ABC` ไม่สามารถเป็น integer ได้ จึงอาจกลายเป็น `NULL` ตอนอ่าน ทั้งที่คำสั่งนำไฟล์เข้า table ก่อนหน้านั้นไม่ได้รายงานข้อผิดพลาด
@@ -292,7 +304,7 @@ flowchart LR
 
 ## 11. Regex ที่จำเป็นต่อการอ่าน log
 
-**Regular expression หรือ regex** คือภาษาขนาดเล็กสำหรับบรรยายรูปแบบของข้อความ ใน Lab web log หนึ่งบรรทัดมี host, object ที่อยู่ในเครื่องหมาย quote และตัวเลขเวลา ช่องว่างทั่วไปจึงไม่สามารถใช้เป็น delimiter อย่างตรงไปตรงมา เพราะ object เองอาจมีรูปแบบเฉพาะ Regex ช่วยระบุว่าแต่ละส่วนเริ่มและจบตรงไหน
+**Regular expression หรือ regex** คือภาษาขนาดเล็กสำหรับบรรยายรูปแบบของข้อความ ในตัวอย่าง web log หนึ่งบรรทัดมี host, object ที่อยู่ในเครื่องหมาย quote และตัวเลขเวลา ช่องว่างทั่วไปจึงไม่สามารถใช้เป็น delimiter อย่างตรงไปตรงมา เพราะ object เองอาจมีรูปแบบเฉพาะ Regex ช่วยระบุว่าแต่ละส่วนเริ่มและจบตรงไหน
 
 อย่าเริ่มจากการท่องสัญลักษณ์ทั้งหมด ให้อ่าน pattern `([^ ]+) "([^"]+)" ([0-9]+)` เป็นสามกลุ่ม กลุ่มแรกเก็บอักขระที่ไม่ใช่ช่องว่างตั้งแต่หนึ่งตัวขึ้นไป กลุ่มที่สองเก็บอักขระภายใน quote และกลุ่มที่สามเก็บตัวเลขตั้งแต่หนึ่งหลักขึ้นไป วงเล็บแต่ละคู่สร้าง capture group ซึ่งจะถูกส่งให้คอลัมน์ตามลำดับ
 
@@ -345,132 +357,9 @@ OVERWRITE INTO TABLE apache_log;
 5. reconcile count และ business totals
 6. เก็บ query/version เพื่อ reproducibility
 
-## Guided Lab: Staging-to-curated
-
-ใช้ไฟล์ตัวอย่าง:
-
-```text
-1001	V001	250.50
-1002	V002	175.00
-BAD	V003	300.00
-```
-
-สร้าง staging ทุก field เป็น STRING แล้วสร้าง curated table ที่ `po_id BIGINT`, `vendor_id STRING`, `amount DECIMAL(12,2)` ใช้ conditional cast หรือ regex filter แยก invalid row ก่อน insert คาดว่า curated มี 2 rows และ reject มี 1 row
-
-Validation:
-
-```sql
-SELECT COUNT(*) AS source_rows FROM po_staging;
-SELECT COUNT(*) AS valid_rows FROM po_curated;
-SELECT COUNT(*) AS rejected_rows
-FROM po_staging
-WHERE po_id = '' OR po_id RLIKE '[^0-9]';
-```
-
-สมการ reconciliation เชิงแนวคิดคือ `source_rows = valid_rows + rejected_rows` หากไม่เท่าต้องหาข้อมูลซ้ำ สูญหาย หรือ classification overlap
-
-## Lab จากชั้นเรียน: Hive DDL, MovieLens และ Web Log
-
-ส่วนนี้เรียบเรียงจาก [Lab 02 Hive หน้า 1–5](../lab/lab_02_hive.pdf) Lab ใช้ Hive CLI และ Cloudera QuickStart VM ซึ่งเหมาะกับการเห็นกลไกพื้นฐาน แต่คำสั่งเดียวกันอาจต้องส่งผ่าน Beeline ในระบบใหม่ ก่อนรันทุกช่วงให้ถามว่า “คำสั่งนี้เปลี่ยนเฉพาะ metadata, ย้ายไฟล์ หรืออ่านไฟล์” เพื่อเชื่อม syntax กับความหมาย
-
-### ช่วง A — Database และ table แรก
-
-```sql
-CREATE DATABASE IF NOT EXISTS my_db;
-USE my_db;
-
-CREATE TABLE test (
-    id INT,
-    name STRING
-)
-ROW FORMAT DELIMITED
-FIELDS TERMINATED BY ',';
-
-SHOW TABLES;
-DESCRIBE test;
-ALTER TABLE test ADD COLUMNS (address STRING);
-DESCRIBE test;
-```
-
-ก่อน `ALTER` ให้ทำนายว่าไฟล์เก่าจะไม่ได้ถูก rewrite เพราะคำสั่งเปลี่ยน metadata เมื่ออ่านแถวเก่าซึ่งมีเพียงสอง fields คอลัมน์ `address` จึงอาจเป็น `NULL` อย่ารัน `DROP TABLE test` เพียงเพื่อทดลองจนกว่าจะยืนยันว่า table นี้ไม่มีข้อมูลที่ต้องเก็บ เพราะ managed table อาจลบทั้ง metadata และข้อมูล
-
-### ช่วง B — MovieLens `u.user`: delimiter ทำให้ bytes กลายเป็น columns
-
-หลังแตกไฟล์ MovieLens ให้ตรวจ raw sample และจำนวนบรรทัดก่อนส่งเข้า HDFS:
-
-```bash
-head ml-100k/u.user
-wc -l ml-100k/u.user
-hadoop fs -mkdir -p /user/cloudera/movielens
-hadoop fs -put ml-100k/u.user /user/cloudera/movielens/u.user
-hadoop fs -cat /user/cloudera/movielens/u.user | head
-```
-
-หนึ่งบรรทัดใช้ `|` คั่นห้า fields จึงประกาศ schema ตามลำดับจริง:
-
-```sql
-CREATE TABLE users (
-    userid INT,
-    age INT,
-    gender STRING,
-    occupation STRING,
-    zipcode STRING
-)
-ROW FORMAT DELIMITED
-FIELDS TERMINATED BY '|';
-
-LOAD DATA INPATH '/user/cloudera/movielens/u.user'
-OVERWRITE INTO TABLE users;
-
-SELECT * FROM users LIMIT 10;
-SELECT COUNT(*) AS user_rows FROM users;
-SELECT COUNT(*) AS invalid_rows
-FROM users
-WHERE userid IS NULL OR age IS NULL;
-```
-
-อย่าจำจำนวนผลลัพธ์โดยไม่ตรวจไฟล์ที่ใช้ หลักฐานที่แข็งแรงกว่าคือ `user_rows` ต้องเท่ากับจำนวนบรรทัดของ source และ sample fields ต้องไม่เลื่อน `zipcode` ใช้ `STRING` เพราะเป็นรหัสที่อาจมีเลขศูนย์นำหน้า ไม่ใช่ปริมาณสำหรับคำนวณ
-
-จุดที่มักทำให้ผู้เริ่มต้นสับสนคือ `LOAD DATA INPATH` อาจย้ายไฟล์ใน filesystem เข้า location ของ managed table ไม่ใช่ parse แล้ว copy แบบ database loader ทั่วไป หากต้องใช้ raw path เดิมสร้าง external table อีกครั้ง ให้เก็บสำเนาแยกหรือเลือก external staging ตั้งแต่ต้น และตรวจ path หลัง `LOAD` ด้วย `hadoop fs -ls`
-
-### ช่วง C — RegexSerDe: จาก log หนึ่งบรรทัดสู่สามคอลัมน์
-
-Lab กำหนดรูปแบบหนึ่งบรรทัดเป็น `host "object" time` เช่น:
-
-```text
-client01 "GET_/index.html" 1470000000
-```
-
-Regex `([^ ]+) "([^"]+)" ([0-9]+)` จับสาม groups ตามลำดับคือ `host`, `object`, `time` ดังนั้นจำนวนและลำดับ groups ต้องตรงกับ columns:
-
-```sql
-CREATE EXTERNAL TABLE weblog (
-    host STRING,
-    object STRING,
-    time STRING
-)
-ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.RegexSerDe'
-WITH SERDEPROPERTIES (
-    'input.regex' = '([^ ]+) "([^"]+)" ([0-9]+)'
-)
-LOCATION '/user/cloudera/weblog';
-```
-
-class `contrib` นี้ขึ้นกับ JAR ของ environment หากหา class ไม่พบ ต้องตรวจ Hive distribution ไม่ควรเปลี่ยน regex แบบสุ่ม หาก query ได้ `NULL` ให้ย้อนตรวจ raw line → แต่ละ capture group → ชนิดคอลัมน์ ด้วย:
-
-```sql
-SELECT * FROM weblog LIMIT 10;
-SELECT COUNT(*) AS parsed_rows FROM weblog;
-SELECT COUNT(*) AS parse_failures
-FROM weblog
-WHERE host IS NULL OR object IS NULL OR time IS NULL;
-```
-
-Lab ต้นฉบับโหลด `wlog` จาก `/user/cloudera/weblog/wlog` เข้า managed table `weblogtest` แล้วจึงสร้าง external table ให้ชี้กลับไปที่ `/user/cloudera/weblog` ขั้นนี้อาจทำให้ external table ไม่พบไฟล์ เพราะ `LOAD DATA INPATH` อาจย้าย `wlog` ออกจาก raw path ไปยังพื้นที่ของ managed table วิธีที่ทำซ้ำได้คือเก็บ raw copy แยกสำหรับ external table หรือสร้าง external table ให้ชี้ raw path ก่อน แล้วใช้ `INSERT ... SELECT` สร้าง managed/curated table ภายหลัง
-
-การทดลอง failure ที่ให้ความรู้ที่สุดคือเปลี่ยน delimiter ของ `users` จาก `|` เป็น `,` หรือเอาเครื่องหมาย quote ออกจาก regex แล้วเปรียบเทียบ sample rows กับ null counts จากนั้นคืน DDL ให้ถูกต้อง หลักฐานว่าซ่อมสำเร็จคือจำนวนแถวตรง source, fields ไม่เลื่อน และ parse failures เป็นศูนย์สำหรับข้อมูลที่ตรง contract
-
 ## 14. Relational mental model: Grain, Key และ Cardinality
+
+**คำถามนำ:** เหตุใด Query ที่ syntax ถูกต้องจึงยังให้ยอดผิดได้ และ grain, key กับ cardinality ช่วยป้องกันปัญหานี้อย่างไร?
 
 ก่อนใช้ `GROUP BY` หรือ `JOIN` ต้องตอบคำถามพื้นฐานที่สุดว่า “หนึ่งแถวแทนอะไร” คำตอบนี้เรียกว่า **ระดับรายละเอียดของข้อมูล (grain)** หากตอบผิด คำสั่ง SQL อาจรันได้สมบูรณ์แต่คำตอบทางธุรกิจผิด
 
@@ -483,6 +372,8 @@ Lab ต้นฉบับโหลด `wlog` จาก `/user/cloudera/weblog/wl
 เมื่อคีย์ฝั่งหนึ่งหาอีกฝั่งไม่พบ เราเรียกแถวนั้นว่า **แถวที่จับคู่ไม่ได้ (unmatched row)** ในตัวอย่าง `sales.id=0` ไม่มีสินค้ารหัส 0 ใน things ขณะที่ `things.id=1` มีอยู่ในรายการสินค้าแต่ไม่เคยปรากฏใน sales การเลือกชนิด join คือการตัดสินว่าเราต้องการรักษาแถวกลุ่มใดไว้ ไม่ใช่การเลือกรูปวงกลมจากความจำ
 
 ## 15. Aggregation: จาก MapReduce Program สู่ HQL
+
+**คำถามนำ:** `GROUP BY` เปลี่ยนหลายแถวให้เป็นหนึ่งแถวต่อกลุ่มอย่างไร และการเลือก grouping key เปลี่ยนความหมายของคำตอบอย่างไร?
 
 **Aggregation หรือการสรุปรวม** คือการนำหลายแถวมาเปลี่ยนเป็นค่ารวม เช่นจำนวน ผลรวม ค่าเฉลี่ย ค่าต่ำสุด หรือค่าสูงสุด ส่วน `GROUP BY` กำหนดว่าแถวใดควรถูกนำมาสรุปร่วมกัน
 
@@ -538,6 +429,8 @@ GROUP BY month;
 **CTAS หรือ `CREATE TABLE AS SELECT`** ทำสองอย่างในคำสั่งเดียว: สร้าง metadata ของตารางใหม่และเขียนผลจาก query ลงเป็นข้อมูลของตารางนั้น จึงเหมาะเมื่ออยากเก็บผลสรุปไว้ใช้ต่อ แต่ต้องคิดเรื่องเจ้าของไฟล์ รูปแบบไฟล์ และการรันซ้ำ หาก table มีอยู่แล้วคำสั่งอาจ error และหากเปลี่ยนไปใช้ insert โดยไม่กำหนด overwrite หรือ partition อย่างเหมาะสมก็อาจเกิดข้อมูลซ้ำ
 
 ## 17. Join คืออะไร
+
+**คำถามนำ:** Join สร้างแถวผลลัพธ์จากสองตารางอย่างไร และเหตุใด key ซ้ำหรือ unmatched rows จึงทำให้จำนวนแถวกับยอดรวมเปลี่ยนได้?
 
 **Join** คือการสร้างแถวผลลัพธ์จากแถวของสองตารางที่ตรงตามเงื่อนไขการจับคู่ ในตัวอย่าง เรามีชื่อผู้ซื้อและรหัสสินค้าอยู่ใน `sales` แต่ชื่อสินค้าอยู่ใน `things` หากต้องการรายงานว่าแต่ละคนซื้ออะไร เราต้องจับคู่ `sales.id` กับ `things.id`
 
@@ -624,78 +517,7 @@ HAVING COUNT(*) > 1;
 
 Hive ปิดช่องว่างระหว่างนักวิเคราะห์กับระบบกระจาย แต่กลไกจากบทก่อนยังอยู่ใต้คำสั่ง SQL เมื่อ query scan table, HDFS/storage ยังส่งไฟล์ เมื่อ query aggregate หรือ join, execution engine ยังต้องแบ่งงานและอาจ shuffle ตาม key เมื่อมีหลายขั้นตอน Airflow/Oozie ยังอาจเป็นผู้ควบคุม schedule และ retry ดังนั้น Hive ไม่ได้ลบความจำเป็นในการเข้าใจ Hadoop แต่ยกระดับ abstraction ให้เราเขียน “ผลที่ต้องการ” และใช้ความรู้ด้าน storage/grain/failure ตรวจว่าแผนและผลลัพธ์สมเหตุผล
 
-## Guided Lab: Vendor Reconciliation
-
-Tables:
-
-- `po(po_id, vendor_id, amount)` มี 5 rows
-- `vendor(vendor_id, vendor_name)` มี 4 rows โดยมี vendor หนึ่งรายไม่ถูกใช้และ PO หนึ่ง row หา master ไม่พบ
-
-งาน:
-
-1. ใช้ inner join สรุป matched amount
-2. ใช้ left join หา missing vendor master
-3. ใช้ full outer join แยก `missing_master`, `unused_master`, `matched`
-4. ตรวจ input counts, output counts และ sum(amount)
-5. ปลูก error โดยเพิ่ม duplicate vendor_id ใน master แล้วสังเกต row count/amount โต
-6. แก้ด้วย data-quality rule ก่อน join และพิสูจน์ totals กลับมาตรง
-
-Validation queries:
-
-```sql
-SELECT COUNT(*) AS po_rows, SUM(amount) AS po_amount FROM po;
-
-SELECT COUNT(*) AS missing_master_rows
-FROM po p
-LEFT JOIN vendor v ON p.vendor_id = v.vendor_id
-WHERE v.vendor_id IS NULL;
-```
-
-## Lab จากชั้นเรียน: Aggregation บน MovieLens และ Web Log
-
-ส่วนนี้ต่อจากการสร้าง `users` และ `weblog` ในหัวข้อ Lab ก่อนหน้า และมาจาก [Lab 02 Hive หน้า 3–5](../lab/lab_02_hive.pdf) จุดประสงค์ไม่ใช่เพียงให้ query รัน แต่ให้เห็นว่า `GROUP BY` เปลี่ยน grain อย่างไร
-
-ตัวอย่างแรกเปลี่ยนจากหนึ่ง row ต่อผู้ใช้เป็นหนึ่ง row ต่อรหัสไปรษณีย์:
-
-```sql
-SELECT
-    zipcode,
-    COUNT(*) AS user_count,
-    AVG(age) AS avg_age
-FROM users
-GROUP BY zipcode
-ORDER BY user_count DESC;
-```
-
-ก่อนรัน ให้ทำนายว่า output rows จะเท่ากับจำนวน `zipcode` ที่แตกต่างกัน ไม่ใช่จำนวน users แล้วตรวจด้วย:
-
-```sql
-SELECT COUNT(*) AS source_rows FROM users;
-SELECT COUNT(DISTINCT zipcode) AS expected_group_rows FROM users;
-SELECT SUM(user_count) AS reconciled_rows
-FROM (
-    SELECT zipcode, COUNT(*) AS user_count
-    FROM users
-    GROUP BY zipcode
-) g;
-```
-
-`reconciled_rows` ต้องเท่ากับ `source_rows` หากไม่มี row ถูก filter ส่วน `AVG(age)` เป็นค่าเฉลี่ยต่อคนในแต่ละกลุ่ม ไม่ควรนำค่าเฉลี่ยของแต่ละ zipcode ไปเฉลี่ยต่ออีกครั้งโดยไม่ถ่วงด้วย `user_count`
-
-ตัวอย่างที่สองเปลี่ยนจากหนึ่ง row ต่อ log event เป็นหนึ่ง row ต่อ object:
-
-```sql
-SELECT object, COUNT(*) AS hit_count
-FROM weblog
-GROUP BY object
-ORDER BY hit_count DESC;
-```
-
-ตรวจยอดรวมของ `hit_count` เทียบกับ `COUNT(*)` จาก `weblog` และตรวจ `parse_failures` จากบทก่อนก่อนเชื่อผล หาก regex ทำให้ `object` เป็น `NULL` การ aggregate อาจสร้างกลุ่ม `NULL` ขนาดใหญ่ ซึ่งเป็นสัญญาณ data quality ไม่ใช่ object ที่ได้รับความนิยมจริง
-
-ทดลองให้พังโดยแก้ DDL delimiter หรือ regex แล้วรัน query เดิม สังเกตว่า SQL ยังอาจทำงานจนจบโดยไม่รายงานข้อผิดพลาด แต่ grain และค่ากลุ่มผิด จากนั้นซ่อม SerDe และพิสูจน์ด้วย row reconciliation นี่เชื่อมบทเรียนสำคัญว่า query syntax ถูกไม่ได้รับประกันคำตอบธุรกิจถูก
-
-## Troubleshooting
+## 22. Failure และการวินิจฉัยผลลัพธ์ผิดปกติ
 
 | อาการ | สาเหตุที่น่าจะเป็น | การตรวจ |
 |---|---|---|
@@ -705,7 +527,9 @@ ORDER BY hit_count DESC;
 | aggregation ผิด | grain ก่อน group ผิด | inspect sample และ distinct business key |
 | job ช้า | shuffle, skew, statistics เก่า | `EXPLAIN`, key distribution, stats |
 
-## โจทย์ฝึกอธิบายพร้อมแนวคำตอบ
+## 23. ฝึกเขียนตอบแบบบรรยาย
+
+ส่วนนี้เป็น **Exam Compression Layer** คำตอบจึงสั้นกว่าส่วนอธิบายหลัก แต่ยังรักษานิยาม กลไก ตัวอย่าง และข้อจำกัดที่จำเป็นต่อการได้คะแนน
 
 ### ข้อ 1 — อธิบายเส้นทางของ Query ตั้งแต่ HQL จนได้ผลลัพธ์
 
@@ -737,7 +561,7 @@ ORDER BY hit_count DESC;
 
 **แนวคำตอบ:** Raw Files ควรเริ่มจาก External Table เพราะ Hive เพียงเพิ่ม Metadata เพื่ออ่าน Path ที่ระบบอื่นเป็นเจ้าของ การ Drop Table จึงไม่ควรทำลาย Shared Data ส่วนตารางสรุปชั่วคราวที่ Hive สร้างและรับผิดชอบวงจรชีวิตเองเหมาะกับ Managed Table เพราะระบบสามารถจัดการการสร้างและ Cleanup ร่วมกันได้ อย่างไรก็ตามต้องตรวจ Behavior ตาม Version และ Configuration ก่อนทดลอง Drop เสมอ การเลือกนี้ไม่ได้อิงความเร็ว แต่พิจารณาว่าใครเป็นเจ้าของ File Lifecycle และระบบอื่นอ้าง Path เดียวกันหรือไม่
 
-## Likely Exam Focus
+## 24. ประเด็นที่ควรเตรียมสำหรับข้อสอบ
 
 - trace ผลของ join จากตารางเล็ก
 - เลือก join type จาก population ที่ต้องรักษา
@@ -749,8 +573,6 @@ ORDER BY hit_count DESC;
 ## References
 
 - [Lecture — `dads6002_02_hive.pdf`](../lecture/dads6002_02_hive.pdf), หน้า 1–21
-- [Lab — `lab_02_hive.pdf`](../lab/lab_02_hive.pdf), หน้า 1–5
-
 - [Apache Hive DDL](https://hive.apache.org/docs/latest/language/languagemanual-ddl/)
 - [Managed vs. External Tables](https://hive.apache.org/docs/latest/language/managed-vs--external-tables/)
 - [Apache Hive Tutorial](https://hive.apache.org/docs/latest/user/tutorial/)
