@@ -8,6 +8,8 @@
 
 ## 1. เมื่อปัญหาข้อมูลไม่ใช่แค่ “ไฟล์ใหญ่”
 
+**คำถามนำ:** เราจะรู้ได้อย่างไรว่าปัญหาที่พบเป็น Big Data ไม่ใช่เพียงไฟล์ที่มีขนาดใหญ่ขึ้น?
+
 ในช่วงแรก องค์กรอาจดึงข้อมูลจากฐานข้อมูลมาเป็นไฟล์ แล้วใช้เครื่องหนึ่งเครื่องรวมและคำนวณผล วิธีนี้เรียบง่ายและเหมาะกับงานขนาดเล็ก แต่เมื่อข้อมูลเพิ่มขึ้นจะพบข้อจำกัดพร้อมกันหลายด้าน เครื่องอาจมีพื้นที่ไม่พอ การอ่านไฟล์ใช้เวลานาน งานล้มกลางทางแล้วต้องเริ่มใหม่ และหาก disk เสียอาจสูญข้อมูลทั้งหมด
 
 คำว่า **Big Data** จึงไม่ได้หมายถึงตัวเลขขนาดตายตัว แต่หมายถึงสถานการณ์ที่ปริมาณ ลักษณะ หรือความเร็วของข้อมูลทำให้วิธีจัดเก็บและประมวลผลเดิมไม่ตอบโจทย์อีกต่อไป การพิจารณาแบบ **5Vs** ช่วยแยกปัญหาออกเป็นห้ามิติ
@@ -25,6 +27,8 @@
 ข้อมูลที่เข้าสู่ระบบอาจเป็น **structured data** ซึ่งมีโครงสร้างแถวและคอลัมน์ชัดเจน, **semi-structured data** เช่น JSON หรือ XML ที่มีป้ายกำกับแต่แต่ละ record อาจไม่เหมือนกันทั้งหมด และ **unstructured data** เช่นข้อความ รูปภาพ เสียง หรือเอกสาร คำเหล่านี้ไม่ได้บอกว่าข้อมูลชนิดใดดีกว่า แต่บอกว่าระบบต้องใช้กติกาในการอ่านและตรวจสอบต่างกัน
 
 ## 2. จากข้อมูลดิบไปสู่ Data Product
+
+**คำถามนำ:** เมื่อเก็บข้อมูลได้แล้ว ต้องเกิดอะไรขึ้นต่อจึงจะเปลี่ยนข้อมูลดิบให้เป็นสิ่งที่ผู้ใช้ตัดสินใจจากมันได้?
 
 ข้อมูลจำนวนมากไม่มีคุณค่าด้วยตัวเอง องค์กรต้องนำข้อมูลผ่านกระบวนการตั้งแต่รับเข้ามา จัดเก็บ ทำความสะอาด คำนวณ ตรวจสอบ และส่งผลให้ผู้ใช้ กระบวนการนี้เรียกว่า **Data Workflow** ส่วนผลลัพธ์ที่ผู้ใช้สามารถนำไปตัดสินใจหรือทำงานต่อได้ เช่น dashboard, recommendation หรือ API อาจเรียกว่า **Data Product**
 
@@ -59,6 +63,8 @@ Data Lake อธิบายการจัดวางข้อมูลใน�
 
 ## 3. Hadoop คืออะไร
 
+**คำถามนำ:** Hadoop แก้ปัญหาใด และ HDFS, YARN กับ MapReduce แบ่งหน้าที่กันอย่างไร?
+
 **Apache Hadoop** คือชุดซอฟต์แวร์สำหรับเก็บและประมวลผลข้อมูลแบบกระจายบนคลัสเตอร์ของเครื่องหลายเครื่อง Hadoop ไม่ใช่ฐานข้อมูลหนึ่งชนิด ไม่ใช่ระบบปฏิบัติการ และไม่ได้หมายถึง MapReduce เพียงอย่างเดียว
 
 แกนที่เราต้องเข้าใจก่อนมีสองส่วน:
@@ -80,6 +86,8 @@ flowchart TB
 Hadoop ออกแบบภายใต้ข้อเท็จจริงว่าเครื่องในคลัสเตอร์สามารถเสียได้ งานจึงต้องแบ่งเป็นส่วนย่อย ทำซ้ำหรือ retry ได้ และย้ายการคำนวณไปใกล้ข้อมูลเพื่อลดการส่งไฟล์ขนาดใหญ่ผ่าน network แนวคิดนี้ต่างจากการพยายามสร้างเครื่องเดียวที่ห้ามเสียโดยสิ้นเชิง
 
 ## 4. HDFS: ไฟล์หนึ่งไฟล์อยู่บนหลายเครื่องได้อย่างไร
+
+**คำถามนำ:** ระบบจะทำให้ผู้ใช้เห็นไฟล์เดียว ทั้งที่ bytes ของไฟล์กระจายและมีสำเนาอยู่บนหลายเครื่องได้อย่างไร?
 
 สมมติเรามีไฟล์รายการจัดซื้อขนาด 300 MB หากกำหนด block size เท่ากับ 128 MB ไฟล์จะถูกแบ่งเป็นสาม blocks:
 
@@ -175,6 +183,8 @@ HDFS เหมาะกับไฟล์ใหญ่ การอ่านต�
 
 ## 5. YARN: เมื่อหลายงานต้องแบ่งทรัพยากรของคลัสเตอร์
 
+**คำถามนำ:** เมื่อหลาย application ต้องใช้เครื่องชุดเดียวกัน ใครเป็นผู้ตัดสินว่าแต่ละงานได้ CPU และ memory ที่ไหนและเท่าไร?
+
 ตอนนี้เรารู้แล้วว่าไฟล์อยู่ที่ใด แต่ HDFS ยังไม่ได้ตัดสินใจว่างานใดจะใช้ CPU และ memory บนเครื่องใด หากหลายทีมส่งงานพร้อมกัน ระบบต้องมีผู้จัดสรรทรัพยากร นี่คือบทบาทของ **YARN (Yet Another Resource Negotiator)**
 
 องค์ประกอบสำคัญค่อย ๆ ปรากฏตามลำดับการส่งงาน:
@@ -207,6 +217,8 @@ sequenceDiagram
 HDFS แก้คำถามว่า “ข้อมูลอยู่ที่ไหน” และ YARN แก้คำถามว่า “ใครได้ใช้ทรัพยากรที่ไหน” แต่เรายังต้องบอกว่าจะคำนวณยอดจัดซื้อต่อโรงพยาบาลอย่างไรบนหลายเครื่อง ปัญหานี้นำไปสู่ MapReduce
 
 ## 6. MapReduce: แบ่งงานแล้วรวมผลอย่างเป็นระบบ
+
+**คำถามนำ:** การคำนวณชุดเดียวจะแบ่งให้หลายเครื่องทำพร้อมกัน แล้วรวมกลับมาเป็นคำตอบที่ถูกต้องได้อย่างไร?
 
 **MapReduce** คือแบบจำลองการประมวลผลข้อมูลแบบกระจาย ไม่ใช่เครื่องหนึ่งเครื่องและไม่ใช่ฟังก์ชันเดียว แนวคิดหลักมีสองช่วงที่คั่นด้วยการจัดกลุ่มข้อมูล:
 
@@ -307,161 +319,29 @@ Reducer ของ Word Count รับ `cat -> [1,1]` แล้วคืน `cat
 
 MapReduce framework สามารถรัน task ใหม่เมื่อ task ล้มได้ จึงเหมาะกับฟังก์ชันที่ผลขึ้นกับ input และเขียนผลผ่านกลไกที่ framework ควบคุม หาก Mapper ส่งอีเมล เรียก API ชำระเงิน หรือเขียนฐานข้อมูลภายนอกโดยตรง การ retry อาจทำให้ผลเกิดซ้ำ การออกแบบ distributed task จึงต้องคำนึงถึง **idempotency** หรือความสามารถในการรันซ้ำแล้วได้ผลธุรกิจเท่าเดิม
 
-## 7. Hadoop Streaming: ใช้ Python เป็น Mapper และ Reducer
+## 7. Hadoop Streaming: ภาษาอื่นเชื่อมกับ MapReduce ได้อย่างไร
 
-MapReduce แบบดั้งเดิมมักเขียนด้วย Java แต่ **Hadoop Streaming** เปิดให้ใช้โปรแกรมที่อ่าน `stdin` และเขียน `stdout` ได้ Hadoop เปิดโปรแกรม Mapper และ Reducer เป็น process แล้วส่งข้อมูลผ่าน standard streams
+**คำถามนำ:** ถ้าแนวคิด MapReduce ไม่ได้ผูกกับภาษา Java เหตุใดโปรแกรม Python จึงทำหน้าที่เป็น Mapper หรือ Reducer ได้?
 
-โค้ดใน Lecture และ Lab มีปัญหาเรื่อง capitalization, indentation, operator และชื่อ `__main__` ตัวอย่างต่อไปนี้รักษาแนวคิดเดิมแต่แก้ให้รันได้จริง
+**Hadoop Streaming** เป็นกลไกที่เปิดโปรแกรมภายนอกเป็น process แล้วเชื่อมข้อมูลผ่าน standard streams กล่าวคือ Hadoop ส่ง record ให้โปรแกรมทาง `stdin` และอ่านผลลัพธ์จาก `stdout` โปรแกรมจึงไม่จำเป็นต้องรู้รายละเอียดทั้งหมดของ cluster แต่ต้องรักษา **data contract** ให้ถูกต้อง
 
-### Mapper
+ใน Word Count โปรแกรม Mapper อ่านข้อความแล้วส่งบรรทัดรูป `word\t1` ส่วน Hadoop รับ intermediate records เหล่านี้ไป partition, shuffle และ sort ตาม key ก่อนส่งบรรทัดที่เรียงแล้วให้ Reducer ดังนั้น Python ไม่ได้ทำ Shuffle/Sort เอง และ Streaming ก็ไม่ได้แทนที่ MapReduce; มันเป็นเพียงสะพานระหว่าง framework กับโปรแกรมที่สื่อสารตามรูปแบบข้อความที่ตกลงกัน
 
-```python
-#!/usr/bin/env python3
-import sys
+จุดที่มักเข้าใจผิดคือคิดว่า Mapper ส่งผลตรงถึง Reducer ตัวเดียวทันที ความจริง framework ยังต้องเลือก partition และรวม key เดียวกันก่อน อีกจุดหนึ่งคือ Reducer ที่สะสมค่าตาม key มักพึ่ง input ที่เรียงแล้ว หากรูปแบบ output ของ Mapper ผิด เช่นไม่มีตัวคั่นระหว่าง key กับ value ผลลัพธ์หลัง Shuffle อาจไม่เป็นกลุ่มตามที่ตั้งใจ แม้โปรแกรมจะยังรันได้
 
+บทนี้เก็บเฉพาะกลไกของ Streaming เพื่อให้เห็นความสัมพันธ์กับ MapReduce ส่วนการเขียนไฟล์ `mapper.py`, `reducer.py`, การใช้คำสั่ง HDFS และการส่ง Streaming Job เป็นกิจกรรมปฏิบัติ จึงไม่นำมารวมในบททฤษฎีนี้
 
-for line in sys.stdin:
-    for word in line.split():
-        print(f'{word}\t1')
-```
+## 8. Combiner: ลดข้อมูลก่อนผ่าน Network
 
-Mapper อ่าน input ทีละบรรทัด แยกคำ แล้วเขียน `word`, tab และ `1` หนึ่งบรรทัดต่อหนึ่งคำ Tab สำคัญเพราะ Streaming ใช้มันแยก key ออกจาก value ตามค่าเริ่มต้น
-
-### Reducer
-
-```python
-#!/usr/bin/env python3
-import sys
-
-
-current_word = None
-current_count = 0
-
-for line in sys.stdin:
-    word, count_text = line.rstrip('\n').split('\t', 1)
-    count = int(count_text)
-
-    if word == current_word:
-        current_count += count
-    else:
-        if current_word is not None:
-            print(f'{current_word}\t{current_count}')
-        current_word = word
-        current_count = count
-
-if current_word is not None:
-    print(f'{current_word}\t{current_count}')
-```
-
-Reducer นี้อาศัย input ที่ sort ตาม key แล้ว ตัวแปร `current_word` เก็บกลุ่มที่กำลังนับ เมื่อ key เปลี่ยนจึงพิมพ์ผลของกลุ่มก่อนหน้า ส่วน `final flush` หลัง loop จำเป็นเพราะกลุ่มสุดท้ายไม่มี key ใหม่เข้ามากระตุ้นให้พิมพ์ หากตัดส่วนนี้ออก คำสุดท้ายจะหายโดยโปรแกรมอาจไม่แสดง error
-
-### ทดสอบแบบ local ก่อนส่งขึ้น Hadoop
-
-สร้างไฟล์ `test.txt`:
-
-```text
-cat wears hat
-cat runs
-```
-
-จากนั้นรัน:
-
-```bash
-cat test.txt \
-  | python3 mapper.py \
-  | sort \
-  | python3 reducer.py
-```
-
-ควรได้:
-
-```text
-cat	2
-hat	1
-runs	1
-wears	1
-```
-
-คำสั่ง `sort` ในการทดสอบ local จำลองเงื่อนไขที่ Hadoop Shuffle/Sort เตรียมให้ Reducer หากไม่ sort และคำเดียวกันไม่อยู่ติดกัน Reducer แบบ stateful นี้อาจนับแยกหลายกลุ่ม
-
-## 8. Lab: จากไฟล์ในเครื่องไปสู่ HDFS และ MapReduce Job
-
-Lab ต้นฉบับใช้ Cloudera QuickStart VM บน VirtualBox ซึ่งเป็นสภาพแวดล้อมรุ่นเก่า แต่ลำดับการเรียนยังมีคุณค่า เพราะทำให้เห็นขอบเขตสามแห่งอย่างชัดเจน:
-
-1. Windows host เก็บไฟล์ต้นทาง
-2. Linux filesystem ภายใน VM เก็บไฟล์ก่อนนำเข้า Hadoop
-3. HDFS เป็น filesystem แบบกระจายที่คำสั่ง Hadoop มองเห็น
-
-การ mount shared folder เพียงทำให้ VM เข้าถึงไฟล์ของ host ได้ ยังไม่ได้แปลว่าไฟล์นั้นอยู่ใน HDFS ต้องใช้คำสั่ง `hadoop fs -put` หรือ `hdfs dfs -put` เพื่อนำไฟล์เข้า HDFS
-
-### ทดลองคำสั่ง HDFS อย่างมีความหมาย
-
-```bash
-hadoop fs -mkdir -p /user/cloudera/wc_input
-hadoop fs -put test.txt /user/cloudera/wc_input/
-hadoop fs -ls /user/cloudera/wc_input
-hadoop fs -cat /user/cloudera/wc_input/test.txt
-```
-
-`mkdir` สร้าง directory ใน HDFS, `put` คัดลอกจาก local filesystem เข้า HDFS, `ls` ตรวจ namespace และ `cat` อ่าน bytes กลับมา การเห็นไฟล์จาก `ls` ยังไม่พิสูจน์ว่าเนื้อหาถูกต้อง จึงควรตรวจทั้งชื่อ ขนาด และเนื้อหา
-
-คำสั่งต่อไปนี้มีหน้าที่ต่างกัน:
-
-```bash
-hadoop fs -get /user/cloudera/wc_input/test.txt ./downloaded.txt
-hadoop fs -cp /user/cloudera/wc_input/test.txt /user/cloudera/wc_input/copy.txt
-hadoop fs -mv /user/cloudera/wc_input/copy.txt /user/cloudera/wc_input/moved.txt
-hadoop fs -rm /user/cloudera/wc_input/moved.txt
-```
-
-`get` นำข้อมูลจาก HDFS กลับ local ส่วน `cp`, `mv` และ `rm` ในตัวอย่างนี้ทำงานกับ path ภายใน HDFS ความเข้าใจเรื่อง namespace สำคัญกว่าการจำ syntax เพราะ path ที่หน้าตาคล้ายกันอาจอยู่คนละ filesystem
-
-### ส่ง Streaming Job
-
-ตำแหน่ง Streaming JAR ต่างกันตาม Hadoop distribution จึงควรค้นหา path ใน environment จริงก่อน ตัวอย่างเชิงแนวคิดคือ:
-
-```bash
-hadoop jar "$HADOOP_STREAMING_JAR" \
-  -input /user/cloudera/wc_input \
-  -output /user/cloudera/wc_output \
-  -mapper mapper.py \
-  -reducer reducer.py \
-  -file mapper.py \
-  -file reducer.py
-```
-
-จากนั้นตรวจผล:
-
-```bash
-hadoop fs -ls /user/cloudera/wc_output
-hadoop fs -cat /user/cloudera/wc_output/part-*
-```
-
-ถ้ารันซ้ำด้วย output path เดิม Hadoop มักปฏิเสธเพื่อป้องกันการเขียนทับ วิธีที่ปลอดภัยคือกำหนด output path ใหม่ หรือยืนยันก่อนลบ path เดิม:
-
-```bash
-hadoop fs -rm -r /user/cloudera/wc_output
-```
-
-การลบเป็นคำสั่งทำลายข้อมูล จึงไม่ควรใส่ใน script แบบไม่ตรวจ path
-
-### หลักฐานว่ารันสำเร็จ
-
-ไม่ควรใช้เพียงข้อความ `job completed` เป็นหลักฐาน ให้ตรวจอย่างน้อย:
-
-- มีไฟล์ `_SUCCESS`
-- มี `part-*` ตามจำนวน reducers
-- ผลรวมจำนวนคำเท่ากับจำนวน tokens ใน input
-- key ไม่แยกซ้ำเป็นหลายบรรทัดโดยไม่ตั้งใจ
-- ไม่มี malformed record หรือค่า count ที่แปลงเป็น integer ไม่ได้
-
-## 9. Combiner: ลดข้อมูลก่อนผ่าน Network
+**คำถามนำ:** ถ้า Mapper สร้าง intermediate records จำนวนมาก เราจะลดข้อมูลที่ต้องส่งผ่าน network โดยไม่เปลี่ยนคำตอบได้อย่างไร?
 
 Mapper อาจสร้าง intermediate records จำนวนมาก ตัวอย่างยอดซื้อแต่ละโรงพยาบาลอาจมีหลายล้าน records การส่งทั้งหมดผ่าน network ทำให้ Shuffle แพง **Combiner** สามารถรวมผลบางส่วนใกล้ Mapper ก่อนส่ง เช่นรวมยอด `H001` ภายใน mapper นั้นจากหลาย records ให้เหลือหนึ่ง partial sum
 
 อย่างไรก็ตาม Hadoop ไม่รับประกันว่า Combiner จะถูกเรียกกี่ครั้งหรือถูกเรียกเสมอ ผลลัพธ์จึงต้องถูกต้องไม่ว่าจะมีหรือไม่มี Combiner ฟังก์ชัน `sum` ใช้ได้เพราะการบวกสามารถรวม partial sums ต่อได้ แต่การคำนวณ average ด้วยค่าเฉลี่ยย่อยเพียงค่าเดียวอาจผิด วิธีที่ถูกต้องคือส่ง `(sum, count)` แล้วรวมทั้งสองค่า ก่อนหารครั้งสุดท้าย
 
-## 10. Partitioner และ Data Skew
+## 9. Partitioner และ Data Skew
+
+**คำถามนำ:** การกระจาย key ไปหลาย Reducers รับประกันหรือไม่ว่าทุก Reducer จะมีงานเท่ากัน?
 
 Partitioner เลือกว่า key ใดไป Reducer ใด ค่าเริ่มต้นมักใช้ hash ของ key วิธีนี้ช่วยกระจาย keys แต่ไม่ได้รับประกันว่าปริมาณ records หรือเวลาประมวลผลเท่ากัน
 
@@ -469,7 +349,9 @@ Partitioner เลือกว่า key ใดไป Reducer ใด ค่า�
 
 แนวทางแก้ขึ้นกับสาเหตุ อาจแก้ data quality ที่ทำให้ key หาย, pre-aggregate ก่อน shuffle, ใช้ custom partitioner หรือทำ **salting** แยก `UNKNOWN` เป็นหลาย keys ชั่วคราวแล้วรวม partial results อีกรอบ ทุกวิธีต้องรักษาความถูกต้องของคำตอบ ไม่ควรแก้ performance ด้วยการแยก key เดียวไปหลาย reducers แล้วลืมรวมกลับ
 
-## 11. จาก Job เดี่ยวสู่ Workflow Orchestration
+## 10. จาก Job เดี่ยวสู่ Workflow Orchestration
+
+**คำถามนำ:** เมื่อผลลัพธ์จริงต้องผ่านหลาย jobs เราจะควบคุมลำดับ dependency, retry และสถานะความล้มเหลวอย่างไร?
 
 MapReduce Job หนึ่งงานอาจสร้างผลรวมได้ แต่ pipeline จริงมักต้องรับไฟล์ ตรวจ schema รัน aggregation ตรวจยอด และ publish dashboard หลายขั้น งานบางส่วนรันขนานกันได้ ขณะที่บางงานต้องรอผลก่อนหน้า การเขียน script เรียงบรรทัดอย่างเดียวทำให้ dependency, retry และ failure state มองเห็นยาก
 
@@ -493,7 +375,7 @@ Cron expression ในสไลด์ `0 0 * * *` สื่อว่ารัน
 
 ไม่ว่าใช้ Oozie หรือ Airflow งานที่ retry ต้องออกแบบให้ idempotent สมมติ Publish เขียนข้อมูลสำเร็จแต่ process ล้มก่อนรายงานสถานะ หาก retry ด้วย `INSERT` ซ้ำอาจเกิดข้อมูลสองชุด วิธีที่ปลอดภัยกว่าอาจเป็นการเขียนทับ partition ของวันนั้นหรือใช้ merge key ที่ป้องกันรายการซ้ำ
 
-## 12. มอง Hadoop ทั้งระบบอีกครั้ง
+## 11. มอง Hadoop ทั้งระบบอีกครั้ง
 
 เมื่อจบบท เราสามารถมองระบบเป็นเรื่องเดียวต่อเนื่องได้:
 
@@ -509,7 +391,9 @@ Cron expression ในสไลด์ `0 0 * * *` สื่อว่ารัน
 
 ความสัมพันธ์นี้สำคัญกว่าการจำรายชื่อ component แยกกัน HDFS ไม่ได้คำนวณแทน MapReduce, YARN ไม่ได้เก็บไฟล์แทน HDFS, MapReduce ไม่ได้จัด schedule ของทั้ง pipeline และ Airflow/Oozie ไม่ได้ประมวลผลข้อมูลแทน engine
 
-## 13. โจทย์บรรยายพร้อมแนวคำตอบ
+## 12. ฝึกเขียนตอบแบบบรรยาย
+
+ส่วนนี้เป็น **Exam Compression Layer** คำตอบจึงตั้งใจให้สั้นกว่าส่วนอธิบายหลัก แต่ยังรักษาลำดับนิยาม กลไก ตัวอย่าง และข้อจำกัดที่จำเป็นต่อการได้คะแนน
 
 ### ข้อ 1 — อธิบาย: เหตุใด HDFS จึงแยก NameNode และ DataNode
 
@@ -541,7 +425,7 @@ Cron expression ในสไลด์ `0 0 * * *` สื่อว่ารัน
 
 **แนวคำตอบ:** Workflow ควรเริ่มจากตรวจว่าไฟล์มาถึงครบ จากนั้นรัน schema check และ volume check แบบขนาน เมื่อทั้งสองผ่านจึงส่ง MapReduce aggregation หลังคำนวณต้อง reconcile row count และยอดรวมก่อน publish Dependency เหล่านี้ควรเขียนเป็น DAG เพื่อไม่ให้ aggregation เริ่มเมื่อ input ยังผิด หาก quality check ล้มให้หยุด downstream และแจ้งเตือน หาก publish ล้มให้ retry เฉพาะ publish โดยออกแบบการเขียนแบบ replace partition หรือ merge ตาม business key เพื่อไม่ให้ข้อมูลซ้ำ ทุก task ควรบันทึก input date, output path, row count และสถานะเพื่อให้ตรวจย้อนหลังได้
 
-## 14. ประเด็นที่ควรเตรียมสำหรับข้อสอบ
+## 13. ประเด็นที่ควรเตรียมสำหรับข้อสอบ
 
 จากน้ำหนักและการเน้นซ้ำใน Lecture หัวข้อที่ควรอธิบายเป็นเหตุเป็นผลได้ ได้แก่ ความหมายของ Big Data และ 5Vs, ความสัมพันธ์ระหว่าง HDFS/YARN/MapReduce, หน้าที่ของ NameNode/DataNode/ResourceManager/ApplicationMaster/NodeManager, การคำนวณ blocks และ replication, เส้นทาง Map–Shuffle–Reduce, Key design, Combiner, Partitioner/Data Skew และความหมายของ DAG/Workflow Orchestration
 
@@ -552,7 +436,6 @@ Cron expression ในสไลด์ `0 0 * * *` สื่อว่ารัน
 ### เอกสารรายวิชา
 
 - `dads6002-big-data-analytics/lecture/dads6002_01_hadoop.pdf`, หน้า 1–43
-- `dads6002-big-data-analytics/lab/lab_01_hadoop.pdf`, หน้า 1–5
 
 ### เอกสารทางการสำหรับคำอธิบายเพิ่มเติม
 
