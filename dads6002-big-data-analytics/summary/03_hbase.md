@@ -1,10 +1,12 @@
 # 03 — Apache HBase: จาก RowKey สู่ฐานข้อมูลแบบกระจายสำหรับการอ่าน–เขียนระดับแถว
 
-> **แหล่งเนื้อหาหลัก:** [Lecture — dads6002_03_hbase.pdf](../lecture/dads6002_03_hbase.pdf) หน้า 1–16 และ [Lab — lab_03_hbase.pdf](../lab/lab_03_hbase.pdf) หน้า 1–7
+> **แหล่งเนื้อหาหลัก:** [Lecture — dads6002_03_hbase.pdf](../lecture/dads6002_03_hbase.pdf) หน้า 1–16
 
 [← Course Syllabus](00_course_syllabus.md) | [บทก่อนหน้า: Hive](02_hive.md)
 
 ## จาก Hive มาสู่ HBase: ปัญหาที่ระบบเดิมยังตอบไม่ดี
+
+**คำถามนำ:** เหตุใดระบบที่วิเคราะห์ข้อมูลจำนวนมากได้ดีอย่าง Hive จึงไม่ใช่คำตอบที่เหมาะกับการเปิดหรือแก้ไขข้อมูลหนึ่ง Row ด้วยความหน่วงต่ำเสมอไป?
 
 สมมติเครือโรงพยาบาลเก็บเหตุการณ์อุปกรณ์การแพทย์หลายปีไว้ใน HDFS และใช้ Hive สรุปจำนวนแจ้งเตือนรายวัน วิธีนี้เหมาะกับการอ่านข้อมูลจำนวนมากเพื่อหาผลรวม แต่หน้าจอปฏิบัติการต้องเปิดสถานะล่าสุดของอุปกรณ์ `DEV-0098` ทันทีและบันทึกค่าชีพจรใหม่ทุกไม่กี่วินาที หากทุกคำขอต้องเริ่ม batch job เพื่อสแกนไฟล์ คำตอบจะช้าและมี overhead สูง
 
@@ -17,15 +19,15 @@ HBase แก้โจทย์อีกแบบหนึ่ง: application ร
 | Join หลายตารางแบบ ad hoc | HQL รองรับ | ไม่มี native join แบบ RDBMS |
 | เพิ่มค่าตัวนับของแถวเดียว | ไม่ใช่ workload หลัก | รองรับ atomic operation ระดับแถว |
 
-## ทำความเข้าใจ HBase สองรอบ
+## HBase คืออะไร: เริ่มจากหนึ่ง Row แล้วขยายไปทั้งระบบ
 
-### รอบแรก: มองข้อมูลหนึ่ง Row ให้ครบ
+### มองข้อมูลหนึ่ง Row ให้ครบ
 
 สมมติ HBase Table เก็บข้อมูลอุปกรณ์ โดยหนึ่งอุปกรณ์แทนด้วยหนึ่ง **Row** และระบุด้วย **RowKey** เช่น `DEV-0098` ข้อมูลภายใน Row ถูกจัดกลุ่มด้วย **Column Family** ที่กำหนดไว้ล่วงหน้า เช่น `identity` และ `reading` แต่แต่ละ Row ไม่จำเป็นต้องมี Columns เหมือนกันทั้งหมด อุปกรณ์วัดอุณหภูมิอาจมี `reading:temperature` ขณะที่เครื่องวัดความดันมี `reading:systolic` และ `reading:diastolic`
 
 ชื่อที่ต่อท้าย Column Family เช่น `temperature` หรือ `systolic` เรียกว่า **Column Qualifier** พิกัดของค่าหนึ่งจุดหรือ **Cell** จึงไม่ได้ระบุด้วยเลขแถวและชื่อคอลัมน์เท่านั้น แต่ประกอบด้วย RowKey, Column Family, Column Qualifier และ Timestamp เมื่อเขียนค่าใหม่ HBase สามารถเก็บค่าเดิมเป็น Version ก่อนหน้าได้ตามนโยบายของ Column Family
 
-### รอบที่สอง: เชื่อม Data Model กับพฤติกรรมของระบบ
+### เชื่อม Data Model กับพฤติกรรมของระบบ
 
 HBase จัดเรียง Rows ตาม Bytes ของ RowKey และแบ่งช่วงของ Rows ออกเป็น **Regions** ซึ่งกระจายให้ **RegionServers** ดูแล Data Model จึงสัมพันธ์กับ Runtime โดยตรง: การออกแบบ RowKey มีผลต่อทั้งตำแหน่งข้อมูล ลำดับ Scan และการกระจายภาระ ส่วนการวาง Column Qualifiers ไว้ใน Column Family เดียวกันมีผลต่อการจัดเก็บ การอ่าน และ Lifecycle ของข้อมูลกลุ่มนั้น
 
@@ -53,6 +55,8 @@ flowchart TD
 
 ## NoSQL ไม่ได้แปลว่าไม่มี Schema
 
+**คำถามนำ:** ถ้า HBase ไม่บังคับทุก Row ให้มี Columns เหมือนกัน เหตุใดการออกแบบ Schema และ RowKey จึงยังสำคัญมาก?
+
 **จากเอกสาร หน้า 1–2:** NoSQL เป็นคำกว้างซึ่งรวม document, key-value, graph และ column-family databases โดย HBase อยู่ในกลุ่ม column-family และมีต้นแบบจาก Google Bigtable
 
 NoSQL ไม่ได้หมายถึงฐานข้อมูลทุกชนิดทำงานเหมือนกัน และไม่ได้หมายถึงห้ามใช้ SQL โดยนิยาม คำที่ปลอดภัยกว่าคือ “ฐานข้อมูลที่ไม่ยึด relational model แบบดั้งเดิมเป็นแกนหลัก” แต่ละประเภทออกแบบตาม access pattern ต่างกัน HBase จัดแถวตาม RowKey และจัด columns เป็น families จึงไม่ควรถูกมองเป็นตาราง RDBMS ที่เพียงมี column มากขึ้น
@@ -60,6 +64,8 @@ NoSQL ไม่ได้หมายถึงฐานข้อมูลทุ�
 คำว่า **schema-less** ในสไลด์ควรอ่านเป็น **schema-flexible** เพราะ HBase ยังมีโครงสร้างที่ต้องออกแบบ Table และ Column Families ต้องประกาศก่อนใช้งาน เพียงแต่ Column Qualifiers ภายใน family สามารถเกิดต่างกันในแต่ละแถวได้ [Apache HBase Data Model](https://hbase.apache.org/docs/datamodel/) อธิบายว่า families คงที่ใน schema แต่ qualifiers เปลี่ยนและต่างกันระหว่าง rows ได้
 
 ## Data Model จากใหญ่ไปเล็ก
+
+**คำถามนำ:** Cell หนึ่งค่าใน HBase ถูกระบุตำแหน่งด้วยอะไร และแต่ละระดับตั้งแต่ Table ถึง Version สัมพันธ์กันอย่างไร?
 
 ### Table และ RowKey
 
@@ -112,6 +118,8 @@ HBase เหมาะเมื่อชุดข้อมูลใหญ่ ก�
 
 ## ภาพรวมจาก Table ไปสู่ Storage
 
+เมื่อเข้าใจพิกัดเชิงตรรกะของ Cell แล้ว คำถามถัดไปคือ Row และ Cell เหล่านั้นถูกแบ่งให้เครื่องใดดูแล และสุดท้ายถูกเก็บลง HDFS ในรูปใด
+
 สมมติ HBase Table เก็บข้อมูลอุปกรณ์ที่มี RowKey ตั้งแต่ `DEV-0001` ถึง `DEV-9999` เมื่อข้อมูลเพิ่มขึ้น HBase จะแบ่ง Table ตามช่วง RowKey ออกเป็นหลาย **Regions** เช่น Region แรกอาจครอบคลุม `DEV-0001` ถึงก่อน `DEV-3000` และ Region ถัดไปครอบคลุมช่วงต่อจากนั้น แต่ละ Region ถูกมอบหมายให้ **RegionServer** หนึ่งตัวให้บริการในขณะหนึ่ง และ RegionServer หนึ่งตัวสามารถดูแลหลาย Regions ได้
 
 Client ต้องรู้ก่อนว่า RowKey ที่ต้องการอยู่ใน Region ใดและ RegionServer ใดกำลังให้บริการ ข้อมูลตำแหน่งนี้อยู่ใน `hbase:meta` เมื่อ Client พบปลายทางแล้ว จึงติดต่อ RegionServer เพื่ออ่านหรือเขียนข้อมูลโดยตรง
@@ -132,6 +140,8 @@ flowchart TD
 ```
 
 ## Region และการกระจาย Table
+
+**คำถามนำ:** Table เดียวจะกระจายไปหลายเครื่องโดยยังค้น Row จาก RowKey ได้อย่างไร?
 
 HBase แบ่ง table ตามช่วง RowKey เป็น **Regions** แต่ละ Region มี start key และ end key และถูกเปิดให้ RegionServer หนึ่งตัวรับบริการในเวลาหนึ่ง เมื่อ Region โตถึงเกณฑ์ ระบบสามารถ split ออกเป็นสองช่วง ทำให้ table ขยายข้าม RegionServers ได้
 
@@ -154,6 +164,8 @@ RegionServer รับ read/write ของ Regions ที่ตนเปิด�
 ใน HBase รุ่นต่างกัน bootstrap mechanism และบทบาท ZooKeeper อาจต่างกัน จึงไม่ควรจำขั้น RPC แบบตายตัวข้าม version แต่ `hbase:meta` ยังคงเป็น catalog สำคัญของ Region locations ดู architecture ปัจจุบันได้จาก [Apache HBase Architecture](https://hbase.apache.org/docs/architecture/)
 
 ## Write Path: จาก `put` ไปสู่ HFile
+
+**คำถามนำ:** เมื่อ Client เขียนค่าหนึ่ง Cell เหตุใดข้อมูลจึงอ่านได้ทันทีทั้งที่ยังไม่ได้กลายเป็น HFile และข้อมูลจะรอดอย่างไรหาก RegionServer ล้ม?
 
 สมมติ application เขียน `DEV-0098, reading:temperature, 37.2` กระบวนการเชิงแนวคิดเป็นดังนี้:
 
@@ -188,6 +200,8 @@ sequenceDiagram
 การที่ `put` คืน success ยังไม่เท่ากับมี HFile ใหม่ทันที สิ่งที่ต้องพิสูจน์คือ WAL durability และ acknowledgement semantics ตาม configuration นอกจากนี้ HDFS replication ป้องกัน disk/node failure แต่ไม่แทน backup เมื่อผู้ใช้ลบข้อมูลผิด
 
 ## Read Path: ระบบค้นค่าจากที่ใด
+
+**คำถามนำ:** การอ่านหนึ่ง Row อาจต้องรวมข้อมูลจาก MemStore, BlockCache และ HFiles หลายไฟล์อย่างไรจึงคืน Version ที่ถูกต้อง?
 
 สมมติ client ขอค่าล่าสุดของ `DEV-0098` หลังหา RegionServer แล้ว ระบบต้องพิจารณาข้อมูลหลายชั้นเพราะค่าล่าสุดอาจเพิ่งเขียนและยังไม่ flush:
 
@@ -251,87 +265,23 @@ Validation สำคัญคือ read-after-write ได้ค่าที่
 | RegionServer ล้มแล้วบาง row ชั่วคราวเข้าไม่ได้ | Region recovery/reassignment | server log, Region state, WAL replay |
 | MemStore สูง | flush pressure หรือ hot Region | MemStore size และ flush metrics |
 
-## ก่อนพิมพ์คำสั่ง: ออกแบบจาก Query ย้อนกลับ
+## ออกแบบ RowKey จาก Query ย้อนกลับ
 
 สมมติเราต้องสร้างระบบบันทึกลิงก์ตามตัวอย่างสไลด์ หนึ่ง row แทนหนึ่งเว็บไซต์ ใช้ domain กลับด้าน เช่น `org.hbase.www` เป็น RowKey ข้อมูลชื่อเรื่องอยู่ใน `link:title` และจำนวนแชร์อยู่ใน `statistics:share` Access patterns คือเปิดเว็บไซต์หนึ่งรายการจาก domain, เพิ่ม counter และ scan เว็บไซต์กลุ่มเดียวกัน
 
 การกลับ domain ทำให้ส่วนกว้างอยู่ด้านหน้า เช่น `org.apache.www`, `org.apache.mail` และ `org.apache.jira` เรียงใกล้กัน จึง scan กลุ่ม Apache ได้ง่ายกว่าใช้ `www.apache.org`, `mail.apache.org` และ `jira.apache.org` ซึ่งจะกระจายตาม subdomain [Apache HBase Data Model](https://hbase.apache.org/docs/datamodel/) ใช้แนวคิด reversed domain เป็นตัวอย่าง RowKey เช่นกัน
 
-## HBase Shell และ Schema Lifecycle
-
-เริ่ม Shell ด้วย:
-
-```bash
-hbase shell
-```
-
-คำสั่งใน HBase Shell ใช้รูปแบบ Ruby/JRuby และชื่อ table, row, column ควรใส่ single quotes ตาม [Apache HBase Shell](https://hbase.apache.org/docs/shell/) ตัวอย่างในสไลด์มี smart quotes จาก PowerPoint ซึ่งต้องเปลี่ยนเป็น ASCII quotes ก่อนรัน
-
-Lab เริ่มด้วย **Namespace** ซึ่งเป็นขอบเขตสำหรับจัดกลุ่ม Tables คล้ายการใช้ชื่อกลุ่มนำหน้า Table ไม่ได้เปลี่ยน Data Model ภายใน Row คำสั่งต่อไปนี้สร้าง Namespace และ Table ชื่อ `t1` ภายในนั้น:
-
-```ruby
-create_namespace 'ns_test'
-list_namespace
-create 'ns_test:t1', 'cf1'
-describe 'ns_test:t1'
-```
-
-การลบ Namespace ทำได้ต่อเมื่อไม่มี Table เหลืออยู่ จึงต้อง `disable` และ `drop` Table ก่อน แล้วจึง `drop_namespace 'ns_test'` ข้อจำกัดนี้ป้องกันการลบขอบเขตที่ยังมี Objects อยู่โดยไม่ตั้งใจ
-
-สร้าง table ใน default namespace โดยกำหนดสอง Column Families ตั้งแต่ต้น:
-
-```ruby
-create 'linkshare', 'link', 'statistics'
-list
-describe 'linkshare'
-```
-
-เหตุที่กำหนด `link` และ `statistics` แยกกันควรมาจาก storage/access policy ไม่ใช่เพียงชื่อสวยงาม เช่น metadata ลิงก์อาจเก็บหลาย versions ส่วน counter อาจมี retention ต่างกัน Qualifiers อย่าง `title`, `url` และ `share` ไม่ต้องประกาศใน `create`
-
-สไลด์สอน workflow แบบเดิมให้ disable ก่อนเปลี่ยน schema:
-
-```ruby
-disable 'linkshare'
-alter 'linkshare', {NAME => 'link', VERSIONS => 5}
-enable 'linkshare'
-describe 'linkshare'
-```
-
-ความสามารถ online schema change ต่างตาม operation และ HBase version สำหรับการเรียนให้ทำตาม environment ของอาจารย์และอ่าน `help 'alter'` ก่อน หาก disable table clients จะอ่าน/เขียนไม่ได้ชั่วคราว จึงต้องวาง maintenance และตรวจว่า table กลับเป็น enabled
-
 ## Put ไม่ใช่ Insert อย่างเดียว
-
-```ruby
-put 'linkshare', 'org.hbase.www', 'link:title', 'Apache HBase'
-get 'linkshare', 'org.hbase.www'
-```
 
 `put` ระบุ table, RowKey, column และ value ถ้า Cell พิกัดเดียวกันยังไม่มี มันสร้างค่าใหม่ หากมีแล้ว `put` ค่าใหม่จะสร้าง version ตาม timestamp และค่าล่าสุดจะถูกอ่านก่อน จึงเป็นทั้ง insert/update ในภาษาทั่วไป แต่ไม่ใช่ SQL `UPDATE` ที่ค้นหลาย rows ด้วย predicate
 
-สำหรับ counter ให้ใช้ atomic increment แทนการอ่านค่าเดิมมาบวกใน client:
-
-```ruby
-incr 'linkshare', 'org.hbase.www', 'statistics:share', 1
-get_counter 'linkshare', 'org.hbase.www', 'statistics:share'
-```
+สำหรับ counter ควรใช้ atomic increment แทนการอ่านค่าเดิมมาบวกใน client
 
 ถ้า client สองตัวอ่านค่า 10 พร้อมกัน แล้วต่างคนเขียน 11 อาจเกิด lost update แต่ `incr` ให้ server ทำการเพิ่มแบบ atomic ตาม row/column operation จึงเหมาะกับ counter มากกว่า read-modify-write ฝั่ง client
 
 ## Versions และ Time Range
 
-เขียนสอง versions แบบกำหนด timestamp เพื่อให้ทดลองซ้ำได้:
-
-```ruby
-put 'linkshare', 'org.hbase.www', 'link:title', 'Apache HBase v1', 1700000000000
-put 'linkshare', 'org.hbase.www', 'link:title', 'Apache HBase v2', 1700000001000
-
-get 'linkshare', 'org.hbase.www', {
-  COLUMN => 'link:title',
-  VERSIONS => 2
-}
-```
-
-คำสั่งจะคืนสอง versions ได้ก็ต่อเมื่อ Column Family ตั้ง `VERSIONS` ไว้เพียงพอ หากยังเป็นค่าเริ่มต้นหนึ่ง version ผลอาจเห็นเพียงล่าสุด การกำหนด `{TIMERANGE => [start, end]}` ใช้ช่วง timestamp หน่วย milliseconds และควรตรวจ semantics ของปลายช่วงตาม version; โดยทั่วไป start รวมและ end ไม่รวม
+เมื่อเขียน Cell พิกัดเดิมด้วย timestamps ต่างกัน ระบบจะคืนหลาย versions ได้ก็ต่อเมื่อ Column Family ตั้ง `VERSIONS` ไว้เพียงพอ หากกำหนดให้เก็บเพียงหนึ่ง version ผลจะเห็นเฉพาะค่าล่าสุด การอ่านแบบ time range ใช้ช่วง timestamp โดยทั่วไปเริ่มแบบรวมขอบซ้ายและไม่รวมขอบขวา แต่ต้องตรวจ semantics ของ client และ version ที่ใช้งาน
 
 Timestamp เป็นส่วนของ Cell coordinate แต่ไม่ควรใช้แทน business event time โดยไม่คิด หากข้อมูลมาถึงช้า server timestamp อาจสะท้อนเวลา ingestion ไม่ใช่เวลาที่เหตุการณ์เกิด ควรเก็บ event time เป็น qualifier เมื่อธุรกิจต้องวิเคราะห์เวลาเหตุการณ์จริง
 
@@ -350,39 +300,19 @@ HBase ไม่รู้ว่า string `'100'` เป็นเลขหนึ�
 
 ### Point Get
 
-เมื่อรู้ RowKey เต็ม `get` สามารถ locate Region และอ่านแถวเป้าหมายได้:
+เมื่อรู้ RowKey เต็ม Point Get สามารถ locate Region และอ่านแถวเป้าหมายได้โดยไม่ต้องไล่อ่านทุก Row
 
-```ruby
-get 'linkshare', 'org.hbase.www', {COLUMN => ['link:title', 'statistics:share']}
-```
-
-นี่คือ access pattern ที่ HBase เด่น เพราะไม่ต้องไล่ทุก row
+นี่คือ access pattern ที่ HBase เด่น เพราะตำแหน่งของ Row ถูกจำกัดจาก RowKey ได้โดยตรง
 
 ### Range Scan
 
-```ruby
-scan 'linkshare', {
-  STARTROW => 'org.apache.',
-  STOPROW => 'org.apache/'
-}
-```
-
-แนวคิดสำคัญคือ scan เริ่มที่ key แรกซึ่งมากกว่าหรือเท่ากับ `STARTROW` และหยุดก่อน `STOPROW` โดยไม่จำเป็นต้องมี row ตรงกับ boundary ใน table ชื่อ option ใน HBase Shell ปัจจุบันมักใช้ `STOPROW`; สไลด์ใช้ `ENDROW` จึงต้องตรวจ `help 'scan'` ใน environment ก่อนรัน
+แนวคิดสำคัญคือ scan เริ่มที่ key แรกซึ่งมากกว่าหรือเท่ากับขอบเริ่มต้น และหยุดก่อนขอบสิ้นสุด โดยไม่จำเป็นต้องมี Row ตรงกับ boundary ใน Table การกำหนดขอบเขตจึงต้องคิดตาม byte order ไม่ใช่ตามความหมายที่มนุษย์อ่านจากข้อความ
 
 การเลือก RowKey ที่ทำให้ข้อมูลซึ่งอ่านร่วมกันมี prefix เดียวกันช่วยให้ range scan มีขอบเขตสั้น แต่ถ้าเขียนทุก key ด้วย prefix เวลาเดียวกันตามลำดับ อาจทำให้ Region ท้ายสุดรับ writes ทั้งหมด เกิด hotspot
 
 ### Filter
 
 สไลด์แนะนำ RowFilter, ValueFilter, ColumnRangeFilter, SingleColumnValueFilter และ RegexStringComparator Filters ช่วยตัดผลที่ไม่ตรงเงื่อนไขฝั่ง RegionServer ก่อนส่งกลับ client แต่ไม่ได้สร้าง secondary index อัตโนมัติ หาก filter ต้องตรวจข้อมูลจำนวนมาก ระบบยังอาจ scan rows/cells จำนวนมาก ดังนั้น “ส่งกลับน้อย” ไม่เท่ากับ “อ่านน้อย”
-
-ตัวอย่างตามแนวคิดสไลด์ โดย syntax filter อาจต่างตาม version:
-
-```ruby
-show_filters
-scan 'linkshare', {
-  FILTER => "RowFilter(>, 'binary:org.hbase')"
-}
-```
 
 ก่อนใช้ filter ให้ถามว่าสามารถ encode เงื่อนไขสำคัญใน RowKey เพื่อจำกัด range ก่อนได้หรือไม่ แล้วค่อยใช้ filter ภายในช่วงนั้น
 
@@ -401,73 +331,22 @@ Rows ที่อยู่ติดกันถูกจัดใน Region เ�
 
 ไม่มี RowKey ที่ดีที่สุดสากล ต้องเริ่มจาก queries ที่สำคัญที่สุด, write distribution, cardinality และขนาด row แล้วทดสอบด้วยข้อมูลใกล้ production
 
-## Delete, Drop และ Flush
-
-```ruby
-delete 'linkshare', 'org.hbase.www', 'link:title'
-flush 'linkshare'
-```
+## Delete Marker และ Flush
 
 Delete สร้างเครื่องหมายลบตาม version semantics และ compaction จัดการข้อมูลเก่าในภายหลัง จึงไม่ควรตีความว่าทุก byte หายทันที ส่วน `flush` บังคับ MemStores ของ scope ที่ระบุให้สร้าง HFiles; ใช้เพื่อการทดลอง/ปฏิบัติการ ไม่ควรใช้แก้ performance แบบสุ่มเพราะเพิ่ม StoreFiles ได้
 
-การลบ table ต้อง disable และ drop:
-
-```ruby
-disable 'linkshare'
-drop 'linkshare'
-```
-
-นี่เป็น destructive operation ให้ตรวจ `list`, environment และชื่อ table ก่อนเสมอ สำหรับ Lab ควรใช้ชื่อเฉพาะของตนและเก็บคำสั่งสร้างข้อมูลใหม่ได้
-
-## Guided Lab: Copy, Predict, Execute, Validate
-
-### 1. สร้างและตรวจ schema
-
-```ruby
-create 'linkshare_lab', 'link', 'statistics'
-describe 'linkshare_lab'
-```
-
-ทำนายก่อนรันว่า qualifiers ใดจะปรากฏ แม้ยังไม่ได้ประกาศ จากนั้น `put`:
-
-```ruby
-put 'linkshare_lab', 'org.apache.www', 'link:title', 'Apache'
-put 'linkshare_lab', 'org.hbase.www', 'link:title', 'HBase'
-incr 'linkshare_lab', 'org.hbase.www', 'statistics:share', 1
-```
-
-### 2. อ่านและตรวจผล
-
-```ruby
-get 'linkshare_lab', 'org.hbase.www'
-scan 'linkshare_lab'
-```
-
-หลักฐานผ่านคือมีสอง RowKeys, `org.hbase.www` มี title และ counter เท่ากับ 1 และลำดับ scan ตรง byte order
-
-### 3. Modify และ Diagnose
-
-เพิ่ม `org.hive.www` แล้วทำนายตำแหน่ง ทดลอง scan ช่วง จากนั้นเขียน IDs `'1'`, `'2'`, `'10'` ใน table ทดลองและอธิบายเหตุผลของลำดับที่เห็น อย่าแก้ด้วย sort หลังอ่านโดยไม่ตอบว่าการออกแบบ RowKey ควรเปลี่ยนหรือไม่
-
-### 4. Cleanup
-
-```ruby
-disable 'linkshare_lab'
-drop 'linkshare_lab'
-list
-```
-
-## Validation และ Troubleshooting
+## Failure จาก Data Model และแนวทางวินิจฉัย
 
 | อาการ | สาเหตุที่เป็นไปได้ | วิธีตรวจ/แก้ |
 |---|---|---|
-| เห็น version เดียว | Family ตั้ง `VERSIONS => 1` | `describe`, alter version policy แล้วเขียนใหม่ |
-| Range scan ไม่ได้ rows ที่คาด | byte order/boundary ผิด | แสดง RowKeys จริงและตรวจ STOPROW exclusive |
+| เห็น version เดียว | Family ตั้งให้เก็บเพียงหนึ่ง version | ตรวจ version policy และข้อมูลที่ยังอยู่หลัง compaction |
+| Range scan ไม่ได้ rows ที่คาด | byte order หรือขอบเขตผิด | แสดง RowKeys จริงและตรวจว่าขอบขวาไม่รวมอยู่ในช่วง |
 | Write บาง Region สูงผิดปกติ | monotonic/hot prefix | Region metrics และ key distribution |
 | Filter ช้าแม้คืนไม่กี่แถว | ไม่มี index และ scan ช่วงกว้าง | จำกัด STARTROW/STOPROW หรือ redesign key |
-| Alter/drop ไม่ได้ | table state หรือ syntax ต่าง version | `is_enabled`, `help`, `describe` |
 
-## โจทย์ฝึกอธิบายพร้อมแนวคำตอบ
+## ฝึกเขียนตอบแบบบรรยาย
+
+ส่วนนี้เป็น **Exam Compression Layer** คำตอบจึงสั้นกว่าส่วนอธิบายหลัก แต่ยังรักษานิยาม กลไก ตัวอย่าง และ trade-off ที่จำเป็นต่อการได้คะแนน
 
 ### ข้อ 1 — เปรียบเทียบ Hive กับ HBase จาก Workload
 
@@ -499,7 +378,7 @@ Table เหตุการณ์ใช้ RowKey เป็น Timestamp ที�
 
 **แนวคำตอบ:** `flush` ย้ายข้อมูลจาก MemStore ไปเป็น HFile ใหม่ จึงอาจเพิ่มจำนวน StoreFiles และทำให้ Read Amplification แย่ลง ไม่ใช่คำสั่งรวมไฟล์ Minor Compaction รวม HFiles บางส่วนเพื่อลดจำนวนไฟล์ ส่วน Major Compaction Rewrite Files ในขอบเขต Store ที่เกี่ยวข้องและช่วยจัดการ Versions หรือ Delete Markers ตาม Policy แต่ใช้ I/O สูง ก่อนดำเนินการต้องตรวจ StoreFile Count, Compaction Queue, Cache Hit Ratio และ Workload ช่วงเวลา แล้วเลือก Maintenance Window ไม่ควรสั่ง Major Compaction โดยอัตโนมัติในช่วง Peak
 
-## Likely Exam Focus
+## ประเด็นที่ควรเตรียมสำหรับข้อสอบ
 
 - อธิบายพิกัด Cell และความต่างระหว่าง Column Family กับ Column Qualifier
 - Trace Write Path และ Read Path พร้อม Failure Recovery
@@ -510,10 +389,8 @@ Table เหตุการณ์ใช้ RowKey เป็น Timestamp ที�
 ## References
 
 - [Lecture — `dads6002_03_hbase.pdf`](../lecture/dads6002_03_hbase.pdf), หน้า 1–16
-- [Lab — `lab_03_hbase.pdf`](../lab/lab_03_hbase.pdf), หน้า 1–7
 - [Apache HBase: Data Model](https://hbase.apache.org/docs/datamodel/)
 - [Apache HBase: Architecture](https://hbase.apache.org/docs/architecture/)
 - [Apache HBase: RegionServer](https://hbase.apache.org/docs/architecture/regionserver/)
 - [Apache HBase: Catalog Tables](https://hbase.apache.org/docs/architecture/catalog-tables/)
 - [Apache HBase: Schema Design](https://hbase.apache.org/docs/schema-design/)
-- [Apache HBase: Shell](https://hbase.apache.org/docs/shell/)
