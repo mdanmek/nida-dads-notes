@@ -136,18 +136,18 @@ $I(\cdot)$ มีค่า 1 เมื่อเงื่อนไขเป็น
 | S2 | great | no | yes | normal | no | yes |
 | S3 | mediocre | yes | no | high | no | no |
 | S4 | great | yes | yes | normal | yes | yes |
-| S5 | great | no | no | normal | no | ? |
+| S5 | great | no | no | high | no | ? |
 
 เทียบเฉพาะ 5 feature แรก:
 
-- $H(S5,S1)=2$ เพราะ `Chat` และ `Fast` ต่างกัน
-- $H(S5,S2)=1$ เพราะ `Fast` ต่างกัน
-- $H(S5,S3)=3$ เพราะ `Food`, `Chat` และ `Price` ต่างกัน
-- $H(S5,S4)=3$ เพราะ `Chat`, `Fast` และ `Bar` ต่างกัน
+- $H(S5,S1)=3$ เพราะ `Chat`, `Fast` และ `Price` ต่างกัน
+- $H(S5,S2)=2$ เพราะ `Fast` และ `Price` ต่างกัน
+- $H(S5,S3)=2$ เพราะ `Food` และ `Chat` ต่างกัน
+- $H(S5,S4)=4$ เพราะ `Chat`, `Fast`, `Price` และ `Bar` ต่างกัน
 
-เมื่อ $k=3$ จุดที่ใกล้ที่สุดแน่นอนคือ S2 และ S1 ส่วนลำดับที่สามเกิด tie ระหว่าง S3 กับ S4 แต่ไม่ว่าจะเลือกจุดใด เสียงส่วนใหญ่ยังเป็น `yes`
+เมื่อ $k=2$ เพื่อนบ้านที่ใกล้ที่สุดคือ S2 ซึ่งมีคำตอบ `yes` และ S3 ซึ่งมีคำตอบ `no` จึงเกิด **vote tie** และยังตัดสิน class ไม่ได้จากเสียงข้างมากเพียงอย่างเดียว ระบบจริงต้องกำหนด tie-breaking rule เช่น ให้น้ำหนักตามระยะ เลือก class ตามลำดับที่กำหนด หรือปรับค่า $k$ โดยประเมินผ่าน cross-validation
 
-กรณีนี้สอนอีกเรื่องหนึ่งว่า **การเลือก $k$ เป็นเลขคี่ช่วยลดโอกาสเสมอใน Binary Classification แต่ไม่ได้รับประกันว่าจะไม่มี tie ทุกกรณี** เพราะอาจเสมอกันที่ระยะของเพื่อนบ้าน หรือเป็น Multiclass Classification
+โจทย์ฉบับปรับปรุงตั้งใจให้เห็นว่า $k$ เป็นเลขคู่สามารถทำให้ Binary Classification เสมอกันได้ แต่ **การเลือก $k$ เป็นเลขคี่ก็ไม่ได้รับประกันว่าจะไม่มี tie ทุกกรณี** เพราะยังอาจเสมอกันที่ระยะของเพื่อนบ้านหรือเกิดการแบ่งคะแนนใน Multiclass Classification
 
 ## 5. เลือกค่า $k$ อย่างไร
 
@@ -253,19 +253,69 @@ print(f'Test accuracy: {test_accuracy:.3f}')
 
 ต้อง split ก่อน แล้วให้ scaler `fit()` จาก training data เท่านั้น หาก scale ทั้ง dataset ก่อน split ค่าเฉลี่ยและส่วนเบี่ยงเบนมาตรฐานจะมีข้อมูลจาก test set ปะปน ซึ่งเป็น data leakage
 
+### 6.4 Worked example: Scaling เปลี่ยนเพื่อนบ้านที่ใกล้ที่สุดได้อย่างไร
+
+เอกสารฉบับปรับปรุงเพิ่มตัวอย่างต่อไปนี้ โดย S4 เป็นข้อมูลใหม่ที่ต้องทำนายด้วย $k=1$:
+
+| Sample | $X_1$ | $X_2$ | Class |
+|---|---:|---:|---|
+| S1 | 4.5 | 10,000 | yes |
+| S2 | 0.1 | 3,000 | no |
+| S3 | 0.2 | 3,200 | yes |
+| S4 | 4.5 | 3,000 | ? |
+
+ก่อน scaling ระยะของ $X_2$ ระดับหลักพันครอบงำ $X_1$:
+
+| Training sample | Distance จาก S4 ก่อน scaling |
+|---|---:|
+| S1 | $\sqrt{(4.5-4.5)^2+(3000-10000)^2}=7000$ |
+| S2 | $\sqrt{(4.5-0.1)^2+(3000-3000)^2}=4.4$ |
+| S3 | $\sqrt{(4.5-0.2)^2+(3000-3200)^2}\approx200.046$ |
+
+เพื่อนบ้านใกล้ที่สุดคือ S2 จึงทำนาย S4 เป็น `no`
+
+เมื่อใช้ Min-Max Scaling โดยอาศัยค่า min และ max ของ training data:
+
+$$
+X_1'=\frac{X_1-0.1}{4.5-0.1},
+\qquad
+X_2'=\frac{X_2-3000}{10000-3000}
+$$
+
+ข้อมูลที่แปลงแล้วเป็น:
+
+| Sample | $X_1'$ | $X_2'$ |
+|---|---:|---:|
+| S1 | 1.0000 | 1.0000 |
+| S2 | 0.0000 | 0.0000 |
+| S3 | 0.0227 | 0.0286 |
+| S4 | 1.0000 | 0.0000 |
+
+ระยะจาก S4 ไป S1 และ S2 เท่ากับ 1 ส่วนระยะไป S3 ประมาณ 0.978 ดังนั้น S3 กลายเป็นเพื่อนบ้านที่ใกล้ที่สุด และ prediction เปลี่ยนเป็น `yes`
+
+ผลนี้ไม่ได้พิสูจน์ว่า scaling ทำให้คำตอบถูกเสมอ แต่พิสูจน์ว่า **scale เป็นส่วนหนึ่งของนิยามความใกล้** หากไม่ควบคุม scale โมเดลอาจให้ความสำคัญกับหน่วยวัดมากกว่าความสัมพันธ์กับ target
+
 ## 7. ปัญหาสำคัญของ k-NN
 
 ### 7.1 Noise และ outlier
 
 จุดผิดปกติอาจกลายเป็น neighbor ใกล้ที่สุดและชักนำ prediction ผิด โดยเฉพาะเมื่อ $k$ เล็ก ควรตรวจสาเหตุของ outlier ก่อนลบเสมอ เพราะอาจเป็นเหตุการณ์จริงที่สำคัญ ไม่ใช่ข้อผิดพลาด
 
-แนวทางรับมือได้แก่ปรับ $k$, ใช้ distance weighting, ใช้ robust scaling, ตรวจ data quality หรือเลือก metric ที่เหมาะกับลักษณะข้อมูล การลบ outlier ไม่ใช่คำตอบอัตโนมัติ
+เอกสารฉบับใหม่เสนอ [**Robust Scaling**](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html) ซึ่งใช้ median และ interquartile range (IQR):
+
+$$
+x'=\frac{x-\mathrm{median}(x)}{IQR(x)}
+$$
+
+เพราะ median และ IQR ไวต่อค่ารุนแรงน้อยกว่า mean และ standard deviation จึงช่วยลดอิทธิพลของ outlier ต่อ scale แต่ไม่ได้ลบ outlier หรือรับประกันว่า outlier จะไม่กลายเป็น neighbor แนวทางอื่นได้แก่ปรับ $k$, ใช้ distance weighting, ตรวจ data quality หรือเลือก metric ที่เหมาะกับข้อมูล การลบ outlier ไม่ใช่คำตอบอัตโนมัติ
 
 ### 7.2 Prediction ช้าและใช้หน่วยความจำมาก
 
 เพราะ k-NN เก็บ training instances และค้นหา neighbor ตอน predict การค้นหาแบบ brute force ต้องเปรียบเทียบกับข้อมูลจำนวนมาก โครงสร้างอย่าง KD-Tree และ Ball-Tree ช่วยลดเวลาค้นหาในบางสถานการณ์ แต่ประโยชน์ลดลงเมื่อมิติสูง
 
-การบีบอัดไฟล์ด้วย ZIP อาจลดพื้นที่จัดเก็บถาวร แต่ไม่แก้ความต้องการให้ข้อมูลพร้อมใช้งานในหน่วยความจำหรือค่าใช้จ่ายในการค้นหาโดยตรง จึงควรมองเรื่อง data representation, approximate nearest neighbors และการลดมิติร่วมด้วยเมื่อข้อมูลมีขนาดใหญ่
+เอกสารฉบับใหม่เสนอ [**Product Quantization (PQ)**](https://docs.nvidia.com/cuvs/user-guide/api-guides/preprocessing-guide/product-quantization.html) สำหรับลด storage และเร่ง approximate nearest-neighbor search แนวคิดคือแบ่ง vector ออกเป็น subvectors แล้วแทนแต่ละส่วนด้วยรหัสของ centroid ใน codebook แทนการเก็บตัวเลขทุกมิติเต็มความละเอียด วิธีนี้ลดหน่วยความจำและทำให้ประมาณระยะได้เร็วขึ้น แต่แลกกับ quantization error ซึ่งอาจทำให้ลำดับ neighbor เปลี่ยน จึงต้องประเมินทั้ง recall ของการค้นหา latency และขนาด index
+
+การบีบอัดไฟล์ทั่วไปอย่าง ZIP อาจลดพื้นที่จัดเก็บถาวร แต่ไม่ช่วยคำนวณระยะโดยตรง เพราะต้องคลายข้อมูลก่อน ส่วน PQ ออกแบบ representation ให้คำนวณระยะโดยประมาณจากรหัสได้ จึงตอบโจทย์ retrieval มากกว่า
 
 ### 7.3 Curse of Dimensionality
 
@@ -274,7 +324,10 @@ print(f'Test accuracy: {test_accuracy:.3f}')
 แนวทางรับมือ:
 
 - เลือก feature ที่เกี่ยวข้องและตัด feature รบกวน
-- ลดมิติ เช่น PCA เมื่อเหมาะสม
+- ใช้ **PCA** ลดมิติแบบ unsupervised โดยรักษาทิศทางที่มีความแปรปรวนสูง แต่ความแปรปรวนสูงไม่จำเป็นต้องเป็นมิติที่แยก class ดีที่สุด
+- ใช้ **LDA** ลดมิติแบบ supervised โดยใช้ class labels เพื่อเพิ่มการแยกระหว่างกลุ่ม จึงต้อง fit จาก training data เท่านั้น
+- ใช้ **Autoencoder** เรียนรู้ latent representation แบบ nonlinear เมื่อมีข้อมูลและทรัพยากรเพียงพอ แต่มีความซับซ้อนและต้องตรวจ generalization
+- ใช้ [**t-SNE**](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html) เพื่อสำรวจหรือแสดงข้อมูลมิติสูงเป็น 2–3 มิติได้ แต่โดยทั่วไปไม่ควรใช้เป็น preprocessing หลักสำหรับ production k-NN เพราะเน้นรักษา local structure เพื่อ visualization และการฝังข้อมูลใหม่ไม่ตรงไปตรงมา
 - เพิ่มข้อมูลให้เพียงพอกับมิติ
 - ใช้ distance metric ที่สอดคล้องกับข้อมูล
 - เปรียบเทียบกับโมเดลอื่นที่รับมือมิติสูงได้ดีกว่า
@@ -289,12 +342,18 @@ print(f'Test accuracy: {test_accuracy:.3f}')
 
 ## 8. Decision Tree คืออะไร
 
-Decision Tree เป็น Supervised Learning model ที่เรียนรู้คำถามตาม feature แล้วแบ่งข้อมูลเป็นกิ่งไปเรื่อย ๆ จนถึงใบไม้ที่ให้ prediction ตัวอย่างกฎจากสไลด์คือ:
+Decision Tree เป็น Supervised Learning model ที่เรียนรู้คำถามตาม feature แล้วแบ่งข้อมูลเป็นกิ่งไปเรื่อย ๆ จนถึงใบไม้ที่ให้ prediction ตัวอย่างกฎจากสไลด์ฉบับใหม่คือ:
 
 ```text
-If X1 = F, then Y = 1
-If X1 = M and X2 = N, then Y = 0
+if X1 == F:
+    Y = 1
+elif X1 == M and X2 == N:
+    Y = 0
+else:
+    Y = 1
 ```
+
+การเพิ่ม `else` ทำให้กฎครอบคลุมทุก combination ที่ไม่ตรงสองเงื่อนไขแรก หากไม่มี default branch โมเดลจะไม่ระบุว่าจะตอบอะไรเมื่อพบกรณีใหม่ เช่น `X1=M` และ `X2=Y`
 
 องค์ประกอบของต้นไม้มีดังนี้:
 
@@ -589,7 +648,7 @@ plt.show()
 - เพิ่ม `min_samples_leaf`
 - กำหนด `min_impurity_decrease`
 
-### 17.2 Post-pruning
+### 17.2 Post-pruning และ Minimal Cost-Complexity Pruning
 
 สร้างต้นไม้ก่อน แล้วตัดกิ่งที่เพิ่มความซับซ้อนมากกว่าประโยชน์ในการ generalize แนวคิด cost-complexity pruning ลงโทษต้นไม้ที่มี leaf มาก:
 
@@ -601,7 +660,7 @@ $$
 - $|T|$ คือจำนวน terminal nodes
 - $\alpha$ ควบคุมค่าปรับความซับซ้อน
 
-เมื่อ $\alpha$ สูง ต้นไม้ขนาดใหญ่ถูกลงโทษมากขึ้น ใน scikit-learn ใช้ `ccp_alpha` และควรเลือกค่าด้วย cross-validation
+เมื่อ $\alpha$ สูง ต้นไม้ขนาดใหญ่ถูกลงโทษมากขึ้น วิธีนี้เรียกว่า [**Minimal Cost-Complexity Pruning**](https://scikit-learn.org/stable/modules/tree.html#minimal-cost-complexity-pruning) หรือ Weakest Link Pruning โดยพิจารณาลำดับ subtree ที่ถูกตัดมากขึ้นเรื่อย ๆ แล้วเลือกค่าความซับซ้อนที่เหมาะสม ใน scikit-learn ใช้ `ccp_alpha` และควรเลือกค่าด้วย cross-validation ไม่ควรเลือกจาก test score
 
 ## 18. จากต้นไม้ต้นเดียวสู่ Ensemble
 
@@ -809,9 +868,9 @@ for model_name, y_pred in predictions.items():
 
 **แนวคำตอบ:** k-NN ใช้ระยะทางโดยตรง ดังนั้น feature ที่มีหน่วยหรือช่วงค่ากว้างจะครอบงำ distance แม้ไม่ได้สำคัญกว่า ส่วน Decision Tree เปรียบเทียบค่าภายใน feature เดียวกับ threshold การแปลงเชิงอันดับแบบ scaling จึงไม่เปลี่ยนลำดับของตัวอย่างและมักได้ split เทียบเท่า อย่างไรก็ตาม preprocessing ด้าน missing values และ category ยังจำเป็น
 
-### ข้อ 2: คำนวณ prediction ของ S5 ด้วย $k=3$
+### ข้อ 2: คำนวณ prediction เชิงหมวดหมู่ของ S5 ด้วย $k=2$
 
-**แนวคำตอบ:** คำนวณ Euclidean distance ได้ S1=1, S2=1, S3≈4.123, S4=1 จึงเลือก S1, S2, S4 ค่า Regression คือ $(1000+1200+2000)/3=1400$ และ Classification เป็น `yes` จากเสียงข้างมาก 3 เสียง
+**แนวคำตอบ:** ใช้ Hamming distance กับ S5=`great, no, no, high, no` ได้ S1=3, S2=2, S3=2 และ S4=4 เพื่อนบ้านสองจุดคือ S2 ซึ่งมี class `yes` และ S3 ซึ่งมี class `no` จึงเกิด vote tie คำตอบที่สมบูรณ์ต้องบอก tie-breaking policy หรือเลือก $k$ ใหม่จาก cross-validation ไม่ควรตัดสิน class โดยพลการ
 
 ### ข้อ 3: เพราะเหตุใด Information Gain ต้องถ่วงน้ำหนัก child entropy
 
@@ -868,8 +927,8 @@ k-NN และ Decision Tree เป็น non-parametric supervised learning met
 
 ### เอกสารประกอบการเรียน
 
-- Ekarat Rattagan. *Week 9: K-Nearest Neighbors (k-NN)*, 2026.
-- Ekarat Rattagan. *Week 9-2: Decision Trees*, 2026.
+- Ekarat Rattagan. *Week 9: K-Nearest Neighbors (k-NN)*, revised October 2, 2026.
+- Ekarat Rattagan. *Week 9-2: Decision Trees*, revised October 2, 2026.
 - Bhatia, N. (2010). [Survey of Nearest Neighbor Techniques](https://arxiv.org/abs/1007.0085).
 - Song, Y. Y., & Ying, L. U. (2015). [Decision tree methods: applications for classification and prediction](https://pmc.ncbi.nlm.nih.gov/articles/PMC4466856/).
 
@@ -878,4 +937,7 @@ k-NN และ Decision Tree เป็น non-parametric supervised learning met
 - scikit-learn. [Nearest Neighbors User Guide](https://scikit-learn.org/stable/modules/neighbors.html).
 - scikit-learn. [Decision Trees User Guide](https://scikit-learn.org/stable/modules/tree.html).
 - scikit-learn. [StandardScaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html).
+- scikit-learn. [RobustScaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html).
+- scikit-learn. [t-SNE](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html).
 - scikit-learn. [Cross-validation: evaluating estimator performance](https://scikit-learn.org/stable/modules/cross_validation.html).
+- NVIDIA cuVS. [Product Quantization](https://docs.nvidia.com/cuvs/user-guide/api-guides/preprocessing-guide/product-quantization.html).
