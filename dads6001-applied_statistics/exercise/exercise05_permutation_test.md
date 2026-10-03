@@ -12,6 +12,18 @@
 
 ก่อนทำโจทย์ควรจำหลักเดียวให้แม่น: Permutation Test สร้าง null distribution โดยสลับเฉพาะสิ่งที่สามารถแลกเปลี่ยนกันได้ หรือ **exchangeable** ภายใต้ $H_0$ แล้วนับว่าสถิติจากข้อมูลที่สลับมีค่ารุนแรงอย่างน้อยเท่าข้อมูลจริงบ่อยเพียงใด
 
+## การเตรียม Google Colab สำหรับรัน R
+
+Google Colab ใช้ Python เป็นค่าเริ่มต้น ก่อนรันโค้ด R ในเอกสารนี้ ให้สร้าง Code cell แรกแล้วรันคำสั่งต่อไปนี้หนึ่งครั้ง
+
+```python
+%load_ext rpy2.ipython
+```
+
+จากนั้นแต่ละ R cell ต้องขึ้นต้นด้วย `%%R` เป็นบรรทัดแรก อันอันใส่ไว้ให้ครบแล้ว จึงสามารถคัดลอก code block ไปวางใน Colab ได้ทั้ง block หาก Colab แจ้งว่า extension ถูกโหลดแล้ว สามารถทำงานต่อได้ตามปกติ
+
+ในโค้ด R เครื่องหมาย `#` คือ comment ใช้อธิบายโค้ดและไม่ถูกนำไปคำนวณ เป้จึงอ่าน comment ไล่จากบนลงล่างก่อนกด Run ได้เลย
+
 ---
 
 # ข้อ 1: เวลาถอยรถออกจากที่จอด
@@ -129,6 +141,9 @@ $$
 ## 1.7 วิธีทำด้วย R และอ่านผลลัพธ์
 
 ```r
+%%R
+
+# สร้าง vector เก็บเวลาออกจากช่องจอดของกลุ่มที่ไม่มีคนรอ
 no_waiting <- c(
   36.30, 42.07, 39.97, 39.33, 33.76,
   33.91, 39.65, 84.92, 40.70, 39.65,
@@ -136,6 +151,7 @@ no_waiting <- c(
   33.88, 34.39, 60.52, 53.63, 50.62
 )
 
+# สร้าง vector เก็บเวลาออกจากช่องจอดของกลุ่มที่มีคนรอ
 someone_waiting <- c(
   49.48, 43.30, 85.97, 46.92, 49.18,
   79.30, 47.35, 46.52, 59.68, 42.89,
@@ -143,14 +159,24 @@ someone_waiting <- c(
   46.55, 42.33, 71.48, 78.95, 42.06
 )
 
+# คำนวณ mean ของแต่ละกลุ่ม เพื่อดูเวลาถอยรถโดยเฉลี่ย
 mean(no_waiting)
 mean(someone_waiting)
+
+# คำนวณ median ซึ่งได้รับผลจากค่าที่สูงผิดกลุ่มน้อยกว่า mean
 median(no_waiting)
 median(someone_waiting)
+
+# คำนวณ sample standard deviation เพื่อดูการกระจายของเวลา
 sd(no_waiting)
 sd(someone_waiting)
 
+# คำนวณ observed statistic
+# ลำดับการลบคือ กลุ่มมีคนรอ - กลุ่มไม่มีคนรอ
+# ถ้าค่าเป็นบวก แปลว่ากลุ่มมีคนรอใช้เวลามากกว่าโดยเฉลี่ย
 observed_diff <- mean(someone_waiting) - mean(no_waiting)
+
+# แสดงค่า observed difference ซึ่งควรได้ 9.6845 วินาที
 observed_diff
 ```
 
@@ -159,24 +185,44 @@ observed_diff
 จากนั้นทำ Permutation Test
 
 ```r
+%%R
+
+# รวมข้อมูลสองกลุ่ม เพราะภายใต้ H0 group labels แลกเปลี่ยนกันได้
 pooled_time <- c(someone_waiting, no_waiting)
+
+# บันทึกจำนวน observations ของกลุ่ม waiting เพื่อรักษาขนาดกลุ่มเดิม
 n_waiting <- length(someone_waiting)
+
+# กำหนดจำนวน random permutations ตามโจทย์
 B <- 5000
 
+# กำหนด seed เพื่อให้รันซ้ำแล้วได้ผลเดิม
 set.seed(2026)
 
+# ทำขั้นตอนในวงเล็บปีกกาซ้ำ B รอบ
 permuted_diff <- replicate(B, {
+  # สลับ observation ทั้ง 40 ค่าโดยไม่สุ่มซ้ำ
+  # replace = FALSE คือ observation ทุกค่าปรากฏหนึ่งครั้งต่อรอบ
   shuffled <- sample(pooled_time, replace = FALSE)
 
+  # กำหนด 20 ค่าแรกเป็น waiting group ใหม่
   new_waiting <- shuffled[1:n_waiting]
+
+  # ค่าที่เหลือเป็น no-waiting group ใหม่
   new_no_waiting <- shuffled[-(1:n_waiting)]
 
+  # คืนค่า mean difference ของ permutation รอบนี้
   mean(new_waiting) - mean(new_no_waiting)
 })
 
+# นับจำนวน permutation statistics ที่สุดโต่งอย่างน้อยเท่าค่าจริง
+# ใช้ >= เพราะสมมติฐานทางเลือกคือ waiting time สูงกว่า
 K <- sum(permuted_diff >= observed_diff)
+
+# คำนวณ Monte Carlo p-value ด้วย plus-one correction
 p_value <- (K + 1) / (B + 1)
 
+# แสดงผลสำคัญที่ต้องนำไปเขียนตอบข้อสอบ
 c(
   observed_difference = observed_diff,
   extreme_permutations = K,
@@ -198,6 +244,9 @@ c(
 ตรวจกราฟ null distribution ได้ด้วย
 
 ```r
+%%R
+
+# วาด histogram ของ permutation statistics ทั้ง 5,000 ค่า
 hist(
   permuted_diff,
   breaks = 30,
@@ -207,6 +256,7 @@ hist(
   border = 'white'
 )
 
+# ขีดเส้นแดงที่ observed difference เพื่อดูว่าอยู่ลึกในหางขวาเพียงใด
 abline(v = observed_diff, col = 'red', lwd = 2)
 ```
 
@@ -310,17 +360,28 @@ $$
 ## 2.6 วิธีทำด้วย R และอ่านผลลัพธ์
 
 ```r
+%%R
+
+# กำหนดหมายเลขผู้ป่วย 1 ถึง 5
 patient <- 1:5
+
+# จำนวนวันที่ไม่มีอาการของผู้ป่วยแต่ละคน เรียงตามหมายเลขผู้ป่วย
 response <- c(12, 13, 6, 6, 7)
 
+# สร้างทุกวิธีที่เลือกผู้ป่วย 2 จาก 5 คนเป็น High-dose group
+# ผลลัพธ์มี 10 คอลัมน์ เพราะ 5 choose 2 เท่ากับ 10
 high_assignments <- combn(patient, 2)
 
+# คำนวณผลลัพธ์ทีละ assignment หรือทีละคอลัมน์
 permutation_result <- apply(high_assignments, 2, function(high_id) {
+  # ผู้ป่วยที่ไม่ได้อยู่ High group จะอยู่ Low group
   low_id <- setdiff(patient, high_id)
 
+  # คำนวณ mean ของ High-dose และ Low-dose group
   mean_high <- mean(response[high_id])
   mean_low <- mean(response[low_id])
 
+  # ส่งคืนสมาชิกกลุ่ม ค่าเฉลี่ย และผลต่างค่าเฉลี่ยของ assignment นี้
   c(
     high_1 = high_id[1],
     high_2 = high_id[2],
@@ -330,7 +391,10 @@ permutation_result <- apply(high_assignments, 2, function(high_id) {
   )
 })
 
+# สลับแถวและคอลัมน์ แล้วแปลงเป็น data frame เพื่อให้อ่านเป็นตารางง่าย
 permutation_table <- as.data.frame(t(permutation_result))
+
+# แสดงทั้ง 10 assignments
 permutation_table
 ```
 
@@ -339,14 +403,22 @@ permutation_table
 คำนวณ p-value ได้ดังนี้
 
 ```r
+%%R
+
+# Assignment แถวแรกคือการจัดกลุ่มจริง: Patients 1 และ 2 อยู่ High group
+# จึงนำ mean difference แถวแรกมาเป็น observed statistic
 observed_diff <- permutation_table[['mean_difference']][1]
 
+# นับ assignments ที่ให้ผลต่างมากกว่าหรือเท่ากับ observed difference
 K <- sum(
   permutation_table[['mean_difference']] >= observed_diff
 )
 
+# เป็น exact test เพราะแจกแจงครบทั้ง 10 assignments
+# จึงใช้ K / จำนวน assignments โดยไม่ต้องใช้ plus-one correction
 exact_p_value <- K / nrow(permutation_table)
 
+# แสดงค่าที่ต้องใช้เขียนตอบข้อสอบ
 c(
   observed_difference = observed_diff,
   extreme_assignments = K,
@@ -467,17 +539,31 @@ $$
 ## 3.5 วิธีทำด้วย R และอ่านผลลัพธ์
 
 ```r
+%%R
+
+# สร้างข้อมูลเวลาที่สุนัขอยู่กับเจ้าของ หน่วยเป็นวินาที
+# กลุ่มแรกเจ้าของลูบสุนัข
 petting <- c(114, 203, 217, 254, 256, 284, 296)
+
+# กลุ่มที่สองเจ้าของใช้คำชมด้วยเสียง
 vocal_praise <- c(4, 7, 24, 25, 48, 71, 294)
 
+# เปรียบเทียบ mean ของสองกลุ่ม
 mean(petting)
 mean(vocal_praise)
+
+# เปรียบเทียบ median เพื่อสังเกตผลของค่า 294 ใน vocal-praise group
 median(petting)
 median(vocal_praise)
+
+# เปรียบเทียบ sample standard deviation
 sd(petting)
 sd(vocal_praise)
 
+# คำนวณ observed statistic ตามทิศทาง Petting - Vocal praise
 observed_diff <- mean(petting) - mean(vocal_praise)
+
+# แสดงผล ซึ่งควรได้ประมาณ 164.4286 วินาที
 observed_diff
 ```
 
@@ -486,31 +572,45 @@ observed_diff
 แจกแจงครบทุก assignment ด้วย `combn()`
 
 ```r
+%%R
+
+# รวม responses ทั้ง 14 ค่า ภายใต้ H0 ว่า group labels แลกเปลี่ยนกันได้
 all_responses <- c(petting, vocal_praise)
+
+# ขนาด Petting group เท่ากับ 7 และต้องคงไว้ทุก assignment
 n_petting <- length(petting)
 
+# สร้างทุกวิธีที่เลือก 7 จาก 14 observations เป็น Petting group
+# จะได้ทั้งหมด 14 choose 7 เท่ากับ 3,432 assignments
 petting_assignments <- combn(
   seq_along(all_responses),
   n_petting
 )
 
+# คำนวณ mean difference ของทุก assignment
 permuted_diff <- apply(
   petting_assignments,
   2,
   function(petting_id) {
+    # observations ที่เหลือถูกจัดเป็น Vocal-praise group
     vocal_id <- setdiff(
       seq_along(all_responses),
       petting_id
     )
 
+    # คืนค่า mean Petting - mean Vocal praise ของ assignment นี้
     mean(all_responses[petting_id]) -
       mean(all_responses[vocal_id])
   }
 )
 
+# นับ assignments ในหางขวาที่สุดโต่งอย่างน้อยเท่าค่าจริง
 K <- sum(permuted_diff >= observed_diff)
+
+# แจกแจงครบทุก assignment จึงเป็น exact p-value
 exact_p_value <- K / length(permuted_diff)
 
+# แสดง output ที่ต้องใช้ตอบข้อสอบ
 c(
   total_assignments = length(permuted_diff),
   observed_difference = observed_diff,
@@ -531,6 +631,9 @@ exact_p_value = 0.003788
 สร้าง histogram ได้ด้วย
 
 ```r
+%%R
+
+# วาด exact permutation distribution จากทั้ง 3,432 assignments
 hist(
   permuted_diff,
   breaks = 30,
@@ -540,6 +643,7 @@ hist(
   border = 'white'
 )
 
+# เส้นแดงแสดง observed difference ซึ่งควรอยู่ไกลในหางขวา
 abline(v = observed_diff, col = 'red', lwd = 2)
 ```
 
@@ -577,6 +681,9 @@ abline(v = observed_diff, col = 'red', lwd = 2)
 โค้ดต่อไปนี้นำไปดัดแปลงกับโจทย์สองกลุ่มอื่นได้
 
 ```r
+%%R
+
+# สร้างฟังก์ชันสำหรับ Monte Carlo permutation test ของค่าเฉลี่ยสองกลุ่ม
 permutation_mean_test <- function(
   group_1,
   group_2,
@@ -584,19 +691,27 @@ permutation_mean_test <- function(
   alternative = 'greater',
   seed = 2026
 ) {
+  # คำนวณ observed mean difference ตามลำดับ Group 1 - Group 2
   observed <- mean(group_1) - mean(group_2)
+
+  # รวม observations และจำขนาด Group 1 ไว้
   pooled <- c(group_1, group_2)
   n_1 <- length(group_1)
 
+  # ทำให้ผลการสุ่ม reproducible
   set.seed(seed)
 
+  # สร้าง permutation statistics จำนวน B ค่า
   permuted <- replicate(B, {
+    # สลับข้อมูลแบบไม่คืนที่
     shuffled <- sample(pooled, replace = FALSE)
 
+    # แบ่งกลุ่มใหม่โดยคงขนาด Group 1 เดิม แล้วคำนวณ mean difference
     mean(shuffled[1:n_1]) -
       mean(shuffled[-(1:n_1)])
   })
 
+  # เลือกวิธีนับ extreme statistics ให้ตรงกับ alternative hypothesis
   if (alternative == 'greater') {
     K <- sum(permuted >= observed)
   } else if (alternative == 'less') {
@@ -604,12 +719,15 @@ permutation_mean_test <- function(
   } else if (alternative == 'two.sided') {
     K <- sum(abs(permuted) >= abs(observed))
   } else {
+    # หยุดและแจ้งเตือนเมื่อพิมพ์ alternative ไม่ถูกต้อง
     stop('alternative must be greater, less, or two.sided')
   }
 
+  # คำนวณ Monte Carlo p-value และ standard error จากการสุ่ม
   p_value <- (K + 1) / (B + 1)
   se_mc <- sqrt(p_value * (1 - p_value) / B)
 
+  # ส่งผลลัพธ์กลับเป็น list เพื่อเรียกดูภายหลัง
   list(
     observed_difference = observed,
     extreme_permutations = K,
@@ -624,6 +742,10 @@ permutation_mean_test <- function(
 ตัวอย่างใช้งานกับโจทย์ที่จอดรถ
 
 ```r
+%%R
+
+# เรียกใช้ฟังก์ชันกับโจทย์ที่จอดรถ
+# Group 1 คือ someone_waiting จึงใช้ alternative = 'greater'
 parking_result <- permutation_mean_test(
   group_1 = someone_waiting,
   group_2 = no_waiting,
@@ -632,11 +754,15 @@ parking_result <- permutation_mean_test(
   seed = 2026
 )
 
+# แสดง observed mean difference
 parking_result[[
   'observed_difference'
 ]]
 
+# แสดง p-value ที่ใช้ตัดสินใจทางสถิติ
 parking_result[['p_value']]
+
+# แสดง Monte Carlo standard error เพื่อตรวจความเสถียรจากการสุ่ม 5,000 รอบ
 parking_result[['monte_carlo_se']]
 ```
 
