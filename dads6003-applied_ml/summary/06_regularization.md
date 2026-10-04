@@ -1,566 +1,1124 @@
-# Regularization
+# บทที่ 6 Regularization
 
-## ข้อมูลต้นฉบับ
+Regularization คือการเติม "ค่าปรับ" ตามขนาดของพารามิเตอร์ลงใน cost function เพื่อไม่ให้โมเดลยืดหยุ่นจนจำ noise ของข้อมูลฝึก บทนี้เริ่มจากปัญหา overfitting แล้วสอนสามวิธีหลักของโมเดลเชิงเส้น คือ Ridge (ปรับด้วยผลรวมกำลังสอง) Lasso (ปรับด้วยผลรวมค่าสัมบูรณ์ และทำให้ค่าบางตัวเป็นศูนย์พอดี) และ Elastic Net (ผสมทั้งสองแบบ) ปิดท้ายด้วยกฎการปรับค่าแบบ SGD ของแต่ละวิธี
 
-- รายวิชา: DADS6003 Applied Machine Learning
-- Lecture: `dads6003_06_regularization.pdf` จำนวน 27 หน้า
-- Lab: `regularization.ipynb` จำนวน 15 cells
-- หัวข้อ: underfitting, overfitting, Ridge, Lasso, Elastic Net, coefficient paths และ stochastic gradient descent
+**วิธีอ่าน:** บทนี้ต่อยอดจากบทที่ 3 (MSE, gradient descent, SGD, feature scaling, polynomial regression) และบทที่ 4 (logistic regression) ส่วนที่ 1 ถึง 2 อธิบายว่าทำไมต้องมี regularization ส่วนที่ 3 ปูพื้นเรื่อง norm ส่วนที่ 4 ถึง 7 คือ Ridge, Lasso, การเปรียบเทียบ และ Elastic Net ซึ่งเป็นแกนของบท ส่วนที่ 8 คือการเลือกค่า $\lambda$ และข้อปฏิบัติ ส่วนที่ 9 คือ SGD ส่วนที่ 10 เป็นสคริปต์ Python ที่สร้างตัวเลขของการทดลองทุกตัวในบท ตัวอย่างที่ใช้ feature เดียวคำนวณด้วยมือได้ทั้งหมด และตรวจซ้ำกับสคริปต์แล้ว
 
-> **จากเอกสาร:** บทเรียนเริ่มจากปัญหาโมเดลซับซ้อนจนจำ training data แล้วเสนอ regularization เพื่อควบคุมขนาด coefficients ก่อนเปรียบเทียบ L2, L1 และ Elastic Net
->
-> **คำอธิบายเพิ่มเติม:** บทนี้เติมที่มาของ objective function เหตุผลที่ต้อง scale features วิธีเลือก penalty และการประเมิน train/test พร้อมตรวจข้อจำกัดของ lab เดิม
+---
 
-## ภาพรวมและ Learning Objectives
+## ส่วนที่ 0 ปูพื้นฐาน: ศัพท์ที่ต้องรู้ก่อน
 
-Regularization คือการเพิ่มข้อจำกัดให้โมเดลไม่เลือก coefficients ที่รุนแรงเกินจำเป็น โมเดลอาจ fit training data แย่ลงเล็กน้อย แต่มีโอกาสทำนายข้อมูลใหม่ได้ดีและเสถียรกว่า เป้าหมายจึงไม่ใช่ training error ต่ำที่สุด แต่คือ **generalization**
-
-เมื่อจบบทนี้ ผู้อ่านควรสามารถ:
-
-1. แยก underfitting, good fit และ overfitting จากผล train/test ได้
-2. อธิบายว่า regularization เปลี่ยน objective function อย่างไร
-3. คำนวณ L1 และ L2 penalty ได้
-4. เปรียบเทียบ Ridge, Lasso และ Elastic Net ได้
-5. อธิบาย `alpha` และ `l1_ratio` โดยไม่สับสนกับสัญลักษณ์ในสไลด์
-6. สร้าง Pipeline สำหรับ polynomial features, scaling และ regularized regression ได้
-7. ตีความ coefficient path และผลจาก lab โดยไม่สรุปเกินหลักฐาน
-
-## 1. ปัญหาก่อนมี Regularization
-
-### 1.1 Model fit และ generalization
-
-โมเดล regression รับ features $X$ แล้วสร้างค่าทำนาย $\hat{y}$ จาก coefficients เช่น polynomial degree 4:
-
-$$
-\hat{y} = \beta_0+\beta_1x+\beta_2x^2+\beta_3x^3+\beta_4x^4
-$$
-
-การ fit คือการหาค่า $\beta$ ที่ลด loss ใน training data สำหรับ Mean Squared Error:
-
-$$
-MSE = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2
-$$
-
-แต่โมเดลที่ fit training data ดีไม่ได้แปลว่าจะทำนายข้อมูลใหม่ดี ความสามารถกับข้อมูลใหม่เรียกว่า generalization
-
-### 1.2 Underfitting, good fit และ overfitting
-
-| สภาวะ | สิ่งที่เกิดขึ้น | Train error | Test error |
-|---|---|---:|---:|
-| Underfitting | โมเดลง่ายเกิน จับ signal หลักไม่ได้ | สูง | สูง |
-| Good fit | จับ signal โดยไม่ตาม noise มากไป | ต่ำพอเหมาะ | ต่ำ |
-| Overfitting | โมเดลตามรายละเอียดเฉพาะชุดฝึก | ต่ำมาก | สูงกว่าชุดฝึก |
-
-จากภาพในสไลด์ เส้นตรงอาจ underfit ความสัมพันธ์โค้ง ขณะที่ polynomial degree สูงวกผ่านจุดฝึกแทบทุกจุด แต่แกว่งรุนแรงระหว่างจุด สัญญาณของ overfitting จึงไม่ใช่ training error ต่ำเพียงอย่างเดียว แต่คือช่องว่าง train-test ที่กว้าง หรือ training error ลดต่อขณะที่ validation error กลับเพิ่ม
-
-สาเหตุที่พบบ่อย ได้แก่ features มากเมื่อเทียบกับจำนวนแถว, polynomial degree สูง, noise, correlated features, ประเมินบนข้อมูลฝึก และเลือก hyperparameters หลังดู test setซ้ำ ๆ
-
-การลด features เป็นทางหนึ่ง แต่เสี่ยงทิ้งข้อมูลที่ยังมีประโยชน์ Regularization เสนอทางกลาง: เก็บ features ไว้ แต่คิดต้นทุนเพิ่มเมื่อใช้ coefficients ขนาดใหญ่
-
-## 2. Regularization แบบเห็นภาพก่อน
-
-สมมติ degree 4 ใช้ $\beta_3$ และ $\beta_4$ ขนาดใหญ่มากเพื่อบิดเส้นให้ผ่านจุดฝึกทุกจุด หากบอกโมเดลว่า “coefficient ที่ใหญ่มีค่าใช้จ่าย” โมเดลต้องสมดุลสองเรื่อง:
-
-1. ลด prediction error บน training data
-2. รักษา coefficients ไม่ให้รุนแรงเกินไป
-
-เมื่อ penalty แรงขึ้น coefficients ถูกดึงเข้าหาศูนย์ เส้นจึงเรียบและไวต่อการเปลี่ยน sample น้อยลง กระบวนการนี้เรียกว่า **shrinkage**
-
-Regularization ไม่ใช่การรับประกันว่า test performance จะดีขึ้น ไม่แทน train-test split และไม่แก้ data leakage หาก model family ผิด เช่นใช้เส้นตรงกับความสัมพันธ์แบบ threshold การหด coefficients ก็ไม่สร้างรูปแบบที่ขาดไป
-
-## 3. Penalized Objective Function
-
-Linear regression ปกติลด prediction loss:
-
-$$
-J(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2
-$$
-
-Regularized regression เพิ่ม penalty:
-
-$$
-J_{reg}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda P(\beta)
-$$
-
-โดย $P(\beta)$ คือรูปแบบ penalty และ $\lambda \geq 0$ ควบคุมความแรง เมื่อ $\lambda=0$ จะกลับเป็น regression ที่ไม่มี penalty เมื่อ $\lambda$ สูงขึ้น โมเดลยอมเสีย training fit มากขึ้นเพื่อให้ coefficients เล็กลง โดยทั่วไป intercept $\beta_0$ ไม่ถูก penalize
-
-### 3.1 ทำไมต้อง scale features
-
-ถ้า `Age` มี coefficient 0.5 แต่ `Annual Income` มี coefficient 0.00002 ความต่างอาจมาจากหน่วย ไม่ได้แปลว่า Age สำคัญกว่า เมื่อ penalty ลงที่ coefficient โดยตรง feature สเกลใหญ่ใช้ coefficient เล็กและถูกลงโทษน้อยกว่าอย่างไม่ยุติธรรม
-
-จึงควร scale numerical features ก่อน Ridge, Lasso และ Elastic Net โดย fit scaler เฉพาะ training data Polynomial features ยิ่งจำเป็น: ใน lab $x$ อยู่ 10-30 แต่ $x^4$ อยู่ 10,000-810,000
-
-## 4. Ridge Regression: L2
-
-Ridge ใช้ผลรวมกำลังสองของ coefficients:
-
-$$
-\lVert\beta\rVert_2^2 = \sum_{j=1}^{d}\beta_j^2
-$$
-
-$$
-J_{Ridge}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda\sum_{j=1}^{d}\beta_j^2
-$$
-
-coefficients $[2,1]$ มี L2 penalty $2^2+1^2=5$ ส่วน $[1.5,1.5]$ มีค่า 4.5 เมื่อสอง features ให้ข้อมูลคล้ายกัน Ridge จึงมักกระจายน้ำหนักแทนเลือกตัวเดียว เพราะการแบ่ง coefficient ใหญ่เป็นสองค่าเล็กลดผลรวมกำลังสอง
-
-เมื่อ $\lambda$ เพิ่ม coefficients หดเข้าหาศูนย์อย่างต่อเนื่อง แต่โดยทั่วไปไม่เป็นศูนย์พอดี Ridge เหมาะเมื่อหลาย features มีสัญญาณเล็กน้อย, features สัมพันธ์กันสูง หรือต้องการ prediction ที่เสถียรกว่าการเลือกตัวแปรเด็ดขาด
-
-### 4.1 อ่าน coefficient path
-
-Coefficient path แสดง coefficient แต่ละตัวเมื่อเปลี่ยน regularization strength:
-
-- penalty อ่อน: coefficients คล้ายโมเดลเดิม
-- penalty สูง: ทุกเส้นหดเข้าศูนย์
-- เส้นที่เปลี่ยนแรง: coefficient ไวต่อ regularization และอาจไม่เสถียร
-
-กราฟใน notebook กลับแกน x ด้วย `ax.set_xlim(ax.get_xlim()[::-1])` จึงต้องอ่านค่าบนแกน ไม่ควรเดาทิศจากซ้าย-ขวา
-
-## 5. Lasso Regression: L1
-
-Lasso ย่อมาจาก **Least Absolute Shrinkage and Selection Operator** และใช้ผลรวมค่าสัมบูรณ์:
-
-$$
-\lVert\beta\rVert_1 = \sum_{j=1}^{d}|\beta_j|
-$$
-
-$$
-J_{Lasso}(\beta) = \frac{1}{N} \sum_{i=1}^{N} (y_i-\hat{y}_i)^2 + \lambda\sum_{j=1}^{d}|\beta_j|
-$$
-
-L1 constraint มีมุมบนแกน coefficients จุดเหมาะที่สุดจึงมีโอกาสอยู่ที่มุมและทำให้บาง coefficient เป็นศูนย์พอดี โมเดลที่มี coefficients ศูนย์จำนวนมากเรียกว่า **sparse model** Lasso จึงทำ shrinkage และ embedded feature selection พร้อมกัน
-
-Lasso เหมาะเมื่อคาดว่ามี useful features เพียงส่วนน้อยและต้องการโมเดลกระชับ แต่ถ้า features สัมพันธ์กันสูง Lasso อาจเลือกตัวหนึ่งแล้วตัดอีกตัวแบบไม่เสถียร เมื่อ sample เปลี่ยนเล็กน้อยตัวที่ถูกเลือกอาจสลับกัน การเป็นศูนย์จึงไม่พิสูจน์ว่า feature ไม่มีประโยชน์หรือไม่มีผลเชิงเหตุผล
-
-`Lasso(alpha=0)` ไม่ควรใช้แทน ordinary least squares เพราะ solver ถูกออกแบบสำหรับ L1 penalty ให้ใช้ `LinearRegression` เมื่อไม่ต้องการ penalty ตาม [Lasso API](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html)
-
-## 6. Elastic Net: รวม L1 และ L2
-
-Elastic Net ใช้ทั้ง L1 และ L2:
-
-$$
-J_{EN}(\beta) = Loss(\beta) + \lambda [ r\lVert\beta\rVert_1 + (1-r)\lVert\beta\rVert_2^2 ]
-$$
-
-เมื่อ $r=1$ เหลือ L1 แบบ Lasso เมื่อ $r=0$ เหลือ L2 แบบ Ridge จึงได้ทั้ง sparsity และความเสถียรกับ correlated features
-
-### 6.1 สไลด์กับ scikit-learn ใช้ทิศทางตรงข้าม
-
-| แหล่ง | ตัวแปรผสม | ค่า 0 | ค่า 1 |
-|---|---|---|---|
-| Lecture slide | $\alpha$ เป็นน้ำหนัก L2 | Lasso | Ridge |
-| scikit-learn | `l1_ratio` เป็นน้ำหนัก L1 | L2 | Lasso |
-
-ใน scikit-learn `alpha` ควบคุมความแรงรวม ส่วน `l1_ratio` ควบคุมสัดส่วน L1 ตาม [ElasticNet API](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) ดังนั้นอย่านำ $\alpha$ ในสไลด์ไปเทียบกับ `alpha` ใน API โดยตรง
-
-Elastic Net เหมาะเมื่อ useful features อยู่เป็นกลุ่มที่สัมพันธ์กันและยังต้องการตัดบาง features เช่นยอดขายย้อนหลังหลายเดือน Ridge อาจเก็บทั้งกลุ่ม ส่วน Lasso อาจเลือกเดือนเดียวอย่างไม่เสถียร Elastic Net เป็นทางกลาง
-
-## 7. เลือก Regularization แบบใด
-
-| สถานการณ์ | วิธีเริ่มต้น | เหตุผล |
+| ศัพท์ที่วิชาใช้ | ศัพท์ทางการ/คำพ้อง | ความหมายสั้น |
 |---|---|---|
-| Features ส่วนใหญ่มีสัญญาณ | Ridge | หดทุก coefficient แต่ไม่รีบตัด |
-| เชื่อว่ามี useful features น้อย | Lasso | ทำบาง coefficients เป็นศูนย์ |
-| Useful features เป็นกลุ่ม correlated | Elastic Net | ผสม stability กับ sparsity |
-| ไม่ต้องการ penalty | LinearRegression | ตรงกว่าการใช้ Lasso alpha 0 |
-| Features ต่างหน่วย | Scale ก่อน | ทำให้ penalty ยุติธรรม |
-| ต้องเลือก penalty strength | Validation หรือ CV | Training error ไม่วัด generalization |
+| Overfitting | Overfit, high variance | โมเดลเข้ากับข้อมูลฝึกดีมาก แต่ทำนายข้อมูลใหม่ได้แย่ |
+| Underfitting | Underfit, high bias | โมเดลง่ายเกินไป ทำนายได้แย่ทั้งข้อมูลฝึกและข้อมูลใหม่ |
+| Good fit | Generalize well | โมเดลที่จับรูปแบบหลักได้และทำนายข้อมูลใหม่ได้ดี |
+| Generalization | การนำไปใช้กับข้อมูลใหม่ | ความสามารถของโมเดลในการทำนายข้อมูลที่ไม่เคยเห็นตอนฝึก |
+| Training error / Testing error | Train MSE / Test MSE | ความคลาดเคลื่อนบนข้อมูลที่ใช้ฝึก และบนข้อมูลที่กันไว้ทดสอบ |
+| Regularization | Penalization, shrinkage | การเติมพจน์ค่าปรับลงใน cost function เพื่อจำกัดขนาดของพารามิเตอร์ |
+| Penalty term | Regularization term | พจน์ที่เติมเข้าไป เช่น $\lambda\sum\theta_j^2$ |
+| $\lambda$ (lambda) | Regularization strength, ridge parameter | ตัวกำหนดว่าค่าปรับหนักแค่ไหน ใน scikit-learn ชื่อพารามิเตอร์คือ `alpha` |
+| $L_2$-norm | Euclidean norm | ความยาวของเวกเตอร์ $\sqrt{\theta_1^2 + \cdots + \theta_d^2}$ |
+| $L_1$-norm | Absolute-value norm, Manhattan norm | ผลรวมค่าสัมบูรณ์ $\lvert\theta_1\rvert + \cdots + \lvert\theta_d\rvert$ |
+| Ridge regression | $L_2$ regularization, Tikhonov regularization, weight decay | linear regression ที่ปรับด้วย squared $L_2$-norm |
+| Lasso | Least Absolute Shrinkage and Selection Operator, $L_1$ regularization | linear regression ที่ปรับด้วย $L_1$-norm |
+| Elastic Net | $L_1 + L_2$ regularization | ผสมค่าปรับของ Ridge และ Lasso |
+| Mix ratio $\alpha$ | Mixing parameter | สัดส่วนผสมของ Elastic Net (นิยามของวิชาอยู่ในส่วนที่ 7) |
+| Sparse model | Sparse solution | โมเดลที่พารามิเตอร์จำนวนมากเป็นศูนย์พอดี |
+| Feature selection | Variable selection | การเลือกเฉพาะ feature ที่มีประโยชน์ |
+| Shrinkage | การหดค่า | การดึงค่าพารามิเตอร์เข้าหาศูนย์ |
+| Multicollinearity | Correlated features | feature หลายตัวสัมพันธ์กันสูง |
+| Sub-gradient | Subderivative | "ความชัน" ที่ใช้แทนอนุพันธ์ ณ จุดที่ฟังก์ชันหักมุม เช่น $\lvert\theta\rvert$ ที่ $\theta = 0$ |
+| Cross-validation | k-fold CV | การแบ่งข้อมูลฝึกเป็นหลายส่วนเพื่อประเมินและเลือก hyperparameter |
+| Hyperparameter | ค่าตั้งของโมเดล | ค่าที่ผู้ใช้กำหนดก่อนฝึก เช่น $\lambda$, $\alpha$, ดีกรี ไม่ได้เรียนจากข้อมูลโดยตรง |
 
-Ridge เป็นจุดเริ่มต้นที่ปลอดภัยเมื่อยังไม่รู้โครงสร้างจริง แล้วเปรียบเทียบ Lasso และ Elastic Net ด้วยข้อมูลแบ่งและ metrics เดียวกัน ไม่มีวิธีใดดีที่สุดสำหรับทุก dataset
+ข้อตกลงเรื่องสัญลักษณ์ (เหมือนบทที่ 3): $N$ คือจำนวนแถว $d$ คือจำนวน feature ตัวห้อย $i$ คือแถว $j$ คือ feature $x_{i,j}$ คือค่าของ feature $j$ ในแถว $i$ และตัวยก $t$ ใน $\theta^{t}$ คือรอบที่ $t$ ไม่ใช่การยกกำลัง ในบทนี้ $\theta_0$ คือ intercept และพจน์ค่าปรับรวมเฉพาะ $\theta_1$ ถึง $\theta_d$ (เหตุผลอยู่ในส่วนที่ 4.3)
 
-## 8. Optimization และ SGD
+---
 
-สไลด์แสดง Stochastic Gradient Descent ซึ่งสุ่มหนึ่ง observation แล้วขยับ coefficient ทวนทิศ gradient สำหรับ Ridge:
+## ส่วนที่ 1 Overfitting: ปัญหาที่ทำให้ต้องมี Regularization
 
-$$
-\beta_j^{(t+1)} = \beta_j^{(t)} - \eta [ \nabla_j Loss + 2\lambda\beta_j^{(t)} ]
-$$
+### 1.1 สามสภาพของโมเดล
 
-$\eta$ คือ learning rate ถ้าสูงเกินอาจแกว่ง ถ้าต่ำเกิน convergence ช้า
+ลองนึกถึงงานทำนายราคาบ้านจากขนาดบ้าน ข้อมูลจริงมีรูปแบบว่าราคาเพิ่มเร็วในช่วงบ้านเล็ก แล้วเพิ่มช้าลงเมื่อบ้านใหญ่ขึ้น (เส้นโค้งที่ค่อยๆ แบน) ถ้าเราลองโมเดลสามแบบ
 
-L1 ไม่ differentiable ที่ศูนย์ จึงใช้ subgradient:
+| โมเดล | รูปร่าง | สภาพ | อาการ |
+|---|---|---|---|
+| $\theta_0 + \theta_1 x$ | เส้นตรง | Underfit | จับความโค้งไม่ได้ ผิดเป็นระบบทั้งข้อมูลฝึกและข้อมูลใหม่ |
+| $\theta_0 + \theta_1 x + \theta_2 x^2$ | โค้งเรียบ | Good fit | จับรูปแบบหลักได้ ผิดเล็กน้อยตาม noise |
+| $\theta_0 + \theta_1 x + \theta_2 x^2 + \theta_3 x^3 + \theta_4 x^4$ | คดเคี้ยวผ่านทุกจุด | Overfit | ข้อมูลฝึกผิดเกือบเป็นศูนย์ แต่ระหว่างจุดและนอกช่วงข้อมูลส่ายไปมา ทำนายบ้านหลังใหม่ผิดมาก |
 
-$$
-sign(\beta_j)=-1\;\mathrm{if}\;\beta_j<0,\qquad sign(\beta_j)=s\in[-1,1]\;\mathrm{if}\;\beta_j=0,\qquad sign(\beta_j)=1\;\mathrm{if}\;\beta_j>0
-$$
+นิยามของ overfitting: เมื่อมี feature มากเกินไป (หรือโมเดลยืดหยุ่นเกินไป) hypothesis ที่เรียนได้อาจเข้ากับข้อมูลฝึกดีมาก จน
 
-ที่ศูนย์มี subgradient ได้หลายค่า ไม่ได้แปลว่า optimize ไม่ได้ แต่ต้องใช้ solver ที่รองรับ nonsmooth objective เช่น coordinate descent
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 \approx 0$$
 
-## 9. Lab Walkthrough
+แต่ **ล้มเหลวในการ generalize** ไปยังตัวอย่างใหม่ คำว่า "feature มากเกินไป" ในที่นี้รวมถึงพจน์กำลังสูงที่สร้างขึ้นด้วย polynomial regression ในบทที่ 3 ส่วนที่ 9 เพราะ $x^3, x^4$ ก็คือ feature ใหม่นั่นเอง
 
-### 9.1 Linear regression
+ทำไมโมเดลที่ $J \approx 0$ จึงแย่: ข้อมูลฝึกทุกชุดมี noise (ความคลาดเคลื่อนสุ่มที่ไม่ได้มาจากรูปแบบจริง) โมเดลที่ผ่านทุกจุดพอดีจึงไม่ได้เรียนแค่รูปแบบ แต่ "จำ" noise ของข้อมูลชุดนี้ไปด้วย เมื่อเจอข้อมูลใหม่ที่มี noise คนละชุด สิ่งที่จำไว้กลายเป็นความผิดพลาด เปรียบเหมือนนักเรียนที่ท่องเฉลยข้อสอบเก่าได้ทุกข้อ แต่ไม่เข้าใจหลักการ เจอโจทย์ใหม่ก็ทำไม่ได้ (อุปมานี้ผิดตรงที่โมเดลไม่ได้ "ขี้เกียจ" แต่ถูกสั่งให้ลด error บนข้อมูลฝึกอย่างเดียว ซึ่งการจำ noise ก็ลด error ได้จริง)
 
-> **จาก `regularization.ipynb`:** Lab ใช้ข้อมูล 5 จุด:
+### 1.2 Overfitting ในงานจำแนกประเภท
 
-```python
-X = np.array([[10, 15, 20, 25, 30]]).T
-y = np.array([[10, 30, 50, 51, 52]]).T
+ปัญหาเดียวกันเกิดกับ logistic regression (บทที่ 4) ซึ่งทำนาย $h_\theta(x) = g(\theta^{T}x)$ โดย $g$ คือ sigmoid function สิ่งที่เปลี่ยนตาม feature คือรูปร่างของ decision boundary
+
+| โมเดล | Decision boundary | สภาพ |
+|---|---|---|
+| $g(\theta_0 + \theta_1 x_1 + \theta_2 x_2)$ | เส้นตรง ตัดผ่านกลุ่มข้อมูล จัดผิดหลายจุด | Underfit |
+| $g(\theta_0 + \theta_1 x_1 + \theta_2 x_2 + \theta_3 x_1^2 + \theta_4 x_2^2 + \theta_5 x_1 x_2)$ | เส้นโค้งเรียบ แยกสองกลุ่มได้ดี | Good fit |
+| $g(\theta_0 + \theta_1 x_1 + \theta_2 x_1^2 + \theta_3 x_1^2 x_2 + \theta_4 x_1^2 x_2^2 + \theta_5 x_1^2 x_2^3 + \theta_6 x_1^3 x_2 + \cdots)$ | เส้นคดเคี้ยวอ้อมไปล้อมจุดที่อยู่ผิดกลุ่มทีละจุด | Overfit |
+
+เส้นแบบ overfit จัดข้อมูลฝึกได้ถูกเกือบหมด แต่จุดใหม่ที่ตกอยู่ใน "ซอก" ที่เส้นอ้อมไว้จะถูกจัดผิดทั้งที่อยู่ในบริเวณของกลุ่มที่ถูกต้อง ทุกวิธีในบทนี้จึงใช้กับ logistic regression ได้ด้วย โดยเติมพจน์ค่าปรับต่อท้าย cost function ของ logistic regression แทน MSE ในทางปฏิบัติ `LogisticRegression` ของ scikit-learn มี regularization เปิดอยู่แล้วโดยค่าเริ่มต้น และควบคุมความแรงด้วย `C` ซึ่งเป็นส่วนกลับของความแรง ($C$ มาก = ปรับน้อย) ([scikit-learn: Linear Models, Logistic regression](https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression))
+
+### 1.3 ลักษณะที่ใช้วินิจฉัย: training error เทียบกับ testing error
+
+วิธีสังเกต overfitting ที่ใช้จริงคือดู error สองชุดพร้อมกัน เมื่อโมเดลถูกฝึกนานขึ้น (หรือซับซ้อนขึ้น)
+
+1. **Training error** ลดลงเรื่อยๆ แทบไม่หยุด เพราะโมเดลมีอิสระมากขึ้นที่จะไล่ตามข้อมูลฝึก
+2. **Testing error** ลดลงในช่วงแรกพร้อมกัน (โมเดลเรียนรูปแบบจริง) จนถึงจุดต่ำสุดจุดหนึ่ง แล้ว **เริ่มเพิ่มขึ้น** (โมเดลเริ่มเรียน noise)
+3. ช่องว่างระหว่างสองเส้นที่กว้างขึ้นหลังจุดต่ำสุดคืออาการของ overfitting จุดต่ำสุดของ testing error คือจุดที่ควรหยุด
+
+```mermaid
+flowchart LR
+    A["เริ่มฝึก: train สูง, test สูง (underfit)"] --> B["train ลด, test ลด (กำลังเรียนรูปแบบ)"]
+    B --> C["test ต่ำสุด (good fit)"]
+    C --> D["train ยังลด, test เพิ่ม (overfit)"]
 ```
 
-`.T` เปลี่ยนหนึ่งแถวห้าค่าเป็นห้า observations หนึ่ง feature ผลโมเดลเส้นตรง:
+วิธีอ่านแผนภาพ: ลูกศรคือเวลาการฝึก (หรือความซับซ้อนของโมเดลที่เพิ่มขึ้น) กล่อง C คือจุดที่ควรเลือก ถ้าแกนนอนเป็นจำนวนรอบการฝึก เทคนิคที่หยุดฝึกเมื่อ testing (หรือ validation) error เริ่มเพิ่ม เรียกว่า early stopping ซึ่งนับเป็น regularization อีกรูปแบบหนึ่ง ([Géron, 2022](https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/)) ถ้าแกนนอนเป็นดีกรีของ polynomial รูปร่างของกราฟก็เป็นแบบเดียวกัน
 
-| Metric | ค่า |
-|---|---:|
-| Coefficient | 2.1 |
-| Intercept | -3.4 |
-| Training $R^2$ | 0.8135 |
-| Training MSE | 50.54 |
+**ตารางวินิจฉัย**
 
-เส้นตรงจับแนวโน้มเพิ่ม แต่ไม่จับการเพิ่มเร็วช่วงต้นและเริ่มราบช่วงท้าย
+| Training error | Testing error | การวินิจฉัย |
+|---|---|---|
+| สูง | สูง (ใกล้กับ training) | Underfit: โมเดลง่ายไป |
+| ต่ำ | ต่ำ (ใกล้กับ training) | Good fit |
+| ต่ำมาก | สูงกว่า training มาก | Overfit: โมเดลยืดหยุ่นไป |
 
-### 9.2 Polynomial degree 2 และ 4
+### 1.4 Worked example: overfitting ที่เห็นเป็นตัวเลข
 
-`PolynomialFeatures(degree=2)` เปลี่ยน $x$ เป็น $[1,x,x^2]$:
+ทดลองด้วยข้อมูลฝึกเพียง 12 จุด สร้างจากเส้นโค้ง $y = \sin(1.5x) + 0.5x$ บวก noise และข้อมูลทดสอบ 300 จุดจากเส้นโค้งเดียวกัน ฝึก polynomial regression ดีกรีต่างๆ (สร้างพจน์แล้ว standardize ตามบทที่ 3) ผลจากการรันสคริปต์ในส่วนที่ 10
 
-```text
-x = 10  ->  [1, 10, 100]
-x = 15  ->  [1, 15, 225]
+| ดีกรี | Train MSE | Test MSE | $\theta$ ที่ใหญ่ที่สุด (ค่าสัมบูรณ์) | การวินิจฉัย |
+|---|---|---|---|---|
+| 1 | 0.2257 | 0.3070 | 0.04 | Underfit |
+| 3 | 0.0136 | **0.1124** | 7.35 | Good fit (test ต่ำสุด) |
+| 9 | 0.0038 | 0.3152 | 649.33 | Overfit |
+| 11 | 0.0021 | 0.9961 | 3,023.67 | Overfit รุนแรง |
+
+ตีความทีละขั้น
+
+1. Train MSE ลดลงทุกครั้งที่เพิ่มดีกรี (0.2257, 0.0136, 0.0038, 0.0021) ตรงกับข้อ 1.3 ว่า training error ลดไม่หยุด
+2. Test MSE ต่ำสุดที่ดีกรี 3 แล้วเพิ่มขึ้นจนเกือบ 1.0 ที่ดีกรี 11 คือแย่กว่าเส้นตรงเสียอีก
+3. คอลัมน์ที่สำคัญที่สุดสำหรับบทนี้คือขนาดของ $\theta$: โมเดลดีกรี 9 และ 11 มีพารามิเตอร์ขนาดหลักร้อยถึงหลักพัน ทั้งที่ข้อมูลอยู่ในช่วงแค่ 0 ถึง 3 พารามิเตอร์ที่ใหญ่มากและมีเครื่องหมายสลับกันคือกลไกที่ทำให้เส้นส่ายแรง เพราะพจน์หนึ่งดึงขึ้นมหาศาล อีกพจน์ดึงลงมหาศาล แล้วหักล้างกันพอดีที่จุดฝึก แต่ระหว่างจุดไม่หักล้างกัน
+
+ข้อสังเกตข้อ 3 คือหัวใจของ regularization: **ถ้าห้ามไม่ให้ $\theta$ ใหญ่ เส้นก็ส่ายแรงไม่ได้**
+
+### สรุปหัวข้อ
+
+- Overfitting: training error ต่ำมาก ($J \approx 0$) แต่ทำนายข้อมูลใหม่แย่ เกิดเมื่อโมเดลมี feature หรือความยืดหยุ่นมากเกินไป
+- อาการ: training error ลดไม่หยุด ส่วน testing error ลดแล้วกลับเพิ่ม
+- โมเดลที่ overfit มักมีพารามิเตอร์ขนาดใหญ่ผิดปกติ
+
+---
+
+## ส่วนที่ 2 วิธีแก้ Overfitting และแนวคิดของ Regularization
+
+### 2.1 สองทางเลือกหลัก
+
+**ทางที่ 1 ลดจำนวน feature**
+
+- เลือกเองว่าจะเก็บ feature ไหน (ใช้ความรู้เชิงธุรกิจ เช่น รู้ว่าปริมาณการเบิกขึ้นกับจำนวนผู้ป่วยและจำนวนเตียง ไม่ได้ขึ้นกับรหัสผู้บันทึก)
+- ใช้อัลกอริทึมเลือกโมเดล (model selection algorithm) เช่น ลองชุด feature หลายแบบแล้วเลือกชุดที่ผลบนข้อมูลทดสอบดีที่สุด
+
+ข้อเสียของทางนี้คือเป็นการตัดสินใจแบบ "เก็บหรือทิ้ง" ถ้าทิ้ง feature ที่จริงๆ มีประโยชน์อยู่บ้าง ข้อมูลส่วนนั้นก็หายไปทั้งหมด
+
+**ทางที่ 2 Regularization**
+
+- เก็บ feature ไว้ทั้งหมด แต่ **ลดขนาด (magnitude) ของพารามิเตอร์ $\theta_j$**
+- ทำงานได้ดีเมื่อมี feature จำนวนมาก ที่แต่ละตัวช่วยทำนาย $y$ ได้คนละเล็กละน้อย
+
+แทนที่จะตัดสินแบบเก็บหรือทิ้ง regularization ให้ทุก feature อยู่ต่อได้ แต่ต้อง "จ่ายค่าปรับ" ตามขนาดของสัมประสิทธิ์ feature ที่มีประโยชน์จริงจะได้ประโยชน์ในการลด error มากกว่าค่าปรับ จึงรักษาค่าไว้ได้ ส่วน feature ที่ช่วยน้อยจะถูกกดให้เล็กลง
+
+### 2.2 Intuition: ปรับ $\theta_3, \theta_4$ ให้เล็กมาก
+
+กลับไปที่โมเดลดีกรี 4 ที่ overfit $\theta_0 + \theta_1 x + \theta_2 x^2 + \theta_3 x^3 + \theta_4 x^4$ สมมติเราแก้ cost function เป็น
+
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 + 1000\,\theta_3^2 + 1000\,\theta_4^2$$
+
+เลข 1000 เป็นค่าใหญ่ที่เลือกมาเพื่อให้เห็นภาพ ผลที่เกิดคือ
+
+1. ถ้า $\theta_3$ หรือ $\theta_4$ มีค่าไม่เล็ก เช่น 0.5 ค่าปรับจะเป็น $1000 \times 0.25 = 250$ ซึ่งใหญ่กว่า MSE ที่ลดได้จากการใช้พจน์เหล่านี้มาก
+2. การหาค่าต่ำสุดของ $J$ จึงถูกบังคับให้เลือก $\theta_3 \approx 0$ และ $\theta_4 \approx 0$
+3. เมื่อพจน์ $x^3$ และ $x^4$ แทบไม่มีผล โมเดลจึงทำตัวเกือบเหมือน $\theta_0 + \theta_1 x + \theta_2 x^2$ ซึ่งคือ good fit
+4. เส้นโค้งเปลี่ยนจากคดเคี้ยวเป็นโค้งเรียบ แม้ยังมีพจน์ดีกรี 4 อยู่ในสูตร
+
+ปัญหาคือในงานจริงเราไม่รู้ว่าพจน์ไหนคือตัวการ จึงทำแบบเดียวกันกับ **ทุก** พารามิเตอร์ (ยกเว้น $\theta_0$) แล้วให้การหาค่าต่ำสุดเลือกเองว่าตัวไหนควรเล็ก นี่คือ regularization: วิธีที่ดีในการลด overfitting คือ **จำกัด (constrain) โมเดล** ([Géron, 2022](https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/))
+
+### 2.3 โครงสร้างทั่วไปของ cost function ที่มี regularization
+
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 + \lambda R(\theta)$$
+
+- พจน์แรกคือ MSE เดิม (fit: เข้ากับข้อมูลแค่ไหน) ดึงให้โมเดลเข้ากับข้อมูลฝึก
+- พจน์ที่สองคือค่าปรับ (penalty) $R(\theta)$ วัด "ขนาด" ของพารามิเตอร์ ดึงให้พารามิเตอร์เล็ก (โมเดลซับซ้อนแค่ไหน)
+- $\lambda \ge 0$ คือน้ำหนักของการดึงฝั่งที่สอง เป็น hyperparameter ที่ผู้ใช้ตั้ง
+
+ทั้งสองพจน์ดึงคนละทาง คำตอบที่ได้คือจุดสมดุล $\lambda = 0$ คือ linear regression ธรรมดา $\lambda$ ใหญ่มากคือบังคับทุก $\theta_j$ (ยกเว้น $\theta_0$) เข้าใกล้ศูนย์ โมเดลเหลือแค่เส้นแบนที่ค่าเฉลี่ยของ $y$ ซึ่ง underfit วิธีต่างๆ ในบทนี้ต่างกันแค่ว่าใช้ $R(\theta)$ แบบไหน
+
+| วิธี | $R(\theta)$ | ส่วนที่ |
+|---|---|---|
+| Ridge | $\sum_{j=1}^{d}\theta_j^2$ (squared $L_2$-norm) | 4 |
+| Lasso | $\sum_{j=1}^{d}\lvert\theta_j\rvert$ ($L_1$-norm) | 5 |
+| Elastic Net | ผสมสองแบบ | 7 |
+
+**มองผ่าน bias และ variance:** ข้อผิดพลาดของโมเดลบนข้อมูลใหม่มาจากสองแหล่งหลัก bias คือความผิดที่เกิดเพราะโมเดลง่ายเกินจับรูปแบบจริงไม่ได้ (ต้นเหตุของ underfit) variance คือความอ่อนไหวของโมเดลต่อข้อมูลฝึกชุดที่ได้มา ถ้าเปลี่ยนข้อมูลฝึกนิดเดียวแล้วโมเดลเปลี่ยนมาก แปลว่า variance สูง (ต้นเหตุของ overfit) regularization ยอมเพิ่ม bias เล็กน้อย (พารามิเตอร์ถูกดึงออกจากค่าที่เข้ากับข้อมูลฝึกที่สุด) เพื่อแลกกับ variance ที่ลดลงมาก ถ้าแลกได้คุ้ม testing error รวมจะลดลง ([James et al., 2023](https://www.statlearning.com/))
+
+### สรุปหัวข้อ
+
+- แก้ overfitting ได้สองทาง: ลดจำนวน feature หรือ regularization (เก็บ feature ทั้งหมดแต่ลดขนาดพารามิเตอร์)
+- Regularization = MSE + $\lambda$ คูณค่าปรับตามขนาดของ $\theta$ ไม่ปรับ $\theta_0$
+- $\lambda$ เป็นตัวชั่งน้ำหนักระหว่างการเข้ากับข้อมูลและความเรียบง่าย ยอมเพิ่ม bias เพื่อลด variance
+
+---
+
+## ส่วนที่ 3 ปูพื้นฐาน: Norm คือการวัดขนาดของเวกเตอร์
+
+ก่อนเข้า Ridge และ Lasso ต้องรู้จักการวัด "ขนาด" ของเวกเตอร์พารามิเตอร์ $\theta = (\theta_1, \ldots, \theta_d)$ ซึ่งเรียกว่า norm มีหลายแบบ แต่ละแบบให้ผลกับโมเดลต่างกันมาก
+
+**L2-norm (Euclidean norm)** หรือ $L_2$-norm คือความยาวของเวกเตอร์ตามทฤษฎีบทพีทาโกรัส
+
+$$\lVert\theta\rVert_2 = \sqrt{\theta_1^2 + \theta_2^2 + \cdots + \theta_d^2}$$
+
+**Squared $L_2$-norm** คือ $L_2$-norm ยกกำลังสอง ตัดรากออกไป
+
+$$\lVert\theta\rVert_2^2 = \theta_1^2 + \theta_2^2 + \cdots + \theta_d^2$$
+
+Ridge ใช้แบบยกกำลังสองนี้ เพราะไม่มีราก หาอนุพันธ์ได้ง่าย (อนุพันธ์ของ $\theta_j^2$ คือ $2\theta_j$) และให้ทิศทางของคำตอบเหมือนกัน
+
+**L1-norm (absolute-value norm)** หรือ $L_1$-norm คือผลรวมของค่าสัมบูรณ์
+
+$$\lVert\theta\rVert_1 = \lvert\theta_1\rvert + \lvert\theta_2\rvert + \cdots + \lvert\theta_d\rvert$$
+
+ชื่อเล่นคือ Manhattan norm เพราะเหมือนระยะเดินในเมืองที่ถนนเป็นตาราง ต้องเดินตามแนวแกนทีละแกน ไม่ได้เดินทแยงตรงไป
+
+**Worked example:** $\theta = (3, -4)$
+
+| Norm | การคำนวณ | ผล |
+|---|---|---|
+| $L_2$ | $\sqrt{3^2 + (-4)^2} = \sqrt{25}$ | 5 |
+| Squared $L_2$ | $9 + 16$ | 25 |
+| $L_1$ | $\lvert 3\rvert + \lvert -4\rvert$ | 7 |
+
+**ความต่างที่สำคัญที่สุด: ค่าปรับต่อการลดหนึ่งหน่วย** ถ้าลด $\theta_j$ ลงเล็กน้อย ค่าปรับลดลงเท่าไร
+
+| ค่าเดิมของ $\theta_j$ | ค่าปรับ $\theta_j^2$ (Ridge) ลดลงเมื่อลดจาก $\theta_j$ เป็น $\theta_j - 0.1$ | ค่าปรับ $\lvert\theta_j\rvert$ (Lasso) ลดลง |
+|---|---|---|
+| 5 | $25 - 24.01 = 0.99$ | 0.1 |
+| 1 | $1 - 0.81 = 0.19$ | 0.1 |
+| 0.1 | $0.01 - 0 = 0.01$ | 0.1 |
+
+ตารางนี้อธิบายพฤติกรรมของทั้งบท
+
+- **กำลังสอง (Ridge):** ค่าใหญ่ถูกลงโทษหนักมาก แต่ค่าที่เล็กอยู่แล้วแทบไม่ถูกลงโทษเพิ่ม (ที่ 0.1 ลดลงอีกได้แค่ 0.01) Ridge จึงกดค่าใหญ่ลงแรง แต่ไม่มีแรงจูงใจพอจะดันค่าเล็กให้เป็นศูนย์พอดี
+- **ค่าสัมบูรณ์ (Lasso):** ลดหนึ่งหน่วยได้ประโยชน์เท่ากันเสมอ ไม่ว่าค่าจะใหญ่หรือเล็ก แรงดึงเข้าหาศูนย์จึงคงที่แม้ค่าใกล้ศูนย์มากแล้ว Lasso จึงดันค่าเล็กๆ ให้เป็นศูนย์พอดีได้
+
+### สรุปหัวข้อ
+
+- $\lVert\theta\rVert_2^2 = \sum\theta_j^2$ (Ridge), $\lVert\theta\rVert_1 = \sum\lvert\theta_j\rvert$ (Lasso)
+- กำลังสองลงโทษค่าใหญ่หนัก ค่าเล็กเบา ส่วนค่าสัมบูรณ์ลงโทษทุกระดับเท่ากันต่อหน่วย ความต่างนี้ทำให้ Lasso ได้ค่าศูนย์พอดีแต่ Ridge ไม่ได้
+
+---
+
+## ส่วนที่ 4 Ridge Regression
+
+### 4.1 นิยามและ cost function
+
+Ridge regression คือ linear regression ที่พยายามเก็บพารามิเตอร์ $\theta$ ให้เล็กที่สุดเท่าที่ทำได้ โดยเติมพจน์ squared $L_2$-norm เข้าไปใน cost function เพื่อป้องกัน overfitting
+
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 + \lambda\sum_{j=1}^{d}\theta_j^2$$
+
+- $h_\theta(x_i) = \theta_0 + \theta_1 x_{i,1} + \cdots + \theta_d x_{i,d}$ เหมือนบทที่ 3
+- $\lambda \ge 0$ คือ ridge parameter ที่ควบคุมความแรงของ regularization
+- ผลรวมของค่าปรับเริ่มที่ $j = 1$ ไม่รวม $\theta_0$
+
+ชื่อในวงการอื่น: นักสถิติเรียก Tikhonov regularization หรือ ridge regression ตามงานของ Hoerl และ Kennard (1970) ที่เสนอวิธีนี้เพื่อแก้ปัญหาสัมประสิทธิ์ไม่เสถียรเมื่อ feature สัมพันธ์กันสูง ([Hoerl and Kennard, 1970](https://doi.org/10.1080/00401706.1970.10488634)) ส่วนในงาน neural network เรียกผลแบบเดียวกันว่า weight decay
+
+### 4.2 $\lambda$ ทำอะไรกับเส้นที่ได้
+
+| $\lambda$ | ผลต่อ $\theta$ | ผลต่อเส้น | สภาพ |
+|---|---|---|---|
+| 0 | ไม่มีค่าปรับ เท่ากับ linear regression ธรรมดา | ถ้าโมเดลยืดหยุ่น เส้นส่ายไปตามทุกจุด | อาจ overfit |
+| เล็ก (เช่น $10^{-5}$ กับ polynomial ที่ scale แล้ว) | หดลงพอให้พจน์สุดโต่งหายไป | เส้นเรียบขึ้นแต่ยังโค้งตามรูปแบบหลัก | มักเป็นจุดที่ดี |
+| ใหญ่ (เช่น 100) | ทุก $\theta_j$ ($j \ge 1$) ใกล้ 0 | เส้นแบนเกือบเป็นแนวนอนที่ระดับค่าเฉลี่ยของ $y$ | Underfit |
+
+ตัวอย่างคลาสสิกใน Géron (2022) ฝึก Ridge บนข้อมูลสุ่ม 20 จุด สองแบบ แบบแรกเป็นโมเดลเส้นตรง ด้วย $\lambda = 0, 10, 100$ เห็นว่าเส้นตรงค่อยๆ เอียงน้อยลงจนเกือบแบน แบบที่สองสร้าง polynomial ดีกรี 10 แล้ว standardize ก่อนใช้ Ridge ด้วย $\lambda = 0, 10^{-5}, 1$ ที่ $\lambda = 0$ เส้นส่ายขึ้นลงหลายรอบ ที่ $10^{-5}$ ยังเป็นคลื่นแต่อ่อนลง และที่ $\lambda = 1$ เป็นเส้นเรียบที่ค่อยๆ ไต่ขึ้นตามแนวโน้มของข้อมูล ข้อสังเกตสำคัญจากตัวอย่างนี้คือ **ค่า $\lambda$ ที่ "พอดี" ขึ้นกับโมเดลและสเกลของข้อมูล** $\lambda = 10$ ที่ดูพอดีกับเส้นตรง จะทำให้ polynomial ที่ scale แล้วแบนเกินไป จึงไม่มีค่า $\lambda$ สากล ต้องเลือกจากการทดลอง (ส่วนที่ 8) ([Géron, 2022](https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/))
+
+### 4.3 ทำไมไม่ปรับ $\theta_0$
+
+$\theta_0$ คือระดับฐานของค่าทำนาย ไม่ได้ทำให้เส้นส่ายหรือซับซ้อนขึ้น ถ้าปรับ $\theta_0$ ด้วย ผลลัพธ์จะขึ้นกับจุดศูนย์ของหน่วย $y$ ซึ่งไม่ควรเป็น ตัวอย่าง: ถ้าราคาบ้านทุกหลังเพิ่มขึ้น 100 (เช่น เปลี่ยนเกณฑ์การวัด) โมเดลที่ดีควรเพียงเลื่อน $\theta_0$ ขึ้น 100 แล้วทุกอย่างเหมือนเดิม แต่ถ้า $\theta_0$ ถูกปรับ การขยับ $\theta_0$ จะมีค่าปรับ โมเดลจะพยายามเลี่ยงโดยไปบิด $\theta_1, \ldots, \theta_d$ แทน ผลการทำนายจึงเปลี่ยนเพียงเพราะเลื่อนจุดศูนย์ ตำราและซอฟต์แวร์มาตรฐานจึงไม่ปรับ intercept ([James et al., 2023](https://www.statlearning.com/); [scikit-learn: Linear Models](https://scikit-learn.org/stable/modules/linear_model.html))
+
+### 4.4 Worked example: Ridge กับ feature เดียว คำนวณด้วยมือ
+
+ข้อมูล 4 แถว (เลือก $x$ ให้มีค่าเฉลี่ยเป็นศูนย์ เพื่อให้แยก $\theta_0$ ออกได้ง่าย)
+
+| $i$ | $x_i$ | $y_i$ |
+|---|---|---|
+| 1 | -2 | -3 |
+| 2 | -1 | -1 |
+| 3 | 1 | 2 |
+| 4 | 2 | 4 |
+
+**ขั้น 1 ค่าที่ต้องใช้:** $N = 4$, $\bar{x} = 0$, $\bar{y} = (-3 - 1 + 2 + 4)/4 = 0.5$
+
+$$S_{xx} = \sum x_i^2 = 4 + 1 + 1 + 4 = 10, \qquad S_{xy} = \sum x_i y_i = 6 + 1 + 2 + 8 = 17$$
+
+**ขั้น 2 หาสูตรของ $\theta_1$:** เมื่อ $\bar{x} = 0$ และไม่ปรับ $\theta_0$ จะได้ $\theta_0 = \bar{y} = 0.5$ เสมอ เหลือหา $\theta_1$ ที่ทำให้ $J$ ต่ำสุด อนุพันธ์ของ $J$ เทียบกับ $\theta_1$ (พจน์ของ $\theta_0$ หักล้างไปเพราะ $\sum x_i = 0$)
+
+$$\frac{\partial J}{\partial \theta_1} = \frac{2}{N}(\theta_1 S_{xx} - S_{xy}) + 2\lambda\theta_1 = 0$$
+
+จัดรูป (คูณทั้งสองข้างด้วย $N/2$)
+
+$$\theta_1 S_{xx} - S_{xy} + N\lambda\theta_1 = 0 \quad\Rightarrow\quad \theta_1 = \frac{S_{xy}}{S_{xx} + N\lambda}$$
+
+สูตรนี้อ่านได้ทันทีว่า Ridge คือ least squares ($S_{xy}/S_{xx}$) ที่ **ตัวส่วนถูกเพิ่มด้วย $N\lambda$** ยิ่ง $\lambda$ ใหญ่ ตัวส่วนยิ่งใหญ่ $\theta_1$ ยิ่งเล็ก แต่ไม่มีทางเป็นศูนย์พอดี ตราบที่ $S_{xy} \ne 0$
+
+**ขั้น 3 แทนค่า**
+
+| $\lambda$ | $S_{xx} + N\lambda$ | $\theta_1 = 17/(\cdot)$ |
+|---|---|---|
+| 0 | 10 | 1.7000 (least squares) |
+| 0.5 | 12 | 1.4167 |
+| 2 | 18 | 0.9444 |
+| 8.5 | 44 | 0.3864 |
+| 10 | 50 | 0.3400 |
+
+**ขั้น 4 ตรวจว่า Ridge "ยอมเสีย" MSE เพื่อลดค่าปรับจริง** (ที่ $\lambda = 2$)
+
+| คำตอบ | ค่าทำนาย $0.5 + \theta_1 x$ ของ 4 แถว | MSE | ค่าปรับ $2\theta_1^2$ | $J$ รวม |
+|---|---|---|---|---|
+| Least squares $\theta_1 = 1.7$ | -2.9, -1.2, 2.2, 3.9 | 0.0250 | 5.7800 | 5.8050 |
+| Ridge $\theta_1 = 0.9444$ | -1.3889, -0.4444, 1.4444, 2.3889 | 1.4522 | 1.7840 | **3.2361** |
+
+คำตอบของ Ridge มี MSE บนข้อมูลฝึกแย่กว่า (1.4522 เทียบกับ 0.0250) แต่ค่าปรับน้อยกว่ามาก $J$ รวมจึงต่ำกว่า นี่คือการแลกที่ regularization ทำโดยตั้งใจ ($\lambda = 2$ ในข้อมูลชุดเล็กนี้แรงเกินไปสำหรับงานจริง ใช้เพื่อให้เห็นตัวเลขชัด)
+
+**ตรวจกับ scikit-learn:** `Ridge` ของ scikit-learn ใช้ cost $\lVert X\theta - y\rVert_2^2 + \alpha\lVert\theta\rVert_2^2$ (ผลรวม ไม่ใช่ค่าเฉลี่ย) ([scikit-learn: Linear Models](https://scikit-learn.org/stable/modules/linear_model.html)) คูณ $J$ ของวิชาด้วย $N$ จะได้รูปเดียวกัน โดย $\alpha = N\lambda$ ดังนั้น `Ridge(alpha=8)` ให้ $\theta_1 = 0.94$ ตรงกับ $\lambda = 2$ ข้างบน (ผลจากการรันจริงในส่วนที่ 10)
+
+### 4.5 รูปเมทริกซ์และประโยชน์เรื่อง multicollinearity
+
+ทำแบบเดียวกันกับหลาย feature (ให้ $X$ มีคอลัมน์ 1 อยู่หน้าสุด) ตั้ง gradient เป็นศูนย์ได้
+
+$$(X^{T}X + N\lambda I')\theta = X^{T}y \quad\Rightarrow\quad \theta = (X^{T}X + N\lambda I')^{-1}X^{T}y$$
+
+เมื่อ $I'$ คือเมทริกซ์เอกลักษณ์ขนาด $(d+1) \times (d+1)$ ที่ช่องมุมบนซ้ายเปลี่ยนเป็น 0 (เพื่อไม่ปรับ $\theta_0$) ตำราที่นิยาม cost เป็นผลรวมจะเขียนเป็น $(X^{T}X + \lambda I)^{-1}X^{T}y$ ซึ่งคือสูตรเดียวกันที่ $\lambda$ คนละสเกล
+
+ข้อดีที่เห็นจากสูตร: ใน normal equation ของบทที่ 2 ถ้า feature สองตัวเกือบซ้ำกัน (multicollinearity) $X^{T}X$ จะเกือบเป็นเมทริกซ์เอกฐาน (singular) อินเวอร์สไม่เสถียร สัมประสิทธิ์แกว่งรุนแรง การบวก $N\lambda$ เข้าไปบนเส้นทแยงทำให้เมทริกซ์อินเวอร์สได้เสมอเมื่อ $\lambda > 0$ คำตอบจึงเสถียร นี่คือแรงจูงใจดั้งเดิมของ Ridge ([Hoerl and Kennard, 1970](https://doi.org/10.1080/00401706.1970.10488634); [scikit-learn: Linear Models](https://scikit-learn.org/stable/modules/linear_model.html))
+
+### 4.6 Ridge trace: ดูสัมประสิทธิ์ทุกตัวเปลี่ยนตาม $\lambda$
+
+Ridge trace คือกราฟที่แกนนอนเป็น $\lambda$ แกนตั้งเป็นค่า $\theta_j$ หนึ่งเส้นต่อหนึ่ง feature ใช้ดูว่าแต่ละ feature ถูกหดอย่างไร ลองนึกถึงข้อมูลราคาบ้านที่มี 5 feature คือ จำนวนห้อง (Room) การอยู่ในเขตที่อยู่อาศัย (Residential Zone) การเข้าถึงทางหลวง (Highway Access) อัตราอาชญากรรม (Crime Rate) และภาษี (Tax) เมื่อ $\lambda$ เพิ่มจาก 0 ถึง 200 รูปแบบที่พบได้ทั่วไปของ Ridge trace คือ
+
+1. **ทุกเส้นเข้าหาเส้นศูนย์ แต่ไม่แตะศูนย์:** feature ที่สัมประสิทธิ์เป็นบวก (Room, Residential Zone, Highway Access) ลดลง ที่เป็นลบ (Crime Rate, Tax) เพิ่มขึ้นเข้าหาศูนย์ เครื่องหมายไม่เปลี่ยน ถึง $\lambda = 200$ ก็ยังไม่มีตัวไหนเป็นศูนย์พอดี
+2. **ตัวที่ใหญ่มากแต่ไม่มั่นคงหดเร็ว:** เช่น Highway Access ที่เริ่มต้นใหญ่ที่สุด (ราว 2.6) อาจหดเร็วจนต่ำกว่า Residential Zone เมื่อ $\lambda$ ราว 50 ค่าที่หดเร็วแบบนี้มักเป็น feature ที่ "ยืมเครดิต" จาก feature อื่นที่สัมพันธ์กับมันในคำตอบของ least squares
+3. **บางตัวเพิ่มก่อนแล้วค่อยลด:** เช่น Room อาจเพิ่มขึ้นเล็กน้อยในช่วง $\lambda$ เล็ก แล้วค่อยลดลงช้าๆ เหตุผลคือ Ridge รับประกันว่า **ขนาดรวม** $\lVert\theta\rVert_2$ ลดลงเมื่อ $\lambda$ เพิ่ม แต่ไม่ได้รับประกันทีละตัว เมื่อ feature ที่สัมพันธ์กันถูกหด อีกตัวอาจรับส่วนที่ทำนายได้ไปแทนชั่วคราว
+
+การอ่าน trace ใช้ประกอบการเลือก $\lambda$: ช่วงที่สัมประสิทธิ์เริ่มนิ่ง (ไม่แกว่งแรงแล้ว) มักเป็นช่วงที่น่าสนใจ แต่การเลือกจริงควรใช้ cross-validation (ส่วนที่ 8)
+
+### 4.7 ผลจากการทดลอง: Ridge กับโมเดลที่ overfit
+
+ใช้ข้อมูลส่วนที่ 1.4 กับ polynomial ดีกรี 9 (ที่ไม่มี regularization ได้ train 0.0038, test 0.3152, $\theta$ ใหญ่สุด 649.33) แล้วเติม Ridge ด้วยค่าต่างๆ (`alpha` ของ scikit-learn ตามนิยามในข้อ 4.4)
+
+| `alpha` | Train MSE | Test MSE | $\theta$ ใหญ่สุด (ค่าสัมบูรณ์) |
+|---|---|---|---|
+| 0 (ไม่มี Ridge) | 0.0038 | 0.3152 | 649.33 |
+| 0.0001 | 0.0090 | **0.1124** | 2.64 |
+| 0.01 | 0.0116 | 0.1152 | 1.93 |
+| 0.1 | 0.0246 | 0.1227 | 1.27 |
+| 1 | 0.1024 | 0.1772 | 0.52 |
+| 10 | 0.1824 | 0.2474 | 0.11 |
+| 100 | 0.2141 | 0.2843 | 0.01 |
+
+ตีความ
+
+1. Ridge ค่าเล็กมาก (0.0001) ก็ลดขนาด $\theta$ จาก 649 เหลือ 2.64 ได้แล้ว และ test MSE ลดจาก 0.3152 เหลือ 0.1124 เท่ากับโมเดลดีกรี 3 ที่ดีที่สุดในส่วนที่ 1.4 คือ **เก็บ feature ดีกรี 9 ไว้ทั้งหมด แต่ได้ผลเท่ากับการเลือกดีกรีที่เหมาะเอง**
+2. Train MSE เพิ่มขึ้นทุกครั้งที่เพิ่ม `alpha` เพราะค่าปรับดึงออกจากคำตอบที่เข้ากับข้อมูลฝึกที่สุด
+3. Test MSE ต่ำสุดในช่วงค่าเล็ก แล้วเพิ่มขึ้นเมื่อ `alpha` ใหญ่เกิน (1, 10, 100) เพราะเริ่ม underfit
+4. คอลัมน์ขวาสุดไม่มีค่าศูนย์เลย Ridge หดแต่ไม่ตัดทิ้ง
+
+### 4.8 Ridge ต้อง scale feature ก่อน
+
+ค่าปรับ $\lambda\sum\theta_j^2$ ปฏิบัติต่อทุก $\theta_j$ เท่ากัน แต่ขนาดของ $\theta_j$ ขึ้นกับหน่วยของ feature ตัวอย่างจากบทที่ 3: ขนาดบ้านเป็นตารางฟุตได้ $\theta = 0.1015$ ส่วนห้องนอนได้ $20.86$ ถ้าใช้ Ridge กับข้อมูลที่ไม่ scale ห้องนอนจะถูกปรับหนักกว่าขนาดบ้านมาก ทั้งที่ไม่ได้สำคัญน้อยกว่า และถ้าเปลี่ยนหน่วยขนาดบ้านเป็นตารางเมตร ผลของ Ridge ก็จะเปลี่ยน ทั้งที่ข้อมูลเดิม ดังนั้นต้อง standardize feature ก่อนใช้ regularization ทุกแบบ (fit ค่า $\mu, \sigma$ กับข้อมูลฝึกเท่านั้น ตามบทที่ 3 ส่วนที่ 5.4) ([Géron, 2022](https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/); [James et al., 2023](https://www.statlearning.com/)) นี่เป็นความต่างสำคัญจาก linear regression ธรรมดา ซึ่ง scaling ไม่เปลี่ยนโมเดลที่ดีที่สุด แต่กับ regularization **scaling เปลี่ยนคำตอบ**
+
+### สรุปหัวข้อ
+
+- Ridge: $J = \mathrm{MSE} + \lambda\sum_{j=1}^{d}\theta_j^2$ ไม่ปรับ $\theta_0$
+- feature เดียว: $\theta_1 = S_{xy}/(S_{xx} + N\lambda)$ หดเข้าหาศูนย์แต่ไม่เป็นศูนย์พอดี
+- รูปเมทริกซ์ $\theta = (X^{T}X + N\lambda I')^{-1}X^{T}y$ อินเวอร์สได้เสมอเมื่อ $\lambda > 0$ จึงช่วยเรื่อง multicollinearity
+- ต้อง standardize ก่อน และ `alpha` ของ `Ridge` ใน scikit-learn เท่ากับ $N\lambda$ ของวิชา
+
+---
+
+## ส่วนที่ 5 Lasso Regression
+
+### 5.1 นิยามและ cost function
+
+Lasso ย่อมาจาก **Least Absolute Shrinkage and Selection Operator** ชื่อบอกการทำงานครบ: ใช้ค่าสัมบูรณ์ (absolute) หดพารามิเตอร์ (shrinkage) และเลือก feature (selection) ([Tibshirani, 1996](https://doi.org/10.1111/j.2517-6161.1996.tb02080.x))
+
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 + \lambda\sum_{j=1}^{d}\lvert\theta_j\rvert$$
+
+คุณสมบัติหลัก
+
+- **ลดจำนวน feature ที่ใช้จริง:** สัมประสิทธิ์ของ feature ที่ช่วยน้อยจะถูกดันเป็นศูนย์พอดี feature นั้นจึงหายไปจากโมเดล
+- **ทำ feature selection อัตโนมัติ และได้ sparse model:** ไม่ต้องเลือก feature เอง ค่า $\lambda$ เป็นตัวกำหนดว่าจะเหลือกี่ตัว
+
+ข้อควรระวังเรื่องสัญลักษณ์: บางแหล่งเขียนผลรวมของ $L_1$-norm ไปถึง $n$ บางแหล่งถึง $d$ ทั้งสองหมายถึงจำนวน feature เดียวกัน ในบทนี้ใช้ $d$ ตลอด
+
+### 5.2 Worked example: ทำไม Lasso ได้ศูนย์พอดี
+
+ใช้ข้อมูลเดิมจากข้อ 4.4 ($N = 4$, $S_{xx} = 10$, $S_{xy} = 17$, $\theta_0 = \bar{y} = 0.5$)
+
+**ขั้น 1 อนุพันธ์ของพจน์ค่าปรับ:** $\lvert\theta_1\rvert$ มีความชันเป็น $+1$ เมื่อ $\theta_1 > 0$ และ $-1$ เมื่อ $\theta_1 < 0$ ที่ $\theta_1 = 0$ กราฟหักมุมเป็นรูปตัว V จึงไม่มีอนุพันธ์ (รายละเอียดในส่วนที่ 9.3)
+
+**ขั้น 2 กรณี $\theta_1 > 0$:** ตั้งอนุพันธ์เป็นศูนย์
+
+$$\frac{2}{N}(\theta_1 S_{xx} - S_{xy}) + \lambda = 0 \quad\Rightarrow\quad \theta_1 = \frac{S_{xy} - N\lambda/2}{S_{xx}}$$
+
+คำตอบนี้ใช้ได้ก็ต่อเมื่อผลเป็นบวกจริง คือ $S_{xy} > N\lambda/2$
+
+**ขั้น 3 ถ้า $S_{xy} \le N\lambda/2$:** สมการข้างบนให้ค่าติดลบ ซึ่งขัดกับสมมติฐาน $\theta_1 > 0$ และกรณี $\theta_1 < 0$ ก็ขัดแย้งในทำนองเดียวกัน คำตอบเดียวที่เหลือคือ $\theta_1 = 0$ **ศูนย์พอดี** ตรงกับสัญชาตญาณ: ที่ $\theta_1 = 0$ ความชันของ MSE มีขนาด $2S_{xy}/N$ ถ้าขนาดนี้ไม่เกิน $\lambda$ (แรงดึงคงที่ของค่าปรับ) การขยับออกจากศูนย์ไปทางไหนก็ทำให้ $J$ เพิ่มขึ้น
+
+**ขั้น 4 รวมเป็นกฎเดียว (soft-thresholding):** ให้ $t = N\lambda/2$
+
+| เงื่อนไข | $\theta_1$ |
+|---|---|
+| $S_{xy} > t$ | $(S_{xy} - t)/S_{xx}$ |
+| $-t \le S_{xy} \le t$ | $0$ |
+| $S_{xy} < -t$ | $(S_{xy} + t)/S_{xx}$ |
+
+อ่านว่า "ดึง $S_{xy}$ เข้าหาศูนย์เป็นระยะ $t$ ถ้าเลยศูนย์ไปก็หยุดที่ศูนย์" ซึ่งต่างจาก Ridge ที่ "หารให้เล็กลง" (หารยังไงก็ไม่เป็นศูนย์) solver ของ Lasso ใน scikit-learn (coordinate descent) ใช้ soft-thresholding แบบเดียวกันนี้ทีละ feature ([scikit-learn: Linear Models, Lasso](https://scikit-learn.org/stable/modules/linear_model.html#lasso))
+
+**ขั้น 5 แทนค่าเทียบกับ Ridge**
+
+| $\lambda$ | $t = 2\lambda$ | Lasso $\theta_1 = (17 - t)/10$ | Ridge $\theta_1$ (จากข้อ 4.4) |
+|---|---|---|---|
+| 0 | 0 | 1.7000 | 1.7000 |
+| 0.5 | 1 | 1.6000 | 1.4167 |
+| 2 | 4 | 1.3000 | 0.9444 |
+| 8.5 | 17 | **0** | 0.3864 |
+| 10 | 20 | **0** | 0.3400 |
+
+ข้อสังเกต
+
+1. Lasso ลดลงทีละเท่าๆ กัน (เป็นเส้นตรงเทียบกับ $\lambda$ ลดลง 0.2 ต่อ $\lambda$ หนึ่งหน่วย) จนแตะศูนย์ที่ $\lambda = 2S_{xy}/N = 8.5$ แล้ว **อยู่ที่ศูนย์ตลอด**
+2. Ridge ลดลงเร็วในช่วงแรกแล้วช้าลงเรื่อยๆ เข้าใกล้ศูนย์แต่ไม่ถึง
+3. เมื่อ $\theta_1 = 0$ โมเดลเหลือ $h = 0.5$ คือเส้นแบนที่ค่าเฉลี่ยของ $y$ ทำนายค่าเดียวกันทุกแถว
+
+**ตรวจ $J$ ที่ $\lambda = 2$:** คำตอบ Lasso $\theta_1 = 1.3$ ให้ค่าทำนาย $-2.1, -0.8, 1.8, 3.1$ MSE $= (0.81 + 0.04 + 0.04 + 0.81)/4 = 0.425$ ค่าปรับ $2 \times 1.3 = 2.6$ รวม $J = 3.025$ ส่วน least squares $\theta_1 = 1.7$ ได้ $0.025 + 2 \times 1.7 = 3.425$ สูงกว่า
+
+**ตรวจกับ scikit-learn:** `Lasso` ใช้ cost $\frac{1}{2N}\lVert X\theta - y\rVert_2^2 + \alpha\lVert\theta\rVert_1$ ([scikit-learn: Linear Models, Lasso](https://scikit-learn.org/stable/modules/linear_model.html#lasso)) หาร $J$ ของวิชาด้วย 2 ได้รูปเดียวกัน โดย $\alpha = \lambda/2$ ดังนั้น `Lasso(alpha=1)` ให้ $\theta_1 = 1.3$ และ intercept 0.5 ตรงกับ $\lambda = 2$ ข้อควรระวัง: การแปลง `alpha` ของ Ridge ($N\lambda$) กับ Lasso ($\lambda/2$) ใน scikit-learn **ไม่เหมือนกัน** ค่า `alpha` เท่ากันของสองคลาสจึงไม่ได้หมายถึงความแรงเท่ากัน
+
+### 5.3 Lasso path และผลกับเส้นที่ได้
+
+เมื่อมีหลาย feature และวาดค่า $\theta_j$ เทียบกับ $\lambda$ (Lasso path) จะเห็นลักษณะที่ต่างจาก Ridge trace ชัดเจน
+
+| ลักษณะ | Ridge trace | Lasso path |
+|---|---|---|
+| รูปเส้น | โค้ง ค่อยๆ ลาดเข้าหาศูนย์ | เป็นช่วงเส้นตรงต่อกัน (piecewise linear) |
+| แตะศูนย์ | ไม่แตะ | แตะทีละเส้นที่ $\lambda$ ต่างกัน แล้วอยู่ที่ศูนย์ |
+| ลำดับการหาย | ไม่มีการหาย | feature ที่ช่วยน้อยหายก่อน ตัวที่สำคัญที่สุดหายเป็นตัวสุดท้าย |
+
+ลักษณะเส้นตรงเป็นช่วงนี้คือสิ่งที่เห็นใน worked example (ลดลง 0.2 ต่อหน่วยของ $\lambda$) และเป็นคุณสมบัติทั่วไปของ Lasso ที่อัลกอริทึม LARS ใช้คำนวณทั้ง path ได้รวดเร็ว ([scikit-learn: Linear Models, LARS Lasso](https://scikit-learn.org/stable/modules/linear_model.html#lars-lasso)) การอ่านกราฟประกอบการตัดสินใจ: ถ้าลากเส้นตั้งที่ $\lambda$ ที่เลือก feature ที่เส้นของมันแตะศูนย์ไปแล้วทางซ้ายของเส้นนั้นคือ feature ที่ถูกตัดออกจากโมเดล
+
+ในตัวอย่างของ Géron (2022) แบบเดียวกับข้อ 4.2 Lasso กับโมเดลเส้นตรงที่ $\lambda = 1$ ให้เส้นแนวนอนพอดีที่ระดับประมาณ 1.5 ซึ่งคือค่าเฉลี่ยของ $y$ ของข้อมูลชุดนั้น เพราะความชันถูกดันเป็นศูนย์แล้ว (เหมือนข้อ 3 ของ worked example) ส่วนกับ polynomial ดีกรี 10 แม้ $\lambda = 10^{-7}$ ซึ่งเล็กมาก เส้นก็เรียบเกือบเป็นเส้นโค้งดีกรีต่ำ เพราะพจน์ดีกรีสูงหลายพจน์ถูกตัดเป็นศูนย์ ([Géron, 2022](https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/))
+
+### 5.4 ผลจากการทดลอง: Lasso กับโมเดลดีกรี 9
+
+ข้อมูลเดียวกับข้อ 4.7 (โมเดลมี 9 พารามิเตอร์ ไม่นับ $\theta_0$)
+
+| `alpha` | Train MSE | Test MSE | จำนวน $\theta_j$ ที่ไม่เป็นศูนย์ |
+|---|---|---|---|
+| 0.001 | 0.0104 | 0.1133 | 5 จาก 9 |
+| 0.01 | 0.0328 | 0.1252 | 3 จาก 9 |
+| 0.1 | 0.2198 | 0.2928 | 1 จาก 9 |
+
+ที่ `alpha=0.001` Lasso ได้ test MSE ใกล้เคียงกับ Ridge ที่ดีที่สุด (0.1124) แต่ใช้ feature แค่ 5 ตัว คือได้โมเดลที่ทั้งดีและเรียบง่ายกว่า เมื่อ `alpha` ใหญ่ขึ้นจำนวน feature ลดลงเรื่อยๆ จนเหลือตัวเดียวและเริ่ม underfit
+
+### 5.5 จุดอ่อนของ Lasso
+
+1. **feature ที่สัมพันธ์กันสูง:** ถ้ามีกลุ่ม feature ที่เกือบเหมือนกัน Lasso มีแนวโน้มเลือกเพียงตัวเดียวจากกลุ่ม (ตัวไหนก็ได้ ขึ้นกับข้อมูลชุดนั้น) แล้วกดตัวอื่นลง ผลการเลือกจึงไม่มั่นคง ([Zou and Hastie, 2005](https://doi.org/10.1111/j.1467-9868.2005.00503.x); [scikit-learn: Linear Models, Elastic-Net](https://scikit-learn.org/stable/modules/linear_model.html#elastic-net)) ดูตัวเลขจริงในส่วนที่ 6.4
+2. **feature มากกว่าจำนวนแถว ($d > N$):** Lasso เลือก feature ที่ไม่เป็นศูนย์ได้ไม่เกิน $N$ ตัว แม้ feature ที่มีประโยชน์จริงจะมีมากกว่านั้น ([Zou and Hastie, 2005](https://doi.org/10.1111/j.1467-9868.2005.00503.x))
+3. **ไม่มีอนุพันธ์ที่ศูนย์:** ต้องใช้ sub-gradient หรือ coordinate descent แทน gradient descent ธรรมดา (ส่วนที่ 9)
+
+ทั้งข้อ 1 และ 2 เป็นแรงจูงใจของ Elastic Net ในส่วนที่ 7
+
+### สรุปหัวข้อ
+
+- Lasso: $J = \mathrm{MSE} + \lambda\sum_{j=1}^{d}\lvert\theta_j\rvert$ ทำ shrinkage และ feature selection พร้อมกัน ได้ sparse model
+- feature เดียว: soft-thresholding $\theta_1 = \mathrm{sign}(S_{xy})\max(\lvert S_{xy}\rvert - N\lambda/2, 0)/S_{xx}$ เป็นศูนย์พอดีเมื่อ $\lambda \ge 2\lvert S_{xy}\rvert/N$
+- Lasso path เป็นเส้นตรงเป็นช่วง แตะศูนย์ทีละ feature
+- จุดอ่อน: เลือกตัวเดียวจากกลุ่มที่สัมพันธ์กัน และเลือกได้ไม่เกิน $N$ ตัวเมื่อ $d > N$
+- `alpha` ของ `Lasso` ใน scikit-learn เท่ากับ $\lambda/2$ ของวิชา
+
+---
+
+## ส่วนที่ 6 Ridge เทียบกับ Lasso
+
+### 6.1 สรุปความต่าง
+
+| ประเด็น | Ridge | Lasso |
+|---|---|---|
+| ค่าปรับ | $\lambda\sum\theta_j^2$ (squared $L_2$) | $\lambda\sum\lvert\theta_j\rvert$ ($L_1$) |
+| ผลต่อสัมประสิทธิ์ | หดทุกตัวให้เล็กลง ไม่มีตัวไหนเป็นศูนย์พอดี | หด และดันบางตัวเป็นศูนย์พอดี |
+| Feature selection | ไม่ทำ ใช้ทุก feature | ทำอัตโนมัติ ได้ sparse model |
+| Feature ที่สัมพันธ์กัน | แบ่งน้ำหนักให้ใกล้เคียงกัน (weight sharing) | มักเลือกตัวเดียว ตัวอื่นเป็นศูนย์หรือเกือบศูนย์ |
+| คำตอบปิดสำหรับหลาย feature | มี $(X^{T}X + N\lambda I')^{-1}X^{T}y$ | ไม่มี ต้องใช้ coordinate descent, LARS หรือ sub-gradient |
+| รูปของ trace | โค้งลาดเข้าหาศูนย์ | เส้นตรงเป็นช่วง แตะศูนย์ทีละตัว |
+
+สรุปเป็นประโยคเดียวในทางปฏิบัติ: Ridge ทำให้ **น้ำหนักของสัมประสิทธิ์เล็กลง** ส่วน Lasso ทำให้ **สัมประสิทธิ์จำนวนมากขึ้นมีน้ำหนักเป็นศูนย์**
+
+### 6.2 ภาพเรขาคณิต: ทำไมรูปข้าวหลามตัดให้ค่าศูนย์
+
+การหาค่าต่ำสุดของ $\mathrm{MSE} + \lambda R(\theta)$ เขียนใหม่ได้ในรูปที่เทียบเท่ากัน คือ "หา $\theta$ ที่ MSE ต่ำสุด **ภายใต้เงื่อนไข** ว่าขนาดของ $\theta$ ไม่เกินงบประมาณ $r$" ($\lambda$ แต่ละค่าตรงกับ $r$ ค่าหนึ่ง $\lambda$ ใหญ่ตรงกับ $r$ เล็ก) ([James et al., 2023](https://www.statlearning.com/))
+
+| วิธี | เงื่อนไข | รูปของบริเวณที่อนุญาต (2 พารามิเตอร์) |
+|---|---|---|
+| Ridge | $\theta_1^2 + \theta_2^2 \le r^2$ | วงกลมรัศมี $r$ |
+| Lasso | $\lvert\theta_1\rvert + \lvert\theta_2\rvert \le r$ | สี่เหลี่ยมข้าวหลามตัด มีมุมแหลมอยู่บนแกนทั้งสี่ |
+
+ลองนึกภาพระนาบที่แกนนอนเป็น $\theta_1$ แกนตั้งเป็น $\theta_2$
+
+1. **คำตอบของ least squares** (ที่บางแหล่งเรียก $\theta$ ของ normal equation) อยู่ที่จุดหนึ่งนอกบริเวณที่อนุญาต เช่น ด้านขวาบน
+2. **เส้นชั้นของ MSE** คือวงรีซ้อนกันรอบจุดนั้น ทุกจุดบนวงรีเดียวกันมี MSE เท่ากัน วงรีที่ใหญ่ขึ้นคือ MSE ที่สูงขึ้น
+3. ค่อยๆ ขยายวงรีออกจากจุดศูนย์กลาง **จุดแรกที่วงรีแตะบริเวณที่อนุญาต** คือคำตอบ เพราะเป็นจุดที่ MSE ต่ำที่สุดในบรรดาจุดที่อยู่ในงบ
+4. **วงกลม (Ridge)** ขอบโค้งเรียบทุกที่ จุดแตะจึงตกตรงไหนก็ได้บนขอบ ส่วนใหญ่ไม่ใช่บนแกน ทั้ง $\theta_1$ และ $\theta_2$ จึงไม่เป็นศูนย์ แค่ถูกดึงเข้ามาใกล้ศูนย์กลาง
+5. **ข้าวหลามตัด (Lasso)** มีมุมแหลมยื่นออกไปบนแกน วงรีที่ขยายเข้ามาจากทิศส่วนใหญ่จะชนมุมก่อนขอบ จุดบนมุมคือจุดที่พิกัดหนึ่งเป็นศูนย์ เช่น มุมบนแกน $\theta_2$ คือ $\theta_1 = 0$
+6. ในมิติสูง ข้าวหลามตัดมีมุมและสันจำนวนมาก ทุกมุมและสันอยู่บนระนาบที่พิกัดบางตัวเป็นศูนย์ Lasso จึงได้ศูนย์หลายตัวพร้อมกัน
+
+คำบรรยายสั้นๆ ที่นิยมใช้กับภาพนี้: $L_1$ คือ **sparsity inducing** (ชักนำให้เกิดศูนย์) $L_2$ คือ **weight sharing** (แบ่งน้ำหนักกัน) และ $L_1 + L_2$ คือ **การประนีประนอม** ที่มีพารามิเตอร์สองตัวให้ปรับ
+
+### 6.3 เลือกใช้อะไรเมื่อไร (ในเชิงทฤษฎี)
+
+- **Lasso** ทำได้ดีเมื่อมีพารามิเตอร์ที่สำคัญเพียงไม่กี่ตัว และตัวที่เหลือใกล้ศูนย์ คือเมื่อมี predictor เพียงไม่กี่ตัวที่มีผลต่อ $y$ จริง
+- **Ridge** ทำได้ดีเมื่อมีพารามิเตอร์ขนาดใหญ่จำนวนมากที่ขนาดใกล้เคียงกัน คือเมื่อ predictor ส่วนใหญ่มีผลต่อ $y$
+
+แต่ในทางปฏิบัติเราไม่รู้ค่าพารามิเตอร์จริง สองข้อข้างบนจึงเป็นแนวคิดเชิงทฤษฎี วิธีที่ใช้จริงคือ **ทำ cross-validation** เพื่อเลือกโมเดลที่เหมาะกับข้อมูลชุดนั้น หรือ **ผสมทั้งสองแบบ** ด้วย Elastic Net ([James et al., 2023](https://www.statlearning.com/))
+
+**กรณีศึกษา:** ในงานประสาทวิทยาที่วิเคราะห์ข้อมูล fMRI แหล่งสัญญาณหลายแหล่งที่อยู่ใกล้กันมักให้สัญญาณที่สัมพันธ์กันสูง นักวิจัยในงานลักษณะนี้มักเลือก Ridge เพราะ Ridge ให้สัมประสิทธิ์ใกล้เคียงกันกับแหล่งที่สัมพันธ์กัน ซึ่งตรงกับความเป็นจริงทางชีวภาพที่บริเวณใกล้กันทำงานร่วมกัน ขณะที่ Lasso จะดันแหล่งส่วนใหญ่เป็นศูนย์และเก็บไว้เพียงบางแหล่งที่น้ำหนักสูง ซึ่งอาจทำให้ตีความผิดว่ามีเพียงจุดเดียวที่ทำงาน บทเรียนคือ **การเลือกขึ้นกับโดเมน**: ถ้าเป้าหมายคือคัดเหลือ feature น้อยตัวเพื่ออธิบาย Lasso น่าสนใจ ถ้า feature มาเป็นกลุ่มที่ทำงานร่วมกันและต้องการรักษาทั้งกลุ่ม Ridge หรือ Elastic Net เหมาะกว่า
+
+ตัวอย่างในงาน supply chain โรงพยาบาล: ถ้าทำนายต้นทุนวัสดุสิ้นเปลืองจากปริมาณเบิกถุงมือขนาด S, M และ L แยกกัน ทั้งสามตัวมักขึ้นลงพร้อมกัน (สัมพันธ์สูง) Lasso อาจเก็บเฉพาะขนาด M แล้วตัด S, L ทิ้ง ซึ่งไม่ได้แปลว่า S และ L ไม่มีผล แค่ข้อมูลของมันซ้ำกับ M
+
+### 6.4 ผลจากการทดลอง: feature ที่สัมพันธ์กันสูง
+
+สร้างข้อมูล 100 แถว มี 8 feature (standardize แล้ว) โดย $x_2$ คือ $x_1$ บวก noise เล็กน้อย (สหสัมพันธ์ 0.9988) ค่าจริงคือ $y = 2x_1 + 2x_2 + 1.5x_3 + \text{noise}$ และ $x_4$ ถึง $x_8$ ไม่เกี่ยวกับ $y$ เลย ผลจากการรันสคริปต์ในส่วนที่ 10 (ค่าศูนย์แสดงเป็น 0 หรือ -0)
+
+| วิธี | $x_1$ | $x_2$ | $x_3$ | $x_4$ | $x_5$ | $x_6$ | $x_7$ | $x_8$ |
+|---|---|---|---|---|---|---|---|---|
+| Linear regression | 3.04 | 0.50 | 1.43 | 0.26 | 0.05 | 0.11 | -0.06 | 0.02 |
+| Ridge `alpha=10` | 1.69 | 1.67 | 1.29 | 0.25 | 0.06 | 0.14 | -0.00 | 0.04 |
+| Lasso `alpha=0.1` | 3.28 | 0.15 | 1.35 | 0.18 | 0.00 | 0.04 | -0.00 | 0.00 |
+| Elastic Net `alpha=0.1, l1_ratio=0.5` | 1.73 | 1.67 | 1.32 | 0.21 | 0.02 | 0.09 | -0.00 | 0.00 |
+| Lasso `alpha=0.5` | 2.40 | 0.64 | 0.99 | 0 | 0 | 0 | 0 | 0 |
+| Elastic Net `alpha=0.5, l1_ratio=0.5` | 1.47 | 1.46 | 0.99 | 0.05 | 0 | 0 | 0 | 0 |
+
+ตีความ
+
+1. **Linear regression** แบ่งน้ำหนักระหว่าง $x_1$ กับ $x_2$ แบบไม่สมดุล (3.04 กับ 0.50) ผลรวมใกล้ 4 ตามจริง แต่การแบ่งเป็นผลของ noise ถ้าสุ่มข้อมูลใหม่ การแบ่งจะเปลี่ยนไปมาก นี่คืออาการของ multicollinearity
+2. **Ridge** แบ่งน้ำหนักเกือบเท่ากัน (1.69 กับ 1.67) ตรงกับความจริงและเสถียรกว่ามาก แต่ feature ที่ไม่เกี่ยวข้อง $x_4$ ถึง $x_8$ ยังมีค่าไม่เป็นศูนย์
+3. **Lasso** ให้น้ำหนักเกือบทั้งหมดกับ $x_1$ (3.28) แล้วกด $x_2$ เหลือ 0.15 ตามข้อ 5.5 และตัด feature ที่ไม่เกี่ยวบางตัวเป็นศูนย์ เมื่อเพิ่ม `alpha` เป็น 0.5 ตัด $x_4$ ถึง $x_8$ ทิ้งหมด ($x_2$ ในข้อมูลชุดนี้ยังไม่ถึงศูนย์ แต่น้ำหนักยังเอียงไปที่ $x_1$ ชัดเจน)
+4. **Elastic Net** ได้ข้อดีทั้งสองด้าน: แบ่งน้ำหนัก $x_1, x_2$ เท่ากันแบบ Ridge (1.47 กับ 1.46) และตัด feature ที่ไม่เกี่ยวเป็นศูนย์แบบ Lasso นี่คือ grouping effect ที่เป็นเหตุผลของการมี Elastic Net
+
+### สรุปหัวข้อ
+
+- Ridge หดทุกตัวและแบ่งน้ำหนักให้ feature ที่สัมพันธ์กัน Lasso ตัด feature ได้แต่มักเลือกตัวเดียวจากกลุ่ม
+- เรขาคณิต: บริเวณของ Lasso มีมุมบนแกน วงรีของ MSE จึงมักแตะที่มุม ทำให้พิกัดเป็นศูนย์
+- ทฤษฎี: Lasso เมื่อ feature สำคัญมีน้อย Ridge เมื่อ feature ส่วนใหญ่มีผล ปฏิบัติ: ใช้ cross-validation หรือ Elastic Net
+
+---
+
+## ส่วนที่ 7 Elastic Net
+
+### 7.1 นิยาม
+
+Elastic Net คือการผสมพจน์ค่าปรับของ Ridge และ Lasso เข้าด้วยกันแบบตรงไปตรงมา ([Zou and Hastie, 2005](https://doi.org/10.1111/j.1467-9868.2005.00503.x)) ในรูปทั่วไปมีค่าความแรงแยกกันสองตัว
+
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 + \lambda_1\sum_{j=1}^{d}\lvert\theta_j\rvert + \lambda_2\sum_{j=1}^{d}\theta_j^2$$
+
+เมื่อ $\lambda_1$ คือพารามิเตอร์ของ Lasso และ $\lambda_2$ คือพารามิเตอร์ของ Ridge วิชานี้ควบคุมสัดส่วนผสมด้วย **mix ratio** $\alpha$
+
+$$\alpha = \frac{\lambda_2}{\lambda_1 + \lambda_2}$$
+
+$\alpha$ คือสัดส่วนของ **ส่วน Ridge** ในค่าปรับทั้งหมด ดังนั้น
+
+| $\alpha$ | ความหมาย | เทียบเท่ากับ |
+|---|---|---|
+| 1 | $\lambda_1 = 0$ เหลือแต่ส่วนกำลังสอง | Ridge |
+| 0 | $\lambda_2 = 0$ เหลือแต่ส่วนค่าสัมบูรณ์ | Lasso |
+| ระหว่าง 0 กับ 1 | ผสมทั้งสอง | Elastic Net |
+
+cost function ในรูปที่วิชาใช้คือ
+
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 + (1 - \alpha)\sum_{j=1}^{d}\lvert\theta_j\rvert + \alpha\sum_{j=1}^{d}\theta_j^2$$
+
+ข้อควรระวัง: รูปนี้มีแค่ $\alpha$ ซึ่งกำหนด **สัดส่วน** แต่ไม่มีตัวกำหนด **ความแรงรวม** (เทียบเท่ากับตั้งความแรงรวมเป็น 1) รูปที่สมบูรณ์คือคูณพจน์ค่าปรับทั้งหมดด้วย $\lambda = \lambda_1 + \lambda_2$
+
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) - y_i)^2 + \lambda[(1 - \alpha)\sum_{j=1}^{d}\lvert\theta_j\rvert + \alpha\sum_{j=1}^{d}\theta_j^2]$$
+
+ตรวจได้ว่า $\lambda(1 - \alpha) = \lambda_1$ และ $\lambda\alpha = \lambda_2$ ตรงกับนิยามของ $\alpha$ ข้างบน ในข้อสอบที่ใช้รูปของวิชา ให้ตอบตามรูปของวิชา แต่ในการใช้งานจริงต้องเลือกทั้ง $\lambda$ และ $\alpha$
+
+### 7.2 ภาพเรขาคณิต
+
+ที่ $\alpha = 0.5$ บริเวณที่อนุญาตของ Elastic Net (สองพารามิเตอร์) อยู่ระหว่างวงกลมของ Ridge และข้าวหลามตัดของ Lasso: **ยังมีมุมแหลมอยู่บนแกน** (เพราะส่วน $L_1$) แต่ **ขอบระหว่างมุมโป่งออกเป็นเส้นโค้ง** (เพราะส่วน $L_2$) ([Zou and Hastie, 2005](https://doi.org/10.1111/j.1467-9868.2005.00503.x))
+
+- มุมแหลมทำให้ยังได้ค่าศูนย์พอดี (feature selection ยังทำงาน)
+- ขอบโค้งทำให้เมื่อ feature สองตัวคล้ายกันมาก คำตอบชอบจุดที่ทั้งสองค่ามีขนาดใกล้กัน มากกว่าจุดที่ตัวหนึ่งเป็นศูนย์ (grouping effect) ตรงกับผลในข้อ 6.4
+
+### 7.3 Worked example: Elastic Net กับ feature เดียว
+
+ใช้ข้อมูลข้อ 4.4 กับ $\lambda_1 = 2$ และ $\lambda_2 = 0.5$ (ดังนั้น $\alpha = 0.5/2.5 = 0.2$ คือค่าปรับเป็นส่วน Ridge 20% ส่วน Lasso 80%)
+
+ตั้งอนุพันธ์เป็นศูนย์แบบเดียวกับข้อ 4.4 และ 5.2 (กรณี $\theta_1 > 0$)
+
+$$\frac{2}{N}(\theta_1 S_{xx} - S_{xy}) + \lambda_1 + 2\lambda_2\theta_1 = 0 \quad\Rightarrow\quad \theta_1 = \frac{S_{xy} - N\lambda_1/2}{S_{xx} + N\lambda_2}$$
+
+แทนค่า
+
+$$\theta_1 = \frac{17 - 4(2)/2}{10 + 4(0.5)} = \frac{17 - 4}{10 + 2} = \frac{13}{12} \approx 1.0833$$
+
+อ่านสูตรเป็นสองขั้น: **ตัวเศษ** หักออกด้วยระยะคงที่ (กลไกของ Lasso ซึ่งทำให้เป็นศูนย์ได้ถ้า $S_{xy} \le N\lambda_1/2$) **ตัวส่วน** เพิ่มขึ้น (กลไกของ Ridge ซึ่งหดเพิ่มอีกชั้น) ผล 1.0833 จึงเล็กกว่าทั้ง Lasso ที่ $\lambda_1 = 2$ อย่างเดียว (1.3) และไม่มีค่าปรับเลย (1.7)
+
+### 7.4 Elastic Net ใน scikit-learn: ชื่อพารามิเตอร์สลับความหมาย
+
+`ElasticNet(alpha=a, l1_ratio=rho)` ของ scikit-learn ใช้ cost ([scikit-learn: Linear Models, Elastic-Net](https://scikit-learn.org/stable/modules/linear_model.html#elastic-net))
+
+$$\frac{1}{2N}\lVert X\theta - y\rVert_2^2 + a\rho\lVert\theta\rVert_1 + \frac{a(1 - \rho)}{2}\lVert\theta\rVert_2^2$$
+
+ข้อควรระวังสำคัญ เพราะชื่อชนกันกับของวิชา
+
+| แนวคิด | วิชานี้ | scikit-learn |
+|---|---|---|
+| ความแรงรวม | $\lambda$ | `alpha` |
+| สัดส่วนผสม | $\alpha$ = สัดส่วนของ **Ridge** ($\alpha = 1$ คือ Ridge) | `l1_ratio` = สัดส่วนของ **Lasso** (`l1_ratio=1` คือ Lasso) |
+
+คือ `alpha` ของ scikit-learn **ไม่ใช่** $\alpha$ ของวิชา และ `l1_ratio` วิ่งไปในทิศตรงข้ามกับ $\alpha$ ของวิชา บางเอกสารเรียก $\alpha$ ของวิชาว่า "$l_1$-ratio" ด้วย ซึ่งชวนสับสน ให้ยึดนิยาม $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$ เป็นหลักเสมอ
+
+**แปลงค่าจากวิชาไป scikit-learn:** เทียบ cost ของวิชาหารด้วย 2 กับ cost ข้างบน ได้ $a\rho = \lambda_1/2$ และ $a(1 - \rho) = \lambda_2$ ดังนั้น
+
+$$a = \frac{\lambda_1}{2} + \lambda_2, \qquad \rho = \frac{\lambda_1/2}{a}$$
+
+ตัวอย่างข้อ 7.3: $a = 1 + 0.5 = 1.5$ และ $\rho = 1/1.5 = 2/3$ เมื่อรัน `ElasticNet(alpha=1.5, l1_ratio=2/3)` กับข้อมูลชุดนี้ได้ $\theta_1 = 1.0833$ และ intercept 0.5 ตรงกับที่คำนวณด้วยมือ
+
+### 7.5 เมื่อไรควรใช้ Elastic Net
+
+คำแนะนำมาตรฐานจาก Géron (2022) ([Géron, 2022](https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/))
+
+1. **แทบไม่ควรใช้ linear regression ที่ไม่มี regularization เลย** มี regularization สักเล็กน้อยดีกว่าเกือบเสมอ และ **Ridge เป็นค่าเริ่มต้นที่ดี**
+2. ถ้าสงสัยว่ามีเพียงไม่กี่ feature ที่มีประโยชน์จริง ให้ใช้ **Lasso หรือ Elastic Net** เพราะดันน้ำหนักของ feature ที่ไร้ประโยชน์ลงเป็นศูนย์
+3. โดยทั่วไป **Elastic Net ดีกว่า Lasso** เพราะ Lasso อาจทำงานไม่สม่ำเสมอ (erratic) เมื่อจำนวน feature มากกว่าจำนวนตัวอย่างฝึก หรือเมื่อ feature หลายตัวสัมพันธ์กันสูง (ข้อ 5.5)
+
+### สรุปหัวข้อ
+
+- Elastic Net: MSE $+ \lambda_1\sum\lvert\theta_j\rvert + \lambda_2\sum\theta_j^2$, mix ratio $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$
+- $\alpha = 1$ คือ Ridge, $\alpha = 0$ คือ Lasso, รูปของวิชา MSE $+ (1 - \alpha)\sum\lvert\theta_j\rvert + \alpha\sum\theta_j^2$
+- feature เดียว: $\theta_1 = (S_{xy} - N\lambda_1/2)/(S_{xx} + N\lambda_2)$ หักแบบ Lasso แล้วหารแบบ Ridge
+- scikit-learn: `alpha` = ความแรงรวม, `l1_ratio` = สัดส่วน Lasso (ทิศตรงข้ามกับ $\alpha$ ของวิชา)
+
+---
+
+## ส่วนที่ 8 เลือก $\lambda$ และข้อปฏิบัติในการใช้งาน
+
+### 8.1 เลือก $\lambda$ ด้วย cross-validation
+
+$\lambda$ (และ $\alpha$ ของ Elastic Net) เป็น hyperparameter ไม่ได้มาจากการ fit แต่ห้ามเลือกจากข้อมูลทดสอบ เพราะจะทำให้ผลทดสอบดีเกินจริง วิธีมาตรฐานคือ k-fold cross-validation บนข้อมูลฝึก
+
+1. กำหนดชุดค่า $\lambda$ ที่จะลอง มักไล่แบบลอการิทึม เช่น $10^{-4}, 10^{-3}, \ldots, 10^{2}$ เพราะผลของ $\lambda$ เปลี่ยนตามอันดับขนาด ไม่ใช่ตามผลต่าง
+2. แบ่งข้อมูลฝึกเป็น $k$ ส่วน (เช่น 5) แต่ละรอบใช้ $k - 1$ ส่วนฝึก อีก 1 ส่วนประเมิน (validation) วนจนทุกส่วนได้เป็นตัวประเมิน
+3. คำนวณ validation error เฉลี่ยของแต่ละ $\lambda$ แล้วเลือกค่าที่เฉลี่ยต่ำสุด
+4. ฝึกใหม่ด้วย $\lambda$ ที่เลือกบนข้อมูลฝึกทั้งหมด แล้วประเมินบนข้อมูลทดสอบ **ครั้งเดียว**
+
+```mermaid
+flowchart LR
+    A["ข้อมูลทั้งหมด"] --> B["ข้อมูลฝึก"]
+    A --> C["ข้อมูลทดสอบ (เก็บไว้)"]
+    B --> D["k-fold CV กับ lambda แต่ละค่า"]
+    D --> E["เลือก lambda ที่ validation error เฉลี่ยต่ำสุด"]
+    E --> F["ฝึกใหม่บนข้อมูลฝึกทั้งหมด"]
+    F --> G["ประเมินบนข้อมูลทดสอบครั้งเดียว"]
+    C --> G
 ```
 
-| Model | Training $R^2$ | Training MSE |
-|---|---:|---:|
-| Linear | 0.8135 | 50.5400 |
-| Polynomial degree 2 | 0.9848 | 4.1257 |
-| Polynomial degree 4 | 1.0000 | ใกล้ 0 |
+วิธีอ่านแผนภาพ: ข้อมูลทดสอบถูกแยกออกตั้งแต่ต้น และเชื่อมเข้ามาที่ขั้นสุดท้ายเท่านั้น ไม่มีลูกศรจากข้อมูลทดสอบไปที่การเลือก $\lambda$
 
-Degree 4 มี parameters เพียงพอผ่านข้อมูลทั้ง 5 จุดพอดี นี่คือ interpolation ไม่ใช่หลักฐานว่า generalize ดี เพราะยังไม่มี test observations
+scikit-learn มีคลาสที่ทำขั้นตอนนี้ให้ในตัว คือ `RidgeCV`, `LassoCV` และ `ElasticNetCV` (ตัวหลังเลือกได้ทั้ง `alpha` และ `l1_ratio`) ([scikit-learn: Linear Models](https://scikit-learn.org/stable/modules/linear_model.html))
 
-กราฟ degree 4 เดิมทำนายเฉพาะ x ห้าจุดแล้วเชื่อมด้วยเส้นตรง จึงยังไม่เห็นความโค้งจริง แบบฝึกหัดใน notebook แก้ได้ดังนี้:
+### 8.2 รายการตรวจก่อนใช้ regularization
 
-```python
-x_curve = np.linspace(X.min(), X.max(), 200).reshape(-1, 1)
-x_curve_poly = poly_reg.transform(x_curve)
-y_curve = lin_reg4.predict(x_curve_poly)
+| ข้อ | สิ่งที่ต้องทำ | เหตุผล |
+|---|---|---|
+| 1 | Standardize feature (fit กับข้อมูลฝึกเท่านั้น) | ค่าปรับขึ้นกับสเกลของ $\theta$ ซึ่งขึ้นกับหน่วยของ feature (ข้อ 4.8) |
+| 2 | ไม่ปรับ $\theta_0$ | intercept ไม่ได้ทำให้โมเดลซับซ้อน (ข้อ 4.3) |
+| 3 | ใส่ขั้น scaling ไว้ใน pipeline เดียวกับโมเดลก่อนทำ CV | ให้แต่ละ fold คำนวณ $\mu, \sigma$ จากส่วนฝึกของตัวเอง ไม่รั่วข้อมูลจาก validation |
+| 4 | เลือก $\lambda$ ด้วย cross-validation ไม่ใช่ข้อมูลทดสอบ | กันผลประเมินดีเกินจริง |
+| 5 | ตรวจทั้ง train และ test error | train สูง test สูง = $\lambda$ ใหญ่ไป (underfit), train ต่ำมาก test สูง = $\lambda$ เล็กไป (overfit) |
+| 6 | อย่าตีความว่า feature ที่ Lasso ตัดทิ้ง "ไม่มีผล" | อาจถูกตัดเพราะซ้ำกับ feature อื่นที่สัมพันธ์กัน (ข้อ 6.4) |
 
-plt.scatter(X, y, label='Observations')
-plt.plot(x_curve, y_curve, color='green', label='Degree 4')
-plt.legend()
-plt.show()
-```
+### สรุปหัวข้อ
 
-### 9.3 Ridge
+- เลือก $\lambda$ (และ $\alpha$) ด้วย k-fold cross-validation บนข้อมูลฝึก ไล่ค่าแบบลอการิทึม
+- standardize ใน pipeline ไม่ปรับ intercept และใช้ข้อมูลทดสอบครั้งเดียวตอนท้าย
 
-`Ridge(alpha=100)` กับ degree 4 ได้ Training $R^2=0.9827$, MSE 4.6936 และ intercept -15.4716 Training MSE สูงกว่า degree 4 ที่ไม่ regularize เพราะโมเดลยอม fit จุดฝึกไม่สมบูรณ์เพื่อหด coefficients จะเรียกว่า “ดีขึ้น” ได้ต่อเมื่อ test error ลด
+---
 
-เมื่อเพิ่ม alpha 0-1,000 training MSE เพิ่มจากใกล้ 0 เป็น 12.6279 นี่เป็นพฤติกรรมปกติของ penalty ไม่ได้พิสูจน์ว่า alpha 0 ดีที่สุด เพราะประเมินบน training data
+## ส่วนที่ 9 Stochastic Gradient Descent สำหรับ Regularization
 
-### 9.4 Lasso
+### 9.1 ทบทวน SGD
 
-Lab เพิ่ม alpha 0-2,000 ที่ alpha 200 coefficients ของ degree 1 และ 2 เป็นศูนย์ แต่ degree 3 และ 4 ยังเหลือ และ MSE เท่ากับ 16.7088 นี่แสดง sparsity แต่ powers ต่างสเกลกันมาก จึงไม่ควรเปรียบ coefficient sizes ก่อน scaling
+จากบทที่ 3 ส่วนที่ 6 SGD สุ่มข้อมูลหนึ่งแถวต่อก้าว แล้วปรับทุกพารามิเตอร์พร้อมกัน
 
-ที่ alpha 0 Lasso ได้ $R^2=0.9847$ แทน 1.0 เพราะใช้ Lasso solver ในกรณีไม่แนะนำและ notebook ปิด warnings ด้วย `warnings.filterwarnings('ignore')` ควรเปิด warnings เพื่อเห็นปัญหา convergence หรือ parameter
+$$\theta_j^{t+1} = \theta_j^{t} - \eta\,(h_\theta(x_i) - y_i)\,x_{i,j}$$
 
-### 9.5 Elastic Net
+เมื่อเติม regularization เข้าไปใน cost function gradient ของพจน์ค่าปรับก็ถูกบวกเข้าไปในวงเล็บ สิ่งที่ต่างกันระหว่างสามวิธีมีแค่พจน์ที่บวกเพิ่มนี้
 
-Notebook ใช้ `ElasticNet(l1_ratio=a)` จึงเปลี่ยนเฉพาะสัดส่วน L1/L2 แต่ปล่อย alpha ที่ default 1.0 การทดลองนี้ไม่ใช่การเปลี่ยน penalty strength ที่ `l1_ratio=0` ควรใช้ Ridge และที่ `l1_ratio=1` เทียบกับ Lasso ภายใต้ convention ของ scikit-learn
+### 9.2 Ridge
 
-Cell สุดท้ายตั้งชื่อกราฟเป็น “Lasso coefficients” ทั้งที่ model เป็น Elastic Net จึงควรแก้ label ก่อนสื่อสารผล
+ทำซ้ำจนลู่เข้า: สุ่มแถว $i$ จากข้อมูลทั้งหมด แล้วปรับ
 
-### 9.6 Execution state
+$$\theta_j^{t+1} = \theta_j^{t} - \eta[(h_\theta(x_i) - y_i)\,x_{i,j} + \lambda\theta_j^{t}], \qquad j = 1, \ldots, d$$
 
-ทุก code cell มี `execution_count=None` แต่มี saved outputs อยู่ จึงไม่มีลำดับ execution ยืนยันได้ ผลข้างต้นอ้างอิง output ที่ฝังใน notebook ควร Run All ใหม่เพื่อพิสูจน์ว่า code ปัจจุบันรันตั้งแต่ต้นจนจบ
+**ความหมาย:** จัดรูปใหม่ได้
 
-## 10. Guided Lab ที่วัด Generalization
+$$\theta_j^{t+1} = (1 - \eta\lambda)\,\theta_j^{t} - \eta\,(h_\theta(x_i) - y_i)\,x_{i,j}$$
 
-Lab เดิมเหมาะกับการเห็น penalty แต่มีเพียง 5 จุดและไม่มี test set เวอร์ชันนี้สร้างข้อมูลเพิ่ม แบ่ง train/test และใช้ Pipeline:
+ทุกก้าว พารามิเตอร์ถูก **คูณด้วย $(1 - \eta\lambda)$ ซึ่งน้อยกว่า 1 เล็กน้อย** ก่อนปรับตาม error ตามปกติ คือถูกทำให้ "เสื่อม" เข้าหาศูนย์เป็นสัดส่วนทุกครั้ง นี่คือที่มาของชื่อ weight decay ค่าใหญ่ถูกดึงแรง ค่าเล็กถูกดึงเบา ตรงกับตารางในส่วนที่ 3
+
+**สำหรับ $\theta_0$:** ตาม cost function ที่ผลรวมค่าปรับเริ่มที่ $j = 1$ $\theta_0$ ไม่ควรมีพจน์ $\lambda\theta_0$ และ $x_{i,0} = 1$ จึงได้ $\theta_0^{t+1} = \theta_0^{t} - \eta(h_\theta(x_i) - y_i)$ (ถ้าข้อสอบให้สูตรที่ปรับ $\theta_0$ ด้วย ให้ตามสูตรของโจทย์ แต่ควรรู้ว่าไม่สอดคล้องกับ cost function)
+
+**เรื่องเลข 2:** อนุพันธ์ของ $\lambda\theta_j^2$ คือ $2\lambda\theta_j$ และอนุพันธ์ของ $(h - y)^2$ คือ $2(h - y)x$ สูตรของวิชาตัดเลข 2 ออกทั้งสองพจน์ ซึ่งเท่ากับหาร cost ทั้งก้อนด้วย 2 (แบบเดียวกับบทที่ 2 และ 3) ไม่เปลี่ยนคำตอบ
+
+### 9.3 Lasso และ sub-gradient
+
+cost function ของ Lasso **หาอนุพันธ์ไม่ได้ที่ $\theta_j = 0$** เพราะ $\lvert\theta_j\rvert$ หักมุมเป็นรูปตัว V ตรงนั้น ทางซ้ายชัน $-1$ ทางขวาชัน $+1$ แต่ gradient descent ยังทำงานได้ถ้าใช้ **sub-gradient vector** แทน
+
+**Sub-gradient คืออะไร:** ที่จุดที่ฟังก์ชันเรียบ sub-gradient ก็คืออนุพันธ์ปกติ ที่จุดหักมุม sub-gradient คือ "ความชันใดๆ ที่ลากเส้นผ่านจุดนั้นแล้วไม่ตัดขึ้นไปเหนือกราฟ" สำหรับ $\lvert\theta\rvert$ ที่ $\theta = 0$ ทุกเส้นที่ชันอยู่ระหว่าง $-1$ ถึง $+1$ (รวมขอบ) ใช้ได้หมด
+
+| เงื่อนไข | $\mathrm{sign}(\theta_j^{t})$ ที่ใช้เป็น sub-gradient ของ $\lvert\theta_j\rvert$ |
+|---|---|
+| $\theta_j^{t} < 0$ | $-1$ |
+| $\theta_j^{t} = 0$ | ค่าใดก็ได้ในช่วงปิด $[-1, 1]$ (ในโปรแกรมนิยมใช้ 0) |
+| $\theta_j^{t} > 0$ | $+1$ |
+
+กฎการปรับ (ทำซ้ำจนลู่เข้า)
+
+$$\theta_j^{t+1} = \theta_j^{t} - \eta[(h_\theta(x_i) - y_i)\,x_{i,j} + \lambda\,\mathrm{sign}(\theta_j^{t})]$$
+
+ต่างจาก Ridge ตรงที่แรงดึงเข้าหาศูนย์คือ $\eta\lambda$ **คงที่** ไม่ขึ้นกับขนาดของ $\theta_j$ ตรงกับตารางในส่วนที่ 3 อีกครั้ง
+
+**ข้อจำกัดในทางปฏิบัติ:** SGD กับ sub-gradient แทบไม่ได้ค่าศูนย์พอดี ตัวอย่าง: $\theta_j = 0.01$, $\eta = 0.1$, $\lambda = 1$ และสมมติพจน์ error เป็นศูนย์ ก้าวถัดไปคือ $0.01 - 0.1(1) = -0.09$ คือก้าวข้ามศูนย์ไปฝั่งลบ ก้าวต่อไปก็จะดึงกลับข้ามศูนย์อีก ค่าจึงแกว่งรอบศูนย์แทนที่จะหยุดที่ศูนย์ ซอฟต์แวร์จริงจึงใช้วิธีที่จัดการจุดศูนย์โดยตรง เช่น coordinate descent ที่ใช้ soft-thresholding ในข้อ 5.2 (วิธีของ `Lasso` ใน scikit-learn) ([scikit-learn: Linear Models, Lasso](https://scikit-learn.org/stable/modules/linear_model.html#lasso); [Friedman et al., 2010](https://doi.org/10.18637/jss.v033.i01)) ในข้อสอบที่ให้ใช้สูตร sub-gradient ให้คำนวณตามสูตรได้เลย
+
+### 9.4 Elastic Net
+
+ใช้ $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$ เหมือนส่วนที่ 7 ทำซ้ำจนลู่เข้า
+
+$$\theta_j^{t+1} = \theta_j^{t} - \eta[(h_\theta(x_i) - y_i)\,x_{i,j} + (1 - \alpha)\,\mathrm{sign}(\theta_j^{t}) + \alpha\,\theta_j^{t}]$$
+
+คือรวมพจน์ของ Lasso (น้ำหนัก $1 - \alpha$) และของ Ridge (น้ำหนัก $\alpha$) ตามรูป cost function ของวิชา (ถ้าใช้รูปที่มีความแรงรวม $\lambda$ ให้คูณสองพจน์หลังด้วย $\lambda$)
+
+### 9.5 Worked example: SGD หนึ่งก้าวของทุกวิธี
+
+ค่าตั้ง: $\theta = (\theta_0, \theta_1) = (1, 0.5)$ สุ่มได้แถว $x_i = 2$, $y_i = 4$ ใช้ $\eta = 0.1$, $\lambda = 0.2$ และสำหรับ Elastic Net $\alpha = 0.5$
+
+**ขั้น 1 ค่าทำนายและ error:** $h = 1 + 0.5(2) = 2$ error $= 2 - 4 = -2$
+
+**ขั้น 2 พจน์ error ของแต่ละพารามิเตอร์:** $\theta_0$: $-2 \times 1 = -2$ และ $\theta_1$: $-2 \times 2 = -4$
+
+**ขั้น 3 $\theta_0$ (ไม่ปรับ):** $1 - 0.1(-2) = 1.2$ เหมือนกันทุกวิธี
+
+**ขั้น 4 $\theta_1$ ตามแต่ละวิธี**
+
+| วิธี | พจน์ในวงเล็บ | $\theta_1^{t+1} = 0.5 - 0.1 \times (\cdot)$ |
+|---|---|---|
+| ไม่มี regularization | $-4$ | $0.5 + 0.4 = 0.90$ |
+| Ridge | $-4 + 0.2(0.5) = -3.9$ | $0.5 + 0.39 = 0.89$ |
+| Lasso | $-4 + 0.2(+1) = -3.8$ | $0.5 + 0.38 = 0.88$ |
+| Elastic Net | $-4 + 0.5(+1) + 0.5(0.5) = -3.25$ | $0.5 + 0.325 = 0.825$ |
+
+ตีความ: ทุกวิธีขยับ $\theta_1$ ขึ้นเพราะทำนายต่ำกว่าจริง แต่วิธีที่มีค่าปรับขยับน้อยกว่า เพราะพจน์ค่าปรับดึงกลับเข้าหาศูนย์ ที่ $\theta_1 = 0.5$ Lasso ดึงแรงกว่า Ridge ($\lambda \times 1 = 0.2$ เทียบกับ $\lambda \times 0.5 = 0.1$) แต่ถ้า $\theta_1$ ใหญ่กว่า 1 Ridge จะดึงแรงกว่า Elastic Net ตามรูปของวิชาดึงแรงที่สุดในตัวอย่างนี้เพราะไม่มี $\lambda$ คูณ ความแรงรวมจึงเท่ากับ 1 ซึ่งใหญ่กว่า $\lambda = 0.2$ ของอีกสองวิธี (ตัวเลขทุกตัวตรวจด้วยสคริปต์ในส่วนที่ 10 แล้ว)
+
+### สรุปหัวข้อ
+
+- Ridge: $\theta_j := \theta_j - \eta[(h - y)x_{i,j} + \lambda\theta_j]$ เท่ากับคูณ $(1 - \eta\lambda)$ ทุกก้าว (weight decay)
+- Lasso: $\theta_j := \theta_j - \eta[(h - y)x_{i,j} + \lambda\,\mathrm{sign}(\theta_j)]$ ใช้ sub-gradient ที่ศูนย์ แรงดึงคงที่
+- Elastic Net: $\theta_j := \theta_j - \eta[(h - y)x_{i,j} + (1 - \alpha)\mathrm{sign}(\theta_j) + \alpha\theta_j]$
+- ไม่ปรับ $\theta_0$ และ SGD แบบ sub-gradient แทบไม่ได้ศูนย์พอดี ซอฟต์แวร์จริงใช้ coordinate descent
+
+---
+
+## ส่วนที่ 10 ลงมือด้วย Python
+
+สคริปต์เดียวนี้สร้างตัวเลขของการทดลองทุกตัวในบท และตรวจตัวอย่างที่คำนวณด้วยมือ ต้องใช้ `numpy` และ `scikit-learn` (ติดตั้งด้วย `pip install numpy scikit-learn`) ใช้ random seed คงที่ จึงรันซ้ำได้ผลเท่าเดิม
 
 ```python
 import numpy as np
-import pandas as pd
-
-from sklearn.linear_model import Lasso, LinearRegression, Ridge
-from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import mean_squared_error
 
-rng = np.random.default_rng(42)
+np.set_printoptions(precision=2, suppress=True)
 
-X = np.linspace(0, 10, 80).reshape(-1, 1)
-y = 3 + 2 * X.ravel() - 0.25 * X.ravel() ** 2
-y = y + rng.normal(0, 3, size=len(X))
+# ---------------------------------------------------------------
+# A) Ridge / Lasso / Elastic Net กับ feature เดียว (คำตอบปิด)
+# ---------------------------------------------------------------
+x = np.array([-2.0, -1.0, 1.0, 2.0])
+y = np.array([-3.0, -1.0, 2.0, 4.0])
+N = len(x)
+Sxx = np.sum(x * x)
+Sxy = np.sum(x * y)
+print('A) Sxx =', Sxx, ' Sxy =', Sxy, ' mean y =', y.mean())
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.25,
-    random_state=42
-)
+
+def soft(z, t):
+    # soft-thresholding: ดึง z เข้าหา 0 เป็นระยะ t ถ้า |z| <= t ได้ 0 พอดี
+    return np.sign(z) * max(abs(z) - t, 0.0)
+
+
+for lam in (0, 0.5, 2, 8.5, 10):
+    ridge = Sxy / (Sxx + N * lam)
+    lasso = soft(Sxy, N * lam / 2) / Sxx
+    print(f'   lambda={lam:<4}: ridge theta1 = {ridge:.4f}   lasso theta1 = {lasso:.4f}')
+print('   elastic net (lambda1=2, lambda2=0.5):', round(soft(Sxy, N * 2 / 2) / (Sxx + N * 0.5), 4))
+
+# ตรวจกับ scikit-learn (ต้องแปลงค่า lambda ให้ตรงกับนิยามของแต่ละคลาส)
+X1 = x.reshape(-1, 1)
+print('   sklearn Ridge(alpha=N*2)  :', Ridge(alpha=N * 2).fit(X1, y).coef_)
+print('   sklearn Lasso(alpha=2/2)  :', Lasso(alpha=2 / 2).fit(X1, y).coef_,
+      ' intercept =', Lasso(alpha=1.0).fit(X1, y).intercept_)
+
+# ---------------------------------------------------------------
+# B) Overfitting: เพิ่มดีกรีของ polynomial
+# ---------------------------------------------------------------
+rng = np.random.default_rng(1)
+
+
+def f(v):
+    return np.sin(1.5 * v) + 0.5 * v
+
+
+x_tr = np.sort(rng.uniform(0, 3, 12))
+y_tr = f(x_tr) + rng.normal(0, 0.3, 12)
+x_te = np.sort(rng.uniform(0, 3, 300))
+y_te = f(x_te) + rng.normal(0, 0.3, 300)
+
+
+def report(model, label):
+    model.fit(x_tr[:, None], y_tr)
+    tr = mean_squared_error(y_tr, model.predict(x_tr[:, None]))
+    te = mean_squared_error(y_te, model.predict(x_te[:, None]))
+    w = model[-1].coef_
+    print(f'   {label:<22} train MSE = {tr:.4f}  test MSE = {te:.4f}'
+          f'  max|theta| = {np.abs(w).max():8.2f}  nonzero = {int(np.sum(w != 0))}')
+
+
+print('\nB) Polynomial degree (12 training points)')
+for d in (1, 3, 9, 11):
+    report(make_pipeline(PolynomialFeatures(d, include_bias=False), StandardScaler(),
+                         LinearRegression()), f'degree {d}')
+
+# ---------------------------------------------------------------
+# C) degree 9 + Ridge / Lasso
+# ---------------------------------------------------------------
+print('\nC) Degree 9 with regularization')
+for a in (1e-4, 1e-2, 0.1, 1, 10, 100):
+    report(make_pipeline(PolynomialFeatures(9, include_bias=False), StandardScaler(),
+                         Ridge(alpha=a)), f'Ridge alpha={a:g}')
+for a in (1e-3, 1e-2, 0.1):
+    report(make_pipeline(PolynomialFeatures(9, include_bias=False), StandardScaler(),
+                         Lasso(alpha=a, max_iter=200000)), f'Lasso alpha={a:g}')
+
+# ---------------------------------------------------------------
+# D) feature ที่สัมพันธ์กันสูง
+# ---------------------------------------------------------------
+rng = np.random.default_rng(7)
+n = 100
+x1 = rng.normal(size=n)
+x2 = x1 + rng.normal(scale=0.05, size=n)          # เกือบเหมือน x1
+x3 = rng.normal(size=n)
+junk = rng.normal(size=(n, 5))                     # feature ที่ไม่เกี่ยวกับ y
+X = np.column_stack([x1, x2, x3, junk])
+y = 2 * x1 + 2 * x2 + 1.5 * x3 + rng.normal(size=n)
+X = StandardScaler().fit_transform(X)
+print('\nD) corr(x1, x2) =', round(np.corrcoef(x1, x2)[0, 1], 4))
+print('   OLS                    ', LinearRegression().fit(X, y).coef_)
+print('   Ridge alpha=10         ', Ridge(alpha=10).fit(X, y).coef_)
+print('   Lasso alpha=0.1        ', Lasso(alpha=0.1).fit(X, y).coef_)
+print('   ElasticNet a=0.1 r=0.5 ', ElasticNet(alpha=0.1, l1_ratio=0.5).fit(X, y).coef_)
+print('   Lasso alpha=0.5        ', Lasso(alpha=0.5).fit(X, y).coef_)
+print('   ElasticNet a=0.5 r=0.5 ', ElasticNet(alpha=0.5, l1_ratio=0.5).fit(X, y).coef_)
+
+# ---------------------------------------------------------------
+# E) SGD หนึ่งก้าว ตามกฎของแต่ละวิธี
+# ---------------------------------------------------------------
+theta0, theta1 = 1.0, 0.5
+xi, yi = 2.0, 4.0
+eta, lam, alpha = 0.1, 0.2, 0.5
+err = theta0 + theta1 * xi - yi
+grad_loss = err * xi
+print('\nE) error =', err)
+print('   theta0 (no penalty) :', round(theta0 - eta * err, 4))
+print('   theta1 plain        :', round(theta1 - eta * grad_loss, 4))
+print('   theta1 ridge        :', round(theta1 - eta * (grad_loss + lam * theta1), 4))
+print('   theta1 lasso        :', round(theta1 - eta * (grad_loss + lam * np.sign(theta1)), 4))
+print('   theta1 elastic net  :', round(theta1 - eta * (grad_loss + (1 - alpha) * np.sign(theta1)
+                                                         + alpha * theta1), 4))
+print('   lasso step at theta=0.01 with zero loss gradient:',
+      round(0.01 - eta * (0 + 1.0 * np.sign(0.01)), 4))
 ```
 
-Pipeline เรียง `PolynomialFeatures -> StandardScaler -> Model` เพื่อให้ scaler เรียนจาก polynomial terms ของ training data:
+**อธิบายทีละส่วน**
 
-```python
-pipelines = {
-    'Linear': Pipeline([
-        ('model', LinearRegression())
-    ]),
-    'Polynomial': Pipeline([
-        ('poly', PolynomialFeatures(degree=8, include_bias=False)),
-        ('scale', StandardScaler()),
-        ('model', LinearRegression())
-    ]),
-    'Ridge': Pipeline([
-        ('poly', PolynomialFeatures(degree=8, include_bias=False)),
-        ('scale', StandardScaler()),
-        ('model', Ridge(alpha=1.0))
-    ]),
-    'Lasso': Pipeline([
-        ('poly', PolynomialFeatures(degree=8, include_bias=False)),
-        ('scale', StandardScaler()),
-        ('model', Lasso(alpha=0.05, max_iter=20_000))
-    ])
-}
+- **ส่วน A:** คำนวณ $S_{xx}$ และ $S_{xy}$ ด้วย `np.sum` แล้วใช้สูตรปิดของข้อ 4.4 และ 5.2 ตรงๆ ฟังก์ชัน `soft(z, t)` คือ soft-thresholding: `np.sign(z) * max(abs(z) - t, 0.0)` ดึง $z$ เข้าหาศูนย์เป็นระยะ $t$ และหยุดที่ศูนย์ ท้ายส่วนเรียก `Ridge(alpha=N * 2)` และ `Lasso(alpha=2 / 2)` เพื่อยืนยันการแปลง $\lambda$ ของวิชาเป็น `alpha` ของ scikit-learn ($N\lambda$ สำหรับ Ridge และ $\lambda/2$ สำหรับ Lasso) `X1 = x.reshape(-1, 1)` เปลี่ยนเวกเตอร์ขนาด `(4,)` เป็นเมทริกซ์ `(4, 1)` เพราะ scikit-learn ต้องการ `X` สองมิติเสมอ (แถว x feature)
+- **ส่วน B:** `make_pipeline(PolynomialFeatures(d, include_bias=False), StandardScaler(), LinearRegression())` ร้อยสามขั้นเป็นโมเดลเดียว: สร้างพจน์ดีกรี $d$ แล้ว standardize แล้ว fit เมื่อเรียก `fit` ขั้น `StandardScaler` จะคำนวณ $\mu, \sigma$ จากข้อมูลฝึกเท่านั้น และตอน `predict` กับข้อมูลทดสอบจะใช้ค่าเดิม (ข้อ 8.2) `x_tr[:, None]` คือการเพิ่มมิติให้เป็น `(12, 1)` ฟังก์ชัน `report` เรียก `model[-1].coef_` ซึ่งคือสัมประสิทธิ์ของขั้นสุดท้ายใน pipeline (ไม่รวม intercept) แล้วพิมพ์ค่าสัมบูรณ์ที่ใหญ่ที่สุดและจำนวนตัวที่ไม่เป็นศูนย์
+- **ส่วน C:** เปลี่ยนขั้นสุดท้ายเป็น `Ridge(alpha=a)` หรือ `Lasso(alpha=a, max_iter=200000)` ตัวหลังตั้ง `max_iter` สูง เพราะ coordinate descent กับพจน์ polynomial ที่สัมพันธ์กันสูงต้องใช้หลายรอบกว่าจะลู่เข้า ถ้าตั้งต่ำจะได้คำเตือน `ConvergenceWarning`
+- **ส่วน D:** สร้าง `x2 = x1 + noise เล็ก` ให้สัมพันธ์กันสูง `junk` คือ 5 คอลัมน์ที่ไม่เกี่ยวกับ $y$ แล้ว standardize ทุกคอลัมน์ก่อน fit เปรียบเทียบสัมประสิทธิ์ของสี่วิธี
+- **ส่วน E:** คำนวณ SGD หนึ่งก้าวตามสูตรของส่วนที่ 9 ด้วยตัวแปรธรรมดา เพื่อตรวจตัวเลขของข้อ 9.5 บรรทัดสุดท้ายแสดงการก้าวข้ามศูนย์ของ sub-gradient (ข้อ 9.3)
 
-results = []
+**ผลที่ได้จากการรันจริง** (Python 3, numpy 2.5.3, scikit-learn 1.9.1)
 
-for name, model in pipelines.items():
-    model.fit(X_train, y_train)
+```text
+A) Sxx = 10.0  Sxy = 17.0  mean y = 0.5
+   lambda=0   : ridge theta1 = 1.7000   lasso theta1 = 1.7000
+   lambda=0.5 : ridge theta1 = 1.4167   lasso theta1 = 1.6000
+   lambda=2   : ridge theta1 = 0.9444   lasso theta1 = 1.3000
+   lambda=8.5 : ridge theta1 = 0.3864   lasso theta1 = 0.0000
+   lambda=10  : ridge theta1 = 0.3400   lasso theta1 = 0.0000
+   elastic net (lambda1=2, lambda2=0.5): 1.0833
+   sklearn Ridge(alpha=N*2)  : [0.94]
+   sklearn Lasso(alpha=2/2)  : [1.3]  intercept = 0.5
 
-    train_pred = model.predict(X_train)
-    test_pred = model.predict(X_test)
+B) Polynomial degree (12 training points)
+   degree 1               train MSE = 0.2257  test MSE = 0.3070  max|theta| =     0.04  nonzero = 1
+   degree 3               train MSE = 0.0136  test MSE = 0.1124  max|theta| =     7.35  nonzero = 3
+   degree 9               train MSE = 0.0038  test MSE = 0.3152  max|theta| =   649.33  nonzero = 9
+   degree 11              train MSE = 0.0021  test MSE = 0.9961  max|theta| =  3023.67  nonzero = 11
 
-    results.append({
-        'Model': name,
-        'Train RMSE': mean_squared_error(
-            y_train,
-            train_pred
-        ) ** 0.5,
-        'Test RMSE': mean_squared_error(
-            y_test,
-            test_pred
-        ) ** 0.5
-    })
+C) Degree 9 with regularization
+   Ridge alpha=0.0001     train MSE = 0.0090  test MSE = 0.1124  max|theta| =     2.64  nonzero = 9
+   Ridge alpha=0.01       train MSE = 0.0116  test MSE = 0.1152  max|theta| =     1.93  nonzero = 9
+   Ridge alpha=0.1        train MSE = 0.0246  test MSE = 0.1227  max|theta| =     1.27  nonzero = 9
+   Ridge alpha=1          train MSE = 0.1024  test MSE = 0.1772  max|theta| =     0.52  nonzero = 9
+   Ridge alpha=10         train MSE = 0.1824  test MSE = 0.2474  max|theta| =     0.11  nonzero = 9
+   Ridge alpha=100        train MSE = 0.2141  test MSE = 0.2843  max|theta| =     0.01  nonzero = 9
+   Lasso alpha=0.001      train MSE = 0.0104  test MSE = 0.1133  max|theta| =     2.88  nonzero = 5
+   Lasso alpha=0.01       train MSE = 0.0328  test MSE = 0.1252  max|theta| =     1.63  nonzero = 3
+   Lasso alpha=0.1        train MSE = 0.2198  test MSE = 0.2928  max|theta| =     0.03  nonzero = 1
 
-results = pd.DataFrame(results)
-results['Gap'] = results['Test RMSE'] - results['Train RMSE']
-results.round(3)
+D) corr(x1, x2) = 0.9988
+   OLS                     [ 3.04  0.5   1.43  0.26  0.05  0.11 -0.06  0.02]
+   Ridge alpha=10          [ 1.69  1.67  1.29  0.25  0.06  0.14 -0.    0.04]
+   Lasso alpha=0.1         [ 3.28  0.15  1.35  0.18  0.    0.04 -0.    0.  ]
+   ElasticNet a=0.1 r=0.5  [ 1.73  1.67  1.32  0.21  0.02  0.09 -0.    0.  ]
+   Lasso alpha=0.5         [2.4  0.64 0.99 0.   0.   0.   0.   0.  ]
+   ElasticNet a=0.5 r=0.5  [1.47 1.46 0.99 0.05 0.   0.   0.   0.  ]
+
+E) error = -2.0
+   theta0 (no penalty) : 1.2
+   theta1 plain        : 0.9
+   theta1 ridge        : 0.89
+   theta1 lasso        : 0.88
+   theta1 elastic net  : 0.825
+   lasso step at theta=0.01 with zero loss gradient: -0.09
 ```
 
-การแปลผล:
+**Error และปัญหาที่พบบ่อย**
 
-- Train/test RMSE สูงทั้งคู่: อาจ underfit
-- Train ต่ำมาก แต่ test สูง: มีสัญญาณ overfit
-- Regularized model มี train สูงขึ้นเล็กน้อย แต่ test ลด: penalty ช่วย generalization
-- Penalty แรงจนทั้งสองสูง: regularization มากเกิน
+- `ConvergenceWarning: Objective did not converge` จาก `Lasso` หรือ `ElasticNet` แปลว่า coordinate descent ยังไม่ลู่เข้าภายในจำนวนรอบที่ตั้ง ให้เพิ่ม `max_iter` ตรวจว่า standardize แล้ว หรือ `alpha` เล็กมากจนใกล้ไม่มี regularization
+- `ValueError: Expected 2D array, got 1D array instead` เกิดเมื่อส่ง `x` ที่เป็นเวกเตอร์ให้ `fit` ให้ใช้ `x.reshape(-1, 1)` หรือ `x[:, None]`
+- ตั้ง `alpha` ของ `Ridge` กับ `Lasso` เป็นค่าเดียวกันแล้วคิดว่าความแรงเท่ากัน ซึ่งไม่ใช่ เพราะนิยาม cost ต่างกัน (ข้อ 4.4 และ 5.2)
+- ใช้ `ElasticNet(l1_ratio=0.9)` โดยคิดว่าเป็น Ridge 90% ที่จริงคือ Lasso 90% (ข้อ 7.4)
+- Standardize ทั้งชุดข้อมูลก่อนแบ่ง train/test ทำให้ข้อมูลทดสอบรั่วเข้าไปใน $\mu, \sigma$ ให้ใช้ pipeline แบบในสคริปต์
 
-### 10.1 เลือก alpha
+**ลองปรับค่าเพื่อเข้าใจ**
 
-ห้ามเลือก alpha จาก test set เพราะ test ต้องเก็บไว้ประเมินสุดท้าย วิธีพื้นฐานคือ validation set ส่วน cross-validation เสถียรกว่าเมื่อข้อมูลน้อย ตัวอย่าง RidgeCV:
+1. ในส่วน A เพิ่ม $\lambda$ เป็น 8 และ 9 เพื่อดูว่า Lasso เปลี่ยนเป็นศูนย์ระหว่างสองค่านี้ (ที่ 8.5 พอดี)
+2. ในส่วน C ใช้ `RidgeCV(alphas=np.logspace(-6, 2, 30))` แทน `Ridge` แล้วดู `alpha_` ที่ถูกเลือก เทียบกับตารางในข้อ 4.7
+3. ในส่วน D ลองหลาย seed แล้วดูว่า Linear regression แบ่งน้ำหนัก $x_1, x_2$ เปลี่ยนไปมากแค่ไหน เทียบกับ Ridge และ Elastic Net ที่เกือบเท่ากันทุกครั้ง (ผลขึ้นกับการรัน ไม่ได้แสดงในบท)
 
-```python
-from sklearn.linear_model import RidgeCV
+---
 
-ridge_cv = Pipeline([
-    ('poly', PolynomialFeatures(degree=8, include_bias=False)),
-    ('scale', StandardScaler()),
-    ('model', RidgeCV(alphas=np.logspace(-4, 4, 50)))
-])
+## ส่วนที่ 11 แนวคิดที่มักเข้าใจผิด
 
-ridge_cv.fit(X_train, y_train)
-selected_alpha = ridge_cv.named_steps['model'].alpha_
-
-print(f'Selected alpha: {selected_alpha:.4f}')
-```
-
-ใช้ log scale เพราะค่าที่เหมาะอาจต่างกันหลายหลัก เช่น 0.001, 0.1, 10 หรือ 1,000
-
-## 11. Validation และ Troubleshooting
-
-### 11.1 Checklist
-
-- split ก่อน fit scaler และ feature transformer
-- ใช้ split และ metric เดียวกันทุกโมเดล
-- รายงานทั้ง train และ test
-- scale ก่อนลง penalty
-- เลือก alpha จาก validation/CV ไม่ใช่ test
-- ตรวจ convergence warnings
-- ตรวจ non-zero coefficients ของ Lasso/Elastic Net
-- วาด prediction บน sorted grid
-- Run All และตรวจ execution order
-
-### 11.2 Troubleshooting
-
-| อาการ | สาเหตุ | แนวทางแก้ |
-|---|---|---|
-| Lasso ไม่ converge | alpha ต่ำ, ไม่ scale, iterations น้อย | scale, เพิ่ม `max_iter`, อ่าน warning |
-| Coefficients ต่างมหาศาล | features ต่างหน่วย | ใช้ StandardScaler ใน Pipeline |
-| Training MSE เพิ่มตาม alpha | เป็นผลปกติของ penalty | ดู validation/test |
-| ทุก coefficient เกือบศูนย์ | alpha สูงเกิน | ลด alpha |
-| Lasso เลือก feature ไม่คงที่ | correlated features | ทดลอง Elastic Net |
-| Test score ดีผิดปกติ | leakage หรือใช้ test เลือก alpha | ตรวจ dependency |
-| เส้นกราฟหัก | ทำนายเฉพาะ training x | สร้าง dense sorted grid |
-| Lasso alpha 0 แปลก | solver ไม่เหมาะ | ใช้ LinearRegression |
-
-## 12. Critical Discussion
-
-Regularization แลก bias กับ variance: penalty ลดความยืดหยุ่นจึงเพิ่ม bias ได้ แต่ลด variance เพราะ coefficients ไวต่อ sample น้อยลง เป้าหมายคือสมดุลที่ลด error บนข้อมูลใหม่
-
-Lasso ที่ให้ coefficient ศูนย์ตอบเพียงว่า feature ไม่ถูกใช้ในโมเดล prediction ภายใต้ dataset, scaling, penalty และ features อื่น ไม่พิสูจน์ว่า feature ไม่มีผลเชิงเหตุผล
-
-ถ้า model family ผิด, data leakage หรือ dataset shift เป็นปัญหา regularization ไม่แก้ต้นเหตุ ต้องปรับการออกแบบข้อมูลหรือโมเดล
-
-## 13. Common Misconceptions
-
-1. **Training MSE ต่ำสุดคือโมเดลดีที่สุด** - ต้องดูข้อมูลที่ไม่ใช้ฝึก
-2. **Ridge ลบ features** - โดยทั่วไปหดแต่ไม่เป็นศูนย์
-3. **Lasso เลือกสาเหตุ** - เป็น feature selection เพื่อ prediction
-4. **alpha ทุกแหล่งมีความหมายเดียวกัน** - ต้องดู objective และ API
-5. **Regularization ไม่ต้อง scale** - รันได้แต่ penalty อาจไม่ยุติธรรม
-6. **Elastic Net l1_ratio 0 คือ Lasso** - ใน scikit-learn ค่า 0 คือ L2
-7. **ปิด warnings ได้เพราะ code รัน** - warning อาจบอกว่ายังไม่ converge
-
-## 14. Likely Exam Focus
-
-> อนุมานจากหัวข้อ สมการ กราฟ และ code ที่เน้น ไม่ใช่ข้อมูลข้อสอบจริง
-
-- แยก underfitting และ overfitting จาก train/test error
-- เขียน objective ของ Ridge, Lasso และ Elastic Net
-- คำนวณ L1/L2 penalty
-- อธิบายว่าเหตุใด Ridge กระจายน้ำหนัก แต่ Lasso สร้าง sparsity
-- อธิบาย alpha, scaling และ validation
-- อ่าน coefficient path
-- ตรวจ code ที่ประเมิน training data หรือปิด warnings
-- เปรียบเทียบสัญลักษณ์ Elastic Net ในสไลด์กับ `l1_ratio`
-
-## 15. Progressive Practice พร้อมเฉลย
-
-### ข้อ 1: คำนวณ
-
-coefficients $[3,-2,0]$ มี L1 และ squared L2 เท่าใด
-
-**เฉลย:**
-
-$$
-L1=|3|+|-2|+|0|=5
-$$
-
-$$
-L2^2=3^2+(-2)^2+0^2=13
-$$
-
-### ข้อ 2: วิเคราะห์
-
-โมเดล A มี Train RMSE 1.0, Test RMSE 5.0 ส่วน B มี 2.2 และ 2.5 ควรเลือกอะไร
-
-**เฉลย:** เลือก B หาก test แยกถูกต้อง เพราะ generalize ดีกว่า ช่องว่างของ A บ่งชี้ overfitting
-
-### ข้อ 3: เลือกโมเดล
-
-มี 200 features เป็นกลุ่ม correlated และคาดว่ามีเพียงบางกลุ่มมีประโยชน์
-
-**เฉลย:** เริ่ม Elastic Net เพื่อได้ sparsity และ group stability แล้วเลือก alpha/l1_ratio ด้วย validation หรือ CV
-
-### ข้อ 4: Debug
-
-```python
-for alpha in alphas:
-    model.fit(X, y)
-    mse = mean_squared_error(y, model.predict(X))
-```
-
-**เฉลย:** fit และ evaluate ชุดเดียวกัน จึงให้รางวัลโมเดลที่จำ training data ต้องใช้ validation/CV
-
-### ข้อ 5: Parameter
-
-`l1_ratio=0.8` ใน scikit-learn หมายถึงอะไร
-
-**เฉลย:** ให้น้ำหนัก L1 มากกว่า L2 จึงใกล้ Lasso แต่ความแรงรวมยังขึ้นกับ alpha
-
-### ข้อ 6: Leakage
-
-ถ้า scale ก่อน split จะเกิดอะไร
-
-**เฉลย:** statistics จาก test รั่วเข้า training ต้อง split ก่อนหรือใช้ Pipeline
-
-## 16. Mini-project
-
-สร้าง nonlinear dataset ที่มี noise แล้ว:
-
-1. แบ่ง train/test
-2. เปรียบเทียบ degree 1, 2, 5, 10 และ 15
-3. เปรียบเทียบ unregularized, Ridge, Lasso และ Elastic Net
-4. ใช้ Pipeline กับ StandardScaler
-5. เลือก hyperparameters โดยไม่ใช้ test
-6. รายงาน train/test RMSE, gap และ non-zero coefficients
-7. วาด prediction curves และ coefficient paths
-8. เลือกโมเดลพร้อมข้อจำกัด
-
-| เกณฑ์ | หลักฐาน |
+| ความเข้าใจผิด | ความจริง |
 |---|---|
-| Correctness | ไม่มี preprocessing leakage |
-| Reproducibility | มี random state และ parameters |
-| Interpretation | แยก training fit กับ generalization |
-| Comparison | ใช้ข้อมูลและ metric เดียวกัน |
-| Diagnostics | ตรวจ warning และ sparsity |
-| Communication | อธิบาย trade-off ไม่สรุปจาก score เดียว |
+| Training error ยิ่งต่ำยิ่งดี | Training error ใกล้ศูนย์อาจหมายถึง overfitting ต้องดู testing error ประกอบ |
+| Regularization ทำให้ training error ดีขึ้น | Regularization ทำให้ training error **แย่ลง** เสมอ (ดึงออกจากคำตอบที่เข้ากับข้อมูลฝึกที่สุด) เป้าหมายคือให้ testing error ดีขึ้น |
+| ยิ่ง $\lambda$ ใหญ่ยิ่งป้องกัน overfitting ได้ดี | $\lambda$ ใหญ่เกินทำให้ underfit โมเดลเหลือเส้นแบนที่ค่าเฉลี่ย ต้องเลือกด้วย cross-validation |
+| Regularization ปรับ $\theta_0$ ด้วย | ผลรวมค่าปรับเริ่มที่ $j = 1$ ไม่ปรับ intercept |
+| Ridge ทำให้สัมประสิทธิ์เป็นศูนย์ได้ | Ridge หดเข้าหาศูนย์แต่ไม่เป็นศูนย์พอดี ($S_{xy}/(S_{xx} + N\lambda)$ ไม่มีวันเป็นศูนย์) |
+| Ridge หดสัมประสิทธิ์ทุกตัวลงทีละตัวตลอด | Ridge ลดขนาดรวม $\lVert\theta\rVert_2$ แต่บางตัวอาจเพิ่มก่อนแล้วค่อยลด |
+| Feature ที่ Lasso ตัดทิ้งคือ feature ที่ไม่มีผลต่อ $y$ | อาจถูกตัดเพราะข้อมูลซ้ำกับ feature อื่นที่สัมพันธ์กันสูง |
+| Lasso ดีกว่า Ridge เพราะเลือก feature ได้ | ขึ้นกับข้อมูล ถ้า feature ส่วนใหญ่มีผล Ridge มักดีกว่า และ Lasso ไม่เสถียรกับ feature ที่สัมพันธ์กัน |
+| ไม่ต้อง scale ก่อนใช้ Ridge/Lasso เหมือน linear regression ธรรมดา | กับ regularization scaling **เปลี่ยนคำตอบ** ต้อง standardize ก่อนเสมอ |
+| $\alpha$ ของ Elastic Net ในวิชาคือ `alpha` ใน scikit-learn | `alpha` ของ scikit-learn คือความแรงรวม ส่วนสัดส่วนคือ `l1_ratio` ซึ่งวิ่งทิศตรงข้ามกับ $\alpha$ ของวิชา |
+| Elastic Net ที่ $\alpha = 1$ คือ Lasso | ตามนิยาม $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$ ของวิชา $\alpha = 1$ คือ Ridge และ $\alpha = 0$ คือ Lasso |
+| Lasso ใช้ gradient descent ไม่ได้ เพราะหาอนุพันธ์ไม่ได้ | หาอนุพันธ์ไม่ได้แค่ที่ $\theta_j = 0$ ใช้ sub-gradient แทนได้ |
+| Sub-gradient ของ $\lvert\theta\rvert$ ที่ 0 เป็นช่วงเปิด $(-1, 1)$ | เป็นช่วงปิด $[-1, 1]$ รวมขอบ |
+| Regularization ใช้ได้แค่กับ linear regression | ใช้กับ logistic regression และโมเดลอื่นได้ โดยเติมค่าปรับต่อท้าย cost function ของโมเดลนั้น |
 
-## 17. Mastery Checklist
+---
 
-- [ ] แยก underfitting/overfitting จาก train-test behavior ได้
-- [ ] เขียน penalized objective ได้
-- [ ] คำนวณ L1/L2 ได้
-- [ ] เปรียบเทียบ Ridge, Lasso, Elastic Net ได้
-- [ ] แยก alpha ใน lecture จาก alpha/l1_ratio ใน scikit-learn ได้
-- [ ] สร้าง Pipeline ที่ scale ถูกลำดับได้
-- [ ] เลือก alpha โดยไม่ใช้ test ได้
-- [ ] แปลผล lab โดยไม่สรุปเกิน training-only evidence ได้
-- [ ] ตรวจ warning, leakage และกราฟผิดวิธีได้
+## ส่วนที่ 12 Cheat Sheet
 
-## 18. Key Takeaways
+**Overfitting**
 
-Regularization เพิ่มต้นทุนให้ coefficients ใหญ่เพื่อแลก training fit บางส่วนกับ generalization Ridge ใช้ L2 จึงหดทุก coefficient และเหมาะกับ correlated features ส่วน Lasso ใช้ L1 จึงสร้าง sparse model Elastic Net ผสมสองแบบ
+- Overfit: train error $\approx 0$ แต่ test error สูง, Underfit: ทั้งสองสูง, Good fit: ทั้งสองต่ำและใกล้กัน
+- อาการเมื่อฝึกนานหรือซับซ้อนขึ้น: train ลดตลอด test ลดแล้วเพิ่ม
+- แก้: (1) ลด feature (เลือกเอง, model selection) (2) regularization (เก็บทุก feature แต่ลดขนาด $\theta_j$)
 
-ผลน่าเชื่อถือเมื่อ scale features, fit preprocessing เฉพาะ training data, เลือก hyperparameters จาก validation/CV และเก็บ test ไว้ประเมินสุดท้าย Training error ที่เพิ่มไม่ใช่ความล้มเหลว หาก test error ลดลง
+**Norm**
 
-## 19. Glossary
+- $\lVert\theta\rVert_2 = \sqrt{\sum\theta_j^2}$, $\lVert\theta\rVert_2^2 = \sum\theta_j^2$, $\lVert\theta\rVert_1 = \sum\lvert\theta_j\rvert$
 
-| คำ | ความหมาย |
+**Cost functions** (ผลรวมค่าปรับเริ่ม $j = 1$, ไม่ปรับ $\theta_0$)
+
+| วิธี | $J(\theta) = \mathrm{MSE} + \ldots$ |
 |---|---|
-| Generalization | ความสามารถกับข้อมูลใหม่ |
-| Underfitting | โมเดลง่ายเกิน |
-| Overfitting | จำรายละเอียดชุดฝึกมากเกิน |
-| Regularization | เพิ่มข้อจำกัดให้ parameters |
-| Penalty | ต้นทุนจากขนาด coefficients |
-| Shrinkage | หด coefficients เข้าศูนย์ |
-| L1 norm | ผลรวมค่าสัมบูรณ์ |
-| L2 norm | รากผลรวมกำลังสอง |
-| Ridge | Regression ใช้ squared L2 |
-| Lasso | Regression ใช้ L1 |
-| Elastic Net | รวม L1 และ L2 |
-| Sparsity | coefficients จำนวนมากเป็นศูนย์ |
-| Hyperparameter | ค่ากำหนดก่อน fit เช่น alpha |
-| Coefficient path | coefficients เมื่อเปลี่ยน penalty |
-| Subgradient | ตัวแทน gradient ที่จุดไม่ differentiable |
+| Ridge | $\lambda\sum_{j=1}^{d}\theta_j^2$ |
+| Lasso | $\lambda\sum_{j=1}^{d}\lvert\theta_j\rvert$ |
+| Elastic Net (วิชา) | $(1 - \alpha)\sum\lvert\theta_j\rvert + \alpha\sum\theta_j^2$, $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$ |
 
-## Learning Gap Audit
+**สูตร feature เดียว** ($\bar{x} = 0$, $\theta_0 = \bar{y}$)
 
-การตรวจรอบนี้เติมช่องว่างระหว่าง bullet “ลด overfitting” กับกลไกจริง: penalty เปลี่ยน objective, scaling เปลี่ยนความยุติธรรมของ penalty และ training error ที่สูงขึ้นอาจแลกกับ test error ที่ต่ำลงได้ Lab เดิมวัดข้อมูลฝึกเพียงชุดเดียวจึงไม่สามารถเลือก alpha ที่ generalize ดีที่สุด โน้ตจึงแยกผลที่สังเกตจาก notebook ออกจากข้อสรุปที่ต้องใช้ validation/CV และอธิบายความต่างของสัญลักษณ์ในสไลด์กับ `scikit-learn`
+- Ridge: $\theta_1 = S_{xy}/(S_{xx} + N\lambda)$
+- Lasso: $\theta_1 = \mathrm{sign}(S_{xy})\max(\lvert S_{xy}\rvert - N\lambda/2, 0)/S_{xx}$, เป็นศูนย์เมื่อ $\lambda \ge 2\lvert S_{xy}\rvert/N$
+- Elastic Net: $\theta_1 = \mathrm{sign}(S_{xy})\max(\lvert S_{xy}\rvert - N\lambda_1/2, 0)/(S_{xx} + N\lambda_2)$
+- Ridge หลายตัวแปร: $\theta = (X^{T}X + N\lambda I')^{-1}X^{T}y$
 
-## 20. Source Coverage Audit
+**SGD** (สุ่มแถว $i$, ทำซ้ำจนลู่เข้า, $\theta_0$ ไม่มีพจน์ค่าปรับ)
 
-| เนื้อหาในแหล่งเรียน | ส่วน | สถานะ |
-|---|---|---|
-| Underfit, good fit, overfit | 1 | ครบและเชื่อม train/test |
-| Overfit characteristics และ solutions | 1-2 | ครบ |
-| Regularization intuition | 2-3 | ครบและขยาย objective |
-| Ridge และ L2 | 4 | ครบ |
-| Lasso, L1 และ feature selection | 5 | ครบ |
-| Ridge/Lasso use cases และ geometry | 4-7 | ครบ |
-| Elastic Net | 6 | ครบ พร้อมชี้ convention ต่างจาก API |
-| SGD และ subgradient | 8 | ครบ |
-| Linear/polynomial lab | 9.1-9.2 | ครบพร้อม output |
-| Ridge/Lasso/Elastic Net lab | 9.3-9.5 | ครบพร้อมแปลผล |
-| Coefficient paths | 4.1 และ 9 | ครบ |
-| Exercise nonlinear curve | 9.2 | มี solution |
-| Execution state และ warnings | 9.6 และ 11 | ตรวจพบและอธิบาย |
+| วิธี | $\theta_j := \theta_j - \eta[(h_\theta(x_i) - y_i)x_{i,j} + \ldots]$ |
+|---|---|
+| Ridge | $\lambda\theta_j$ |
+| Lasso | $\lambda\,\mathrm{sign}(\theta_j)$, sign ที่ 0 คือค่าใดก็ได้ใน $[-1, 1]$ |
+| Elastic Net | $(1 - \alpha)\mathrm{sign}(\theta_j) + \alpha\theta_j$ |
+
+**เปรียบเทียบ**
+
+| | Ridge | Lasso | Elastic Net |
+|---|---|---|---|
+| ศูนย์พอดี | ไม่ | ใช่ | ใช่ |
+| Feature สัมพันธ์กัน | แบ่งน้ำหนัก | เลือกตัวเดียว | แบ่งน้ำหนัก + ตัดตัวที่ไร้ประโยชน์ |
+| รูปบริเวณ 2 มิติ | วงกลม | ข้าวหลามตัด | ข้าวหลามตัดขอบโค้ง |
+| เหมาะเมื่อ | feature ส่วนใหญ่มีผล | feature สำคัญมีน้อย | feature สำคัญมีน้อย และมีกลุ่มที่สัมพันธ์กัน หรือ $d > N$ |
+
+**ใช้งานจริง:** standardize ใน pipeline, เลือก $\lambda$ ด้วย CV แบบลอการิทึม, Ridge เป็นค่าเริ่มต้น, Elastic Net ดีกว่า Lasso โดยทั่วไป
+
+**scikit-learn:** `Ridge(alpha)` = $N\lambda$, `Lasso(alpha)` = $\lambda/2$, `ElasticNet(alpha, l1_ratio)` โดย `l1_ratio=1` คือ Lasso
+
+---
+
+## ส่วนที่ 13 โจทย์ฝึกพร้อมแนวตอบ
+
+### โจทย์ปลายเปิด
+
+**ข้อ 1 (คำนวณ Ridge, Lasso, Elastic Net):** ข้อมูล $(x, y) = (-1, -2), (0, 1), (1, 4)$ (ก) หา $\theta_0$ และ $\theta_1$ ของ least squares (ข) หา $\theta_1$ ของ Ridge ที่ $\lambda = 1$ และ Lasso ที่ $\lambda = 1$ (ค) Lasso ให้ $\theta_1 = 0$ เมื่อ $\lambda$ เท่าไร (ง) หา $\theta_1$ ของ Elastic Net ที่ $\lambda_1 = \lambda_2 = 1$ พร้อมค่า $\alpha$ ของวิชา
+
+แนวตอบ:
+
+1. $N = 3$, $\bar{x} = 0$, $\bar{y} = (-2 + 1 + 4)/3 = 1$ ดังนั้น $\theta_0 = 1$ ทุกวิธี (ไม่ปรับ intercept)
+2. $S_{xx} = 1 + 0 + 1 = 2$, $S_{xy} = (-1)(-2) + 0(1) + 1(4) = 6$
+3. (ก) least squares $\theta_1 = 6/2 = 3$ (ข้อมูลอยู่บนเส้น $y = 1 + 3x$ พอดี MSE เป็นศูนย์)
+4. (ข) Ridge: $6/(2 + 3 \times 1) = 6/5 = 1.2$ Lasso: $t = N\lambda/2 = 1.5$ ได้ $(6 - 1.5)/2 = 2.25$
+5. (ค) $\lambda \ge 2S_{xy}/N = 12/3 = 4$
+6. (ง) $(6 - 1.5)/(2 + 3) = 4.5/5 = 0.9$ และ $\alpha = 1/(1 + 1) = 0.5$
+
+ตัวเลือกที่ผิดพลาดง่าย: ใช้ $S_{xx} + \lambda$ (ลืมคูณ $N$) ได้ 2 สำหรับ Ridge ซึ่งเป็นสูตรของ cost แบบผลรวม ไม่ใช่แบบค่าเฉลี่ยของวิชา, ใช้ $t = \lambda$ แทน $N\lambda/2$ สำหรับ Lasso, ปรับ $\theta_0$ ด้วย
+
+เกณฑ์ให้คะแนน: $S_{xx}, S_{xy}, \bar{y}$ (2) least squares (1) Ridge (2) Lasso (2) จุดที่เป็นศูนย์ (1) Elastic Net และ $\alpha$ (2)
+
+**ข้อ 2 (SGD หนึ่งก้าว):** $\theta = (0.5, -2)$ สุ่มได้ $x_i = 3$, $y_i = 1$ ใช้ $\eta = 0.05$, $\lambda = 0.4$ จงหา $\theta$ หลังหนึ่งก้าวของ Ridge และ Lasso (ไม่ปรับ $\theta_0$) แล้วอธิบายว่าทำไม Ridge ขยับ $\theta_1$ มากกว่า Lasso ในกรณีนี้
+
+แนวตอบ:
+
+1. $h = 0.5 + (-2)(3) = -5.5$ error $= -5.5 - 1 = -6.5$
+2. $\theta_0 = 0.5 - 0.05(-6.5) = 0.825$
+3. พจน์ error ของ $\theta_1$: $-6.5 \times 3 = -19.5$
+4. Ridge: $-2 - 0.05[-19.5 + 0.4(-2)] = -2 - 0.05(-20.3) = -2 + 1.015 = -0.985$
+5. Lasso: $-2 - 0.05[-19.5 + 0.4(-1)] = -2 - 0.05(-19.9) = -2 + 0.995 = -1.005$
+6. เหตุผล: ทั้งสองพจน์ค่าปรับดึง $\theta_1$ เข้าหาศูนย์ (จาก -2 ขึ้นไป) ของ Ridge มีขนาด $\lambda\lvert\theta_1\rvert = 0.8$ ของ Lasso มีขนาด $\lambda = 0.4$ คงที่ เมื่อ $\lvert\theta_1\rvert > 1$ Ridge ดึงแรงกว่า ถ้า $\lvert\theta_1\rvert < 1$ Lasso จะดึงแรงกว่า
+
+**ข้อ 3 (วินิจฉัย):** ทีมสร้างโมเดลทำนายปริมาณการเบิกยาจาก 60 feature ได้ผลสามแบบ (ก) ไม่มี regularization: train MSE 0.004, test MSE 0.32 (ข) Ridge `alpha=0.01`: train 0.012, test 0.12 (ค) Ridge `alpha=100`: train 0.21, test 0.28 จงวินิจฉัยแต่ละแบบ และบอกขั้นตอนเลือก `alpha` ที่ถูกต้อง
+
+แนวตอบ: (ก) overfit: train ต่ำมาก test สูงกว่าเกือบ 80 เท่า (ข) ใกล้ good fit: train เพิ่มขึ้นเล็กน้อยแต่ test ลดลงมาก regularization แลก bias เล็กน้อยกับ variance ที่ลดลง (ค) underfit: ทั้งสองสูงและใกล้กัน $\lambda$ แรงเกินจนสัมประสิทธิ์ถูกกดใกล้ศูนย์ ขั้นตอนเลือก: standardize ใน pipeline, ไล่ `alpha` แบบลอการิทึม, ใช้ k-fold CV บนข้อมูลฝึก (หรือ `RidgeCV`), เลือกค่าที่ validation error ต่ำสุด, ฝึกใหม่บนข้อมูลฝึกทั้งหมด แล้วรายงาน test error ครั้งเดียว ข้อผิดพลาดที่ต้องเลี่ยงคือการเลือก `alpha` จาก test MSE ในตารางนี้โดยตรง
+
+เกณฑ์ให้คะแนน: วินิจฉัยถูกทั้งสาม (3) อธิบายด้วย train/test gap (2) ขั้นตอน CV ครบและไม่ใช้ test เลือก (3)
+
+**ข้อ 4 (เรขาคณิต):** อธิบายด้วยภาพเส้นชั้นของ MSE และบริเวณที่อนุญาต ว่าทำไม Lasso ได้สัมประสิทธิ์ศูนย์พอดี แต่ Ridge ไม่ได้ และ Elastic Net อยู่ตรงไหน
+
+แนวตอบ: เขียนปัญหาเป็นการหา MSE ต่ำสุดภายใต้งบขนาด $r$ เส้นชั้นของ MSE เป็นวงรีรอบคำตอบ least squares ขยายวงรีจนแตะบริเวณที่อนุญาต จุดแตะคือคำตอบ บริเวณของ Ridge คือวงกลม ขอบโค้งเรียบ จุดแตะมักไม่อยู่บนแกน จึงไม่มีพิกัดเป็นศูนย์ บริเวณของ Lasso คือข้าวหลามตัดที่มุมอยู่บนแกน วงรีมักชนมุมก่อน และมุมคือจุดที่พิกัดหนึ่งเป็นศูนย์ ในมิติสูงมีมุมและสันมากขึ้น จึงได้ศูนย์หลายตัว Elastic Net มีบริเวณที่ยังมีมุมบนแกน (ได้ศูนย์) แต่ขอบโค้งออก (แบ่งน้ำหนักให้ feature ที่คล้ายกัน)
+
+เกณฑ์ให้คะแนน: แปลงเป็นปัญหามีเงื่อนไข (1) วงรีและจุดแตะ (2) วงกลมกับข้าวหลามตัด (3) Elastic Net (2)
+
+**ข้อ 5 (เลือกวิธี):** ข้อมูลยอดใช้วัสดุสิ้นเปลืองของ 300 หน่วยงาน มี 1,200 feature (ยอดเบิกรายรหัสสินค้า หลายรหัสเป็นสินค้าเดียวกันต่างขนาดซึ่งสัมพันธ์กันสูง) และคาดว่ามีเพียงส่วนน้อยที่มีผลต่อต้นทุนรวม ควรใช้ Ridge, Lasso หรือ Elastic Net เพราะอะไร และต้องตั้งค่าอะไรบ้าง
+
+แนวตอบ: ใช้ Elastic Net เหตุผลสามข้อ (1) คาดว่า feature ที่มีผลมีน้อย จึงต้องการ feature selection ซึ่ง Ridge ทำไม่ได้ (2) $d = 1200 > N = 300$ Lasso เลือก feature ที่ไม่เป็นศูนย์ได้ไม่เกิน 300 ตัวและทำงานไม่สม่ำเสมอ (3) มีกลุ่ม feature ที่สัมพันธ์กันสูง Lasso จะเลือกตัวเดียวแบบไม่มั่นคง ขณะที่ Elastic Net เก็บทั้งกลุ่มด้วยน้ำหนักใกล้กัน การตั้งค่า: standardize ใน pipeline, ใช้ `ElasticNetCV` ไล่ทั้ง `alpha` (ความแรงรวม) และ `l1_ratio` (เช่น 0.1, 0.5, 0.9) และระวังว่า `l1_ratio` สูงคือเอียงไปทาง Lasso ซึ่งตรงข้ามกับ $\alpha$ ของวิชา
+
+ตัวเลือกที่ผิดพลาดง่าย: เลือก Lasso เพียงเพราะต้องการ feature น้อย โดยไม่พิจารณา $d > N$ และกลุ่มที่สัมพันธ์กัน, เลือก Ridge แล้วอ้างว่าได้ feature selection
+
+**ข้อ 6 (ตีความ trace):** บนกราฟ trace ที่มี $\lambda$ จาก 0 ถึง 0.4 และ 8 สัมประสิทธิ์ ถ้าเส้นทุกเส้นค่อยๆ ลาดลงแต่ไม่มีเส้นใดแตะศูนย์ เป็นกราฟของวิธีใด ถ้าเส้นเป็นเส้นตรงเป็นช่วงและแตะศูนย์ทีละเส้น เป็นของวิธีใด และถ้าเลือก $\lambda$ ที่เส้นของ 4 สัมประสิทธิ์แตะศูนย์ไปแล้ว โมเดลใช้กี่ feature
+
+แนวตอบ: แบบแรกคือ Ridge (หดแต่ไม่เป็นศูนย์ ตามสูตร $S_{xy}/(S_{xx} + N\lambda)$) แบบที่สองคือ Lasso (soft-thresholding ลดแบบเส้นตรงแล้วหยุดที่ศูนย์) ที่ $\lambda$ นั้นโมเดลใช้ $8 - 4 = 4$ feature และ feature ที่แตะศูนย์ช้าที่สุดคือตัวที่ช่วยลด MSE ได้มากที่สุดเมื่อพิจารณาร่วมกับตัวอื่น
+
+### แบบฝึกเช็กตัวเอง (ตอบสั้น)
+
+1. Train MSE 0.30, test MSE 0.31 คืออาการอะไร
+2. $\theta = (6, -8)$ หา $\lVert\theta\rVert_1$, $\lVert\theta\rVert_2$ และ $\lVert\theta\rVert_2^2$
+3. ทำไมผลรวมค่าปรับเริ่มที่ $j = 1$
+4. เมื่อ $\lambda \to \infty$ Ridge ให้โมเดลแบบไหน
+5. วิธีใดทำ feature selection ได้
+6. Elastic Net ของวิชาที่ $\alpha = 0$ คือวิธีใด
+7. $\lambda_1 = 3$, $\lambda_2 = 1$ ได้ $\alpha$ เท่าไร
+8. Sub-gradient ของ $\lvert\theta\rvert$ ที่ $\theta = 0$ คืออะไร
+9. Ridge SGD ด้วย $\eta = 0.1$, $\lambda = 0.5$ ทุกก้าวคูณ $\theta_j$ ด้วยเท่าไรก่อนปรับตาม error
+10. `ElasticNet(l1_ratio=1)` ใน scikit-learn เท่ากับวิธีใด
+11. ทำไมต้อง standardize ก่อนใช้ regularization
+12. ข้อมูล $N = 4$, $S_{xx} = 10$, $S_{xy} = 17$ Lasso เป็นศูนย์เมื่อ $\lambda$ เท่าไร
+
+**เฉลย:** (1) underfit (ทั้งสองสูงและใกล้กัน ถ้าค่า 0.30 ถือว่าสูงสำหรับปัญหานั้น) (2) 14, 10, 100 (3) ไม่ปรับ intercept เพราะไม่ได้ทำให้โมเดลซับซ้อน และไม่ควรให้ผลขึ้นกับจุดศูนย์ของ $y$ (4) เส้นแบนที่ค่าเฉลี่ยของ $y$ (5) Lasso และ Elastic Net (6) Lasso (7) $1/(3 + 1) = 0.25$ (8) ค่าใดก็ได้ในช่วง $[-1, 1]$ (9) $1 - 0.1 \times 0.5 = 0.95$ (10) Lasso (11) ค่าปรับขึ้นกับขนาดของ $\theta_j$ ซึ่งขึ้นกับหน่วยของ feature ถ้าไม่ scale feature ต่างหน่วยจะถูกปรับไม่เท่ากัน (12) $2 \times 17/4 = 8.5$
+
+---
+
+## ส่วนที่ 14 โฟกัสที่น่าจะออกสอบ
+
+ส่วนนี้อนุมานจากน้ำหนักของเนื้อหาในบท ไม่ได้มาจากข้อสอบจริง
+
+1. **นิยามและวินิจฉัย overfitting / underfitting** จาก train error และ test error หรือจากรูปเส้นที่ fit ได้
+2. **เขียน cost function** ของ Ridge, Lasso และ Elastic Net ให้ถูก รวมถึงช่วงของผลรวม ($j = 1$ ถึง $d$) และนิยาม $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$
+3. **เปรียบเทียบ Ridge กับ Lasso** ทั้งผลต่อสัมประสิทธิ์ การทำ feature selection ภาพเรขาคณิต (วงกลมกับข้าวหลามตัด) และการอ่าน trace
+4. **เลือกวิธีให้เหมาะกับสถานการณ์** (feature สำคัญน้อย, feature สัมพันธ์กัน, $d > N$) และบอกว่าทางปฏิบัติใช้ cross-validation
+5. **คำนวณ SGD หนึ่งก้าว** ของทั้งสามวิธี รวมถึงการใช้ $\mathrm{sign}$
+
+---
+
+## ส่วนที่ 15 ข้อควรระวังและคำถามที่ควรถามอาจารย์
+
+- ในการคำนวณ SGD ของ Ridge และ Lasso ข้อสอบต้องการให้ปรับ $\theta_0$ ด้วยหรือไม่ เพราะ cost function ไม่ปรับ $\theta_0$ (ผลรวมเริ่มที่ $j = 1$) แต่สูตร SGD บางรูปเขียนพจน์ค่าปรับไว้กับ $\theta_0$ ด้วย ซึ่งให้ตัวเลขต่างกัน
+- สูตร Elastic Net ในข้อสอบใช้รูปที่ไม่มีความแรงรวม $\lambda$ (MSE $+ (1 - \alpha)\sum\lvert\theta_j\rvert + \alpha\sum\theta_j^2$) หรือรูปที่คูณ $\lambda$ ด้วย
+- ถ้าโจทย์ให้ $\theta_j = 0$ พอดีในการคำนวณ Lasso SGD ควรใช้ $\mathrm{sign}(0)$ เป็นค่าใด (0 เป็นค่าที่นิยมในโปรแกรม)
+- เมื่อโจทย์พูดถึง "$l_1$-ratio" หมายถึง $\alpha$ ตามนิยามของวิชา ($\alpha = 1$ คือ Ridge) หรือ `l1_ratio` แบบ scikit-learn ($1$ คือ Lasso)
+
+---
+
+## ส่วนที่ 16 อ่านเพิ่มเติม (Further Study)
+
+- Zou and Hastie (2005) บทความต้นฉบับของ Elastic Net อธิบาย grouping effect และการแก้ปัญหา $d > N$ ของ Lasso อย่างละเอียด รวมถึงการปรับสเกลของ "naive elastic net" ที่ไม่ได้กล่าวถึงในบทนี้ ([Zou and Hastie, 2005](https://doi.org/10.1111/j.1467-9868.2005.00503.x))
+- James et al. (2023) บทที่ 6 (Linear Model Selection and Regularization) ครอบคลุม best subset selection, stepwise selection (ซึ่งคือ "model selection algorithm" ในส่วนที่ 2) และการเลือก $\lambda$ ด้วย cross-validation พร้อม lab ภาษา Python ([James et al., 2023](https://www.statlearning.com/))
+- Friedman, Hastie and Tibshirani (2010) อธิบาย coordinate descent ที่ใช้ใน `Lasso` และ `ElasticNet` ของ scikit-learn ([Friedman et al., 2010](https://doi.org/10.18637/jss.v033.i01))
+- Early stopping และ dropout เป็น regularization แบบอื่นที่ใช้มากใน neural network ([Géron, 2022](https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/))
+
+---
 
 ## References
 
-1. Ekarat Rattagan. *Week 6: Regularization*. DADS6003 Applied Machine Learning, 28 July 2025.
-2. Course lab. [Regularization Notebook](https://github.com/mdanmek/nida-dads-notes/blob/main/dads6003-applied_ml/lab/regularization.ipynb).
-3. Scikit-learn developers. [Linear Models User Guide](https://scikit-learn.org/stable/modules/linear_model.html).
-4. Scikit-learn developers. [Ridge API](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html).
-5. Scikit-learn developers. [Lasso API](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html).
-6. Scikit-learn developers. [ElasticNet API](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html).
-7. Zou, H. and Hastie, T. [Regularization and Variable Selection via the Elastic Net](https://doi.org/10.1111/j.1467-9868.2005.00503.x). *Journal of the Royal Statistical Society: Series B*, 67(2), 301-320, 2005.
+- Friedman, J., Hastie, T., and Tibshirani, R. (2010). Regularization Paths for Generalized Linear Models via Coordinate Descent. *Journal of Statistical Software*, 33(1), 1-22. https://doi.org/10.18637/jss.v033.i01
+- Géron, A. (2022). *Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow* (3rd ed.), Chapter 4: Training Models (Regularized Linear Models). O'Reilly. https://www.oreilly.com/library/view/hands-on-machine-learning/9781098125967/
+- Hoerl, A. E., and Kennard, R. W. (1970). Ridge Regression: Biased Estimation for Nonorthogonal Problems. *Technometrics*, 12(1), 55-67. https://doi.org/10.1080/00401706.1970.10488634
+- James, G., Witten, D., Hastie, T., Tibshirani, R., and Taylor, J. (2023). *An Introduction to Statistical Learning with Applications in Python*, Chapter 6. Springer. https://www.statlearning.com/
+- scikit-learn developers. *1.1 Linear Models* (version 1.9). https://scikit-learn.org/stable/modules/linear_model.html
+- Tibshirani, R. (1996). Regression Shrinkage and Selection via the Lasso. *Journal of the Royal Statistical Society: Series B*, 58(1), 267-288. https://doi.org/10.1111/j.2517-6161.1996.tb02080.x
+- Zou, H., and Hastie, T. (2005). Regularization and Variable Selection via the Elastic Net. *Journal of the Royal Statistical Society: Series B*, 67(2), 301-320. https://doi.org/10.1111/j.1467-9868.2005.00503.x

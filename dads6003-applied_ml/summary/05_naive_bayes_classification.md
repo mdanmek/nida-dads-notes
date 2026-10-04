@@ -1,968 +1,968 @@
-# Naive Bayes Classification
+# บทที่ 5 Naive Bayes Classification
 
-## ข้อมูลต้นฉบับ
+Naive Bayes คือการจำแนกประเภทด้วยกฎของเบย์ (Bayes' rule) โดยกลับคำถามจาก "เห็น feature แบบนี้ น่าจะเป็นกลุ่มไหน" ไปเป็น "ถ้าเป็นกลุ่มนี้ จะเห็น feature แบบนี้บ่อยแค่ไหน" แล้วสมมติอย่างกล้าหาญ (naive) ว่า feature แต่ละตัวเป็นอิสระต่อกันเมื่อรู้กลุ่มแล้ว ทำให้การคำนวณที่ปกติต้องใช้ข้อมูลมหาศาลเหลือแค่การนับและการคูณ
 
-- รายวิชา: DADS6003 Applied Machine Learning
-- เอกสาร: `dads6003_05_naive_bayes_classification.pdf`
-- Lab notebooks: `naive_bayes.ipynb` และ `naive_bayes_spam_email_classifier.ipynb`
-- หัวข้อในสไลด์: Classification, Bayes' Rule, Naive Bayes assumption, categorical and continuous features, Laplace correction
-- ขอบเขตเอกสาร: 15 หน้า
+**วิธีอ่าน:** ส่วนที่ 0 ถึง 2 ปูพื้นความน่าจะเป็นและที่มาของกฎของเบย์ ส่วนที่ 3 ใช้กฎของเบย์กับ feature ตัวเดียว ส่วนที่ 4 และ 5 คือหัวใจของบท อธิบายว่าทำไมหลาย feature จึงยาก และสมมติฐาน naive แก้อย่างไร พร้อมตัวอย่างคำนวณครบทุกขั้น ส่วนที่ 6 ว่าด้วยข้อดีข้อเสีย ส่วนที่ 7 คือ feature ต่อเนื่อง (Gaussian) ส่วนที่ 8 คือปัญหาความน่าจะเป็นเป็นศูนย์และ Laplace correction ส่วนที่ 9 คือการคำนวณในสเกล log ที่ใช้จริงในโปรแกรม ส่วนที่ 10 เป็นสคริปต์ Python ที่สร้างตัวเลขทุกตัวในบทซ้ำได้ ตัวเลขในตัวอย่างคำนวณด้วยมือเป็นเศษส่วนก่อน แล้วตรวจด้วยการรันสคริปต์จริง บทนี้ต่อจากบทที่ 4 (logistic regression) ซึ่งเป็นตัวจำแนกอีกแบบที่จะใช้เปรียบเทียบตลอดบท
 
-> **จากเอกสาร:** บทนี้เริ่มจากการทบทวนโจทย์ classification อธิบาย Bayes' Rule แล้วลดความซับซ้อนของ joint likelihood ด้วยสมมติฐาน conditional independence ก่อนต่อยอดไปยัง Gaussian density และ Laplace correction
->
-> **คำอธิบายเพิ่มเติม:** Master Note นี้เติมที่มาของสูตร วิธีเลือกชนิดของ Naive Bayes การคำนวณใน log space การประเมินโมเดล และตัวอย่าง Python ที่รันได้ รวมทั้งตรวจแก้ตัวเลขในตัวอย่างหลายตัวแปรของสไลด์ และอธิบาย lab เรื่อง Play Tennis กับ Spam Email ทีละขั้น
+---
 
-## ภาพรวมและ Learning Objectives
+## ส่วนที่ 0 ปูพื้นฐาน: ศัพท์ที่ต้องรู้ก่อน
 
-Naive Bayes เป็นโมเดล classification ที่ใช้ความน่าจะเป็นตอบคำถามว่า เมื่อเห็นคุณลักษณะของตัวอย่างแล้ว ตัวอย่างนั้นน่าจะอยู่ในคลาสใดมากที่สุด จุดเด่นคือฝึกเร็ว ใช้ข้อมูลไม่มาก และทำงานได้ดีในบางโจทย์ เช่น การจำแนกข้อความ แต่ต้องแลกกับสมมติฐานที่ค่อนข้างแรงว่า features เป็นอิสระต่อกันเมื่อทราบคลาสแล้ว
-
-เมื่อจบบทนี้ ผู้อ่านควรสามารถ:
-
-1. อธิบาย prior, likelihood, evidence และ posterior ได้
-2. ใช้ Bayes' Rule คำนวณ posterior probability ทีละขั้นได้
-3. อธิบายว่าเหตุใดสมมติฐานแบบ naive จึงลดความซับซ้อนของโมเดล
-4. จำแนกความแตกต่างระหว่าง Gaussian, Multinomial, Bernoulli และ Categorical Naive Bayes ได้
-5. อธิบาย zero-frequency problem และใช้ Laplace smoothing ได้
-6. สร้างและประเมิน `GaussianNB` และ `BernoulliNB` ได้
-7. แปลงข้อความเป็น word-count features และสร้าง `MultinomialNB` ได้โดยไม่เกิด data leakage
-8. แปลผล confusion matrix, precision, recall และ F1-score ในโจทย์ spam ได้
-9. ตรวจจับการตีความผลลัพธ์ที่ผิด รวมถึงกรณีที่ค่าความน่าจะเป็นไม่น่าเชื่อถือ
-
-## 1. พื้นฐานที่ต้องรู้ก่อน
-
-### 1.1 Classification คืออะไร
-
-Classification คือ supervised learning ที่เรียนรู้จากข้อมูลซึ่งมีคำตอบกำกับอยู่แล้ว เพื่อทำนาย **class label** ของข้อมูลใหม่ ตัวอย่างเช่น ลูกค้าจะยกเลิกบริการหรือไม่ อีเมลเป็น spam หรือไม่ และดอก Iris อยู่ในสายพันธุ์ใด
-
-ถ้ามีข้อมูล $N$ แถว แต่ละแถวมี $d$ features เขียนได้ว่า
-
-$$
-X \in \mathbb{R}^{N \times d}
-$$
-
-และคำตอบของแถวที่ $i$ เป็นหนึ่งใน $K$ classes:
-
-$$
-y_i \in \{C_1, C_2, \ldots, C_K\}
-$$
-
-ตัวอย่างเช่น ถ้ามีดอกไม้ 150 ดอกและวัด 4 features แล้ว $X$ มี shape เท่ากับ $150 \times 4$ ส่วน $y_i$ อาจเป็น Setosa, Versicolor หรือ Virginica
-
-Classification ต่างจาก regression ตรงที่ regression ทำนายค่าต่อเนื่อง เช่น ราคา แต่อย่าจำเพียงชนิดของ output เพราะหัวใจของ classification คือการแบ่งตัวอย่างออกเป็นกลุ่มตามรูปแบบใน features
-
-### 1.2 ความน่าจะเป็นร่วมและความน่าจะเป็นแบบมีเงื่อนไข
-
-- $P(X)$ คือโอกาสเกิดเหตุการณ์ $X$
-- $P(X \cap Y)$ คือโอกาสที่ $X$ และ $Y$ เกิดพร้อมกัน
-- $P(Y \mid X)$ คือโอกาสเกิด $Y$ เมื่อทราบแล้วว่า $X$ เกิด
-
-นิยามของ conditional probability คือ
-
-$$
-P(Y \mid X) = \frac{P(Y \cap X)}{P(X)}
-$$
-
-เมื่อ $P(X) > 0$ สูตรนี้บอกว่าเราไม่ได้พิจารณาประชากรทั้งหมด แต่จำกัดเฉพาะกรณีที่ $X$ เกิด แล้วดูว่าสัดส่วนใดมี $Y$ ร่วมด้วย
-
-## 2. Naive Bayes แบบเห็นภาพก่อน
-
-ลองนึกถึงระบบคัดกรองอีเมล มีสองคลาสคือ `Spam` และ `Not Spam` เมื่อได้รับอีเมลใหม่ที่มีคำว่า `free`, `winner` และ `click` ระบบทำงานโดย:
-
-1. เริ่มจากดูว่าในอดีตอีเมล spam พบมากน้อยเพียงใด
-2. ดูว่าคำแต่ละคำปรากฏใน spam บ่อยเพียงใด
-3. ทำแบบเดียวกันกับคลาส not spam
-4. รวมหลักฐานของแต่ละคำเข้ากับโอกาสเริ่มต้นของแต่ละคลาส
-5. เลือกคลาสที่ได้คะแนนความน่าจะเป็นสูงกว่า
-
-คำว่า **naive** มาจากการสมมติว่า เมื่อเราทราบคลาสแล้ว การพบคำหนึ่งไม่เปลี่ยนโอกาสพบอีกคำหนึ่ง ทั้งที่ในภาษาใช้งานจริงคำหลายคำสัมพันธ์กัน สมมติฐานนี้อาจไม่จริงทั้งหมด แต่ช่วยให้คำนวณได้ง่ายมากและยังจำแนกได้ดีในหลายสถานการณ์
-
-สิ่งที่ต้องแยกให้ออกคือ Naive Bayes ไม่ใช่ Bayes' Rule เอง Bayes' Rule เป็นกฎทางความน่าจะเป็น ส่วน Naive Bayes เป็น classifier ที่นำกฎนั้นมาใช้ร่วมกับ conditional independence assumption
-
-## 3. Bayes' Rule
-
-### 3.1 องค์ประกอบสี่ส่วน
-
-Bayes' Rule เขียนได้ว่า
-
-$$
-P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}
-$$
-
-| องค์ประกอบ | ชื่อ | ความหมายในงาน classification |
+| ศัพท์ที่วิชาใช้ | ศัพท์ทางการ/คำพ้อง | ความหมายสั้น |
 |---|---|---|
-| $P(Y \mid X)$ | Posterior | ความน่าจะเป็นของคลาส $Y$ หลังจากเห็น features $X$ |
-| $P(Y)$ | Prior | ความน่าจะเป็นของคลาสก่อนเห็นข้อมูลแถวใหม่ |
-| $P(X \mid Y)$ | Likelihood | โอกาสพบ features แบบ $X$ ถ้าตัวอย่างอยู่ในคลาส $Y$ |
-| $P(X)$ | Evidence หรือ marginal probability | โอกาสพบ $X$ ในประชากรทั้งหมด |
+| Classification | การจำแนกประเภท | งานที่ $y$ เป็นกลุ่ม (class) เช่น M/F, spam/ไม่ spam |
+| Class $C_k$ | กลุ่มที่ $k$ | ค่าที่เป็นไปได้ของ $y$ มีทั้งหมด $K$ กลุ่ม |
+| Feature $x_j$ | Attribute, ตัวแปรต้น | คอลัมน์ข้อมูลที่ใช้ทำนาย มีทั้งหมด $d$ ตัว |
+| $P(A)$ | Probability | ความน่าจะเป็นที่เหตุการณ์ $A$ เกิด อยู่ระหว่าง 0 ถึง 1 |
+| $P(A \cap B)$ | Joint probability | ความน่าจะเป็นที่ $A$ และ $B$ เกิดพร้อมกัน |
+| $P(A \mid B)$ | Conditional probability | ความน่าจะเป็นของ $A$ เมื่อรู้แล้วว่า $B$ เกิด อ่านว่า "$A$ given $B$" |
+| Prior $P(Y)$ | ความน่าจะเป็นก่อน | ความเชื่อเรื่องกลุ่มก่อนเห็น feature ของตัวอย่างนี้ |
+| Likelihood $P(X \mid Y)$ | ภาวะน่าจะเป็น | ถ้าเป็นกลุ่ม $Y$ จะเห็น feature $X$ แบบนี้บ่อยแค่ไหน |
+| Evidence $P(X)$ | Marginal probability | ความน่าจะเป็นที่เห็น $X$ แบบนี้ในประชากรทั้งหมด ไม่สนกลุ่ม |
+| Posterior $P(Y \mid X)$ | ความน่าจะเป็นหลัง | ความน่าจะเป็นของกลุ่มหลังเห็น feature แล้ว คือคำตอบที่ต้องการ |
+| Independence | ความเป็นอิสระ | รู้ค่าตัวหนึ่งแล้วไม่ช่วยทายอีกตัว |
+| Conditional independence | อิสระแบบมีเงื่อนไข | เป็นอิสระต่อกันเมื่อรู้กลุ่มแล้ว (สมมติฐาน naive) |
+| Gaussian distribution | Normal distribution, การแจกแจงปกติ | รูประฆังคว่ำ กำหนดด้วยค่าเฉลี่ย $\mu$ และส่วนเบี่ยงเบนมาตรฐาน $\sigma$ |
+| Laplacian correction | Laplace smoothing, add-one smoothing | บวก 1 ให้ทุกช่องที่นับ เพื่อไม่ให้มีความน่าจะเป็นเป็นศูนย์ |
 
-Prior คือความเชื่อเริ่มต้นที่มาจากข้อมูล ไม่จำเป็นต้องหมายถึงความเห็นส่วนบุคคล เช่น ถ้าข้อมูลฝึกมี spam 20% ค่า prior ของ spam คือ 0.20
+ข้อตกลงเรื่องสัญลักษณ์: ข้อมูลเขียนเป็น $X \in \mathbb{R}^{N \times d}$ คือมี $N$ แถว (ตัวอย่าง) และ $d$ คอลัมน์ (feature) ค่าของแถวที่ $i$ คือ $y_i \in \{C_1, C_2, \ldots, C_K\}$ ตัวอักษร $Y$ ใช้แทนกลุ่ม ตัวอักษร $X$ หรือ $x_1, \ldots, x_d$ ใช้แทนค่า feature ของตัวอย่างที่กำลังทำนาย ตัวห้อย $k$ ใช้กับกลุ่ม ตัวห้อย $j$ ใช้กับ feature
 
-Likelihood มองคำถามย้อนทางกับ prediction เราต้องการ $P(Y \mid X)$ แต่ข้อมูลฝึกทำให้ประมาณ $P(X \mid Y)$ ได้ง่ายกว่า Bayes' Rule จึงเป็นสะพานที่กลับทิศทางของเงื่อนไข
+พื้นฐานที่ต้องใช้มีสามเรื่อง
 
-### 3.2 ที่มาของสูตร
+1. **ความน่าจะเป็นจากการนับ:** ถ้าข้อมูลมี 8 คน เป็นผู้หญิง 5 คน ประมาณ $P(F) = 5/8$ ทั้งบทนี้ประมาณความน่าจะเป็นด้วยสัดส่วนในข้อมูลฝึก
+2. **การคูณเศษส่วน:** $\frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd}$ และการตัดทอน เช่น $\frac{1}{3} \cdot \frac{3}{8} = \frac{1}{8}$
+3. **ลอการิทึม:** $\ln(ab) = \ln a + \ln b$ ใช้ในส่วนที่ 9 (ทบทวนได้จากบทที่ 4 ส่วนที่ 0)
 
-จาก conditional probability:
+---
 
-$$
-P(Y \mid X) = \frac{P(Y \cap X)}{P(X)}
-$$
+## ส่วนที่ 1 ทำไมต้องมี Naive Bayes
 
-และ
+### 1.1 ทบทวนงาน classification
 
-$$
-P(X \mid Y) = \frac{P(X \cap Y)}{P(Y)}
-$$
+งาน classification คือ เมื่อมีข้อมูล $X$ ที่มี $N$ แถว $d$ feature และแต่ละแถวมีกลุ่ม $y_i$ กำกับไว้ ต้องสร้างกติกาที่รับ feature ของตัวอย่างใหม่แล้วบอกว่าเป็นกลุ่มไหน ตัวอย่างงานจริง
 
-จึงได้
+- **Churn prediction:** ลูกค้ารายนี้จะยกเลิกบริการหรือไม่ จากประวัติการใช้งานและการร้องเรียน
+- **Stock prediction:** ราคาหุ้นพรุ่งนี้จะขึ้นหรือลง (เป็นการแปลงงานพยากรณ์ตัวเลขให้เป็นสองกลุ่ม)
+- **Email classification:** อีเมลนี้เป็น spam หรือไม่ จากคำที่ปรากฏในอีเมล งานนี้เป็นงานคลาสสิกของ Naive Bayes ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html))
 
-$$
-P(X \cap Y) = P(X \mid Y)P(Y)
-$$
+### 1.2 สองวิธีคิดในการจำแนก
 
-เนื่องจาก $P(X \cap Y)=P(Y \cap X)$ เมื่อนำไปแทนในสมการแรกจึงได้ Bayes' Rule
+บทที่ 4 สร้างโมเดลที่ให้ $P(y = 1 \mid x)$ **โดยตรง** ด้วย $\sigma(\theta^{T}x)$ แล้วใช้ gradient descent หา $\theta$ วิธีนี้เรียกว่า discriminative คือเรียนเส้นแบ่งระหว่างกลุ่ม
 
-### 3.3 ตัวอย่าง feature เดียวจากสไลด์
+Naive Bayes คิดอีกแบบ คือเรียนว่า **แต่ละกลุ่มมีหน้าตาอย่างไร** เช่น ผู้ชายในข้อมูลมีสัดส่วนผมสั้นเท่าไร สูงเกิน 170 เท่าไร แล้วเมื่อเจอตัวอย่างใหม่ ถามว่า "ตัวอย่างนี้หน้าตาคล้ายกลุ่มไหนมากกว่า เมื่อคิดรวมกับว่ากลุ่มนั้นพบบ่อยแค่ไหน" วิธีนี้เรียกว่า generative เพราะโมเดลอธิบายได้ว่าข้อมูลของแต่ละกลุ่มถูก "สร้าง" มาอย่างไร เครื่องมือที่ใช้กลับทิศคำถามจาก "กลุ่มเมื่อรู้ feature" ไปเป็น "feature เมื่อรู้กลุ่ม" คือกฎของเบย์
 
-ข้อมูลมี 8 คน: Male 3 คน Female 5 คน ชื่อ Drew พบใน Male 1 คนและ Female 2 คน ต้องการทำนายเพศของ Drew คนใหม่
+| | Logistic regression (บทที่ 4) | Naive Bayes (บทนี้) |
+|---|---|---|
+| สิ่งที่เรียน | $P(y \mid x)$ โดยตรง | $P(y)$ และ $P(x_j \mid y)$ ของแต่ละ feature |
+| วิธีหาพารามิเตอร์ | วนซ้ำด้วย gradient descent | นับ (หรือหาค่าเฉลี่ยและความแปรปรวน) รอบเดียว |
+| สมมติฐานหลัก | log-odds เป็นเส้นตรงของ feature | feature อิสระต่อกันเมื่อรู้กลุ่ม |
+| ความเร็วในการฝึก | ต้องวนหลายรอบ | ผ่านข้อมูลรอบเดียว |
 
-$$
-P(M)=\frac{3}{8}, \qquad P(F)=\frac{5}{8}, \qquad P(Drew)=\frac{3}{8}
-$$
+### สรุปหัวข้อ
 
-สำหรับ Male:
+- Classification คือการทำนายกลุ่ม $y_i \in \{C_1, \ldots, C_K\}$ จาก feature $d$ ตัว
+- Naive Bayes เรียนว่าแต่ละกลุ่มมีหน้าตาอย่างไร แล้วใช้กฎของเบย์กลับทิศเป็นความน่าจะเป็นของกลุ่ม
+- การฝึกคือการนับ จึงเร็วมาก
 
-$$
-P(M \mid Drew) = \frac{P(Drew \mid M)P(M)}{P(Drew)} = \frac{\frac{1}{3}\frac{3}{8}}{\frac{3}{8}} = \frac{1}{3}
-$$
+---
 
-สำหรับ Female:
+## ส่วนที่ 2 ความน่าจะเป็นแบบมีเงื่อนไขและที่มาของกฎของเบย์
 
-$$
-P(F \mid Drew) = \frac{P(Drew \mid F)P(F)}{P(Drew)} = \frac{\frac{2}{5}\frac{5}{8}}{\frac{3}{8}} = \frac{2}{3}
-$$
+### 2.1 ข้อมูลตัวอย่างที่ใช้ตลอดบท
 
-ดังนั้น ถ้าใช้เพียงชื่อ Drew โมเดลจะทำนาย Female เพราะ posterior สูงกว่า แต่ตัวอย่างนี้สอนเรื่องการปรับ prior ด้วยข้อมูลใหม่ ไม่ได้หมายความว่าชื่อกำหนดเพศหรือมีความสัมพันธ์เชิงเหตุผล
+ข้อมูล 8 คน แต่ละคนมีชื่อ ความสูงเกิน 170 cm หรือไม่ สีตา ความยาวผม และเพศ (คอลัมน์ความสูงเป็นเซนติเมตรจะเพิ่มเข้ามาในส่วนที่ 7)
 
-## 4. จากหนึ่ง feature ไปสู่หลาย features
-
-### 4.1 ปัญหาของ joint probability
-
-เมื่อมี features $x_1,x_2,\ldots,x_d$ เราต้องการ
-
-$$
-P(Y \mid x_1,x_2,\ldots,x_d) = \frac{P(x_1,x_2,\ldots,x_d \mid Y)P(Y)}{P(x_1,x_2,\ldots,x_d)}
-$$
-
-ส่วนที่ยากคือ joint likelihood $P(x_1,x_2,\ldots,x_d \mid Y)$ เพราะถ้า features พึ่งพากัน ต้องเก็บและประมาณ combinations จำนวนมาก ตาม chain rule:
-
-$$
-P(x_1,x_2,\ldots,x_d \mid Y) = P(x_1 \mid Y) P(x_2 \mid x_1,Y) \cdots P(x_d \mid x_1,\ldots,x_{d-1},Y)
-$$
-
-เมื่อจำนวน features หรือจำนวนค่าที่เป็นไปได้เพิ่มขึ้น หลาย combinations อาจไม่เคยปรากฏใน training data ทำให้ประมาณความน่าจะเป็นได้ไม่เสถียรและต้องใช้ข้อมูลจำนวนมาก
-
-### 4.2 Naive conditional independence assumption
-
-Naive Bayes สมมติว่า features เป็นอิสระต่อกัน **เมื่อกำหนดคลาสแล้ว**:
-
-$$
-P(x_1,x_2,\ldots,x_d \mid Y=c) = \prod_{j=1}^{d} P(x_j \mid Y=c)
-$$
-
-คำว่า conditional สำคัญมาก เราไม่ได้อ้างว่า features เป็นอิสระในประชากรทั้งหมด แต่บอกว่าภายในแต่ละคลาส การรู้ feature หนึ่งไม่ให้ข้อมูลเพิ่มเกี่ยวกับอีก feature หนึ่ง
-
-ตัวอย่างเช่น `มีไข้` กับ `ไอ` อาจสัมพันธ์กันในประชากร เพราะทั้งคู่สัมพันธ์กับโรค แต่แม้กำหนดคลาสโรคแล้ว ทั้งสองอาการก็ยังอาจสัมพันธ์กันอยู่ ถ้าเป็นเช่นนั้นสมมติฐานของโมเดลไม่สมบูรณ์
-
-### 4.3 กฎการตัดสินใจ
-
-สำหรับทุกคลาส $c$ โมเดลคำนวณคะแนน
-
-$$
-P(Y=c)\prod_{j=1}^{d}P(x_j \mid Y=c)
-$$
-
-Evidence เหมือนกันทุกคลาสสำหรับตัวอย่างเดียวกัน จึงไม่ต้องคำนวณเมื่อเป้าหมายมีเพียงการเลือกคลาส:
-
-$$
-\hat{y} = \underset{c}{\mathrm{argmax}} P(Y=c)\prod_{j=1}^{d}P(x_j \mid Y=c)
-$$
-
-นี่เรียกว่า Maximum A Posteriori หรือ MAP decision rule ส่วน posterior ที่รวมกันเป็น 1 ต้องนำคะแนนของทุกคลาสมาหารด้วยผลรวมคะแนนทั้งหมด
-
-## 5. Worked Example หลาย features และการแก้ตัวเลขในสไลด์
-
-ต้องการทำนายเพศจากข้อมูล:
-
-- Name = Drew
-- Over 170 cm = No
-- Eye Color = Brown
-- Hair Length = Short
-
-### 5.1 คะแนนของ Male
-
-จากข้อมูลฝึกในสไลด์:
-
-$$
-P(Drew \mid M)=\frac{1}{3}
-$$
-
-$$
-P(No \mid M)=\frac{1}{3}
-$$
-
-$$
-P(Brown \mid M)=\frac{1}{3}
-$$
-
-$$
-P(Short \mid M)=\frac{2}{3}
-$$
-
-ดังนั้น likelihood และ unnormalized posterior score คือ
-
-$$
-P(X \mid M) = \frac{1}{3}\frac{1}{3}\frac{1}{3}\frac{2}{3} = \frac{2}{81}
-$$
-
-$$
-s_M = P(X \mid M)P(M) = \frac{2}{81}\frac{3}{8} = \frac{1}{108} \approx 0.009259
-$$
-
-### 5.2 คะแนนของ Female
-
-$$
-P(Drew \mid F)=\frac{2}{5}, \quad P(No \mid F)=\frac{3}{5}
-$$
-
-$$
-P(Brown \mid F)=\frac{2}{5}, \quad P(Short \mid F)=\frac{1}{5}
-$$
-
-จึงได้
-
-$$
-P(X \mid F) = \frac{2}{5}\frac{3}{5}\frac{2}{5}\frac{1}{5} = \frac{12}{625}
-$$
-
-$$
-s_F = P(X \mid F)P(F) = \frac{12}{625}\frac{5}{8} = \frac{3}{250} = 0.012
-$$
-
-### 5.3 Normalize ให้เป็น posterior
-
-$$
-P(M \mid X) = \frac{s_M}{s_M+s_F} = \frac{0.009259}{0.009259+0.012} \approx 0.4355
-$$
-
-$$
-P(F \mid X) = \frac{s_F}{s_M+s_F} = \frac{0.012}{0.009259+0.012} \approx 0.5645
-$$
-
-ดังนั้นคำตอบที่คำนวณได้จากข้อมูลในสไลด์คือ **Female** ไม่ใช่ Male
-
-> **Source correction:** หน้า 9 คำนวณคะแนน Male เป็นประมาณ `0.0092` ถูกต้อง แต่หน้า 11 เปลี่ยนเป็น `0.092` โดยจุดทศนิยมคลาดไปหนึ่งตำแหน่ง จึงทำให้ posterior และ final class ผิด นอกจากนี้หน้า 10 เขียน `P(Y = Male)` ในบรรทัดฝั่ง Female แต่ค่าที่แทนจริงคือ prior ของ Female เท่ากับ $5/8$
-
-การตรวจนี้เป็นบทเรียนสำคัญว่า output ที่ดูเป็นความน่าจะเป็นไม่รับประกันว่าถูกต้อง ควรตรวจ sign, order of magnitude, ผลรวม posterior และคำนวณซ้ำจาก unnormalized scores เสมอ
-
-## 6. Numerical Stability: ทำไมโปรแกรมใช้ log probability
-
-ถ้ามี features จำนวนมาก การคูณตัวเลขที่เล็กกว่า 1 ซ้ำ ๆ อาจเล็กจนคอมพิวเตอร์แทนค่าเป็นศูนย์ เรียกว่า numerical underflow เช่น $0.01$ คูณกันหลายร้อยครั้ง
-
-เพราะ logarithm เปลี่ยนการคูณเป็นการบวก โมเดลจึงเปรียบเทียบ log score แทน:
-
-$$
-\log s_c = \log P(Y=c) + \sum_{j=1}^{d}\log P(x_j \mid Y=c)
-$$
-
-เนื่องจาก log เป็นฟังก์ชันเพิ่ม คลาสที่มี score สูงสุดยังคงเป็นคลาสเดียวกับที่มี log score สูงสุด การเปลี่ยนนี้จึงช่วยด้านตัวเลขโดยไม่เปลี่ยนกฎการตัดสินใจ
-
-## 7. Features แบบต่อเนื่อง: Gaussian Naive Bayes
-
-ตัวอย่างก่อนหน้าเป็น categorical features จึงประมาณ probability ด้วยการนับ แต่ถ้า feature ต่อเนื่อง เช่น ส่วนสูง อุณหภูมิ หรือความยาวกลีบดอก การถามความน่าจะเป็นของค่าจุดเดียวไม่เหมาะ เพราะ continuous variable มีค่าที่เป็นไปได้ไม่จำกัด
-
-Gaussian Naive Bayes สมมติว่า ภายในแต่ละคลาส feature แต่ละตัวแจกแจงแบบ Gaussian โดยประมาณค่าเฉลี่ยและความแปรปรวนแยกตาม class-feature pair:
-
-$$
-p(x_j \mid Y=c) = \frac{1}{\sqrt{2\pi\sigma_{cj}^{2}}} e^{-\frac{(x_j-\mu_{cj})^2}{2\sigma_{cj}^{2}}}
-$$
-
-เพื่อความเข้ากันได้กับ GitHub ให้ตีความ `exp` ในสมการนี้ว่า $e$ ยกกำลังข้อความภายในวงเล็บ โดย:
-
-- $x_j$ คือค่าของ feature ที่ $j$ ในตัวอย่างใหม่
-- $\mu_{cj}$ คือค่าเฉลี่ยของ feature ที่ $j$ ในคลาส $c$
-- $\sigma_{cj}^{2}$ คือความแปรปรวนของ feature ที่ $j$ ในคลาส $c$
-- density สูงเมื่อ $x_j$ อยู่ใกล้ค่าเฉลี่ยของคลาส และต่ำลงเมื่ออยู่ไกล
-
-ค่าจาก Gaussian formula เป็น **probability density** ไม่ใช่ probability ของจุดเดียว ค่า density อาจมากกว่า 1 ได้ในบางกรณี แต่พื้นที่ใต้โค้งรวมเท่ากับ 1
-
-ควรตรวจ histogram หรือ distribution แยกตาม class หากเบ้มาก มีหลายยอด หรือมี outliers รุนแรง Gaussian assumption อาจไม่เหมาะ แม้ Naive Bayes ยังอาจจำแนกได้ แต่เหตุผลรองรับและ probability estimates จะอ่อนลง
-
-## 8. Zero-Frequency Problem และ Laplace Smoothing
-
-### 8.1 ปัญหา
-
-ถ้าค่าหนึ่งไม่เคยพบในคลาสใดเลย ค่า likelihood ของค่านั้นจะเป็นศูนย์ เมื่อคูณกับ feature อื่น คะแนนของทั้งคลาสจะกลายเป็นศูนย์ทันที ไม่ว่าหลักฐานอื่นจะสนับสนุนคลาสนั้นเพียงใด
-
-เช่น มีข้อมูล Income 1,000 แถว:
-
-$$
-P(low)=0, \quad P(medium)=\frac{990}{1000}, \quad P(high)=\frac{10}{1000}
-$$
-
-### 8.2 Additive smoothing
-
-Laplace smoothing เพิ่ม pseudo-count เท่ากับ 1 ให้ทุก category ถ้ามี $K$ categories:
-
-$$
-\hat{P}(x=v) = \frac{N_v+1}{N+K}
-$$
-
-สำหรับตัวอย่างที่มี 3 categories:
-
-$$
-P(low)=\frac{0+1}{1000+3}
-$$
-
-$$
-P(medium)=\frac{990+1}{1000+3}
-$$
-
-$$
-P(high)=\frac{10+1}{1000+3}
-$$
-
-ตัวส่วนเพิ่ม 3 เพราะเราเพิ่ม 1 ให้ทั้งสาม categories ทำให้ผลรวม probability ยังคงเป็น 1
-
-ใน Naive Bayes จริง เราคำนวณแยกตาม feature และ class ถ้า feature $j$ มี $K_j$ categories สูตรทั่วไปคือ
-
-$$
-\hat{P}(x_j=v \mid Y=c) = \frac{N_{cjv}+\alpha}{N_c+\alpha K_j}
-$$
-
-โดย $\alpha=1$ คือ Laplace smoothing และ $0<\alpha<1$ มักเรียกว่า Lidstone smoothing ค่า $\alpha$ สูงขึ้นทำให้ probabilities ถูกดึงให้ใกล้ uniform มากขึ้น ซึ่งลดความรุนแรงจากข้อมูลน้อย แต่ถ้าสูงเกินไปก็กลบสัญญาณจริง
-
-## 9. เลือก Naive Bayes ให้ตรงชนิดข้อมูล
-
-Naive Bayes ไม่ได้มีสูตร likelihood แบบเดียว สิ่งที่ต่างกันระหว่าง variants คือสมมติฐานเกี่ยวกับการกระจายของแต่ละ feature
-
-| Variant | Feature ที่เหมาะ | ตัวอย่าง | ข้อควรระวัง |
-|---|---|---|---|
-| `GaussianNB` | ค่าต่อเนื่อง | ส่วนสูง อุณหภูมิ measurements | สมมติ Gaussian แยกตาม class และ feature |
-| `MultinomialNB` | จำนวนครั้งที่ไม่ติดลบ | word counts, event counts | ไม่เหมาะกับค่าติดลบ |
-| `BernoulliNB` | binary features | มีหรือไม่มีคำหนึ่ง | สนใจ occurrence ไม่ใช่จำนวนครั้ง |
-| `CategoricalNB` | category code ของแต่ละ feature | สี ประเภท ช่องทาง | ต้อง encode category เป็นเลขจำนวนเต็มที่ไม่ติดลบ |
-| `ComplementNB` | count data โดยเฉพาะ class imbalance | text classification ที่คลาสไม่สมดุล | ความหมายการคำนวณต่างจาก standard MNB |
-
-เอกสารของ scikit-learn อธิบาย variants และ likelihood assumptions ของ Naive Bayes แต่ละชนิดไว้ใน [Naive Bayes User Guide](https://scikit-learn.org/stable/modules/naive_bayes.html) โดย `MultinomialNB` ใช้ discrete counts, `BernoulliNB` ใช้ binary features และ `CategoricalNB` ใช้ categorical distribution แยกแต่ละ feature
-
-## 10. Hands-on Lab: GaussianNB กับ Iris
-
-### 10.1 เป้าหมาย
-
-ใช้ features ต่อเนื่อง 4 ตัวของ Iris เพื่อจำแนก 3 species แบ่งข้อมูล train 80% และ test 20% ฝึกเฉพาะ training data แล้วประเมินด้วย accuracy, confusion matrix และ classification report
-
-### 10.2 Code
-
-```python
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-
-# Load features and target
-iris = load_iris()
-X = iris.data
-y = iris.target
-
-# Preserve class proportions in the 80/20 split
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.20,
-    random_state=42,
-    stratify=y
-)
-
-# Fit the model using training data only
-model = GaussianNB()
-model.fit(X_train, y_train)
-
-# Predict unseen test observations
-y_pred = model.predict(X_test)
-
-print(f'Train shape: {X_train.shape}')
-print(f'Test shape: {X_test.shape}')
-print(f'Accuracy: {accuracy_score(y_test, y_pred):.3f}')
-print(confusion_matrix(y_test, y_pred))
-print(
-    classification_report(
-        y_test,
-        y_pred,
-        target_names=iris.target_names,
-        digits=3
-    )
-)
-```
-
-### 10.3 Verified output
-
-เมื่อรันด้วย scikit-learn และค่าตาม code ข้างต้น ได้ผล:
-
-```text
-Train shape: (120, 4)
-Test shape: (30, 4)
-Accuracy: 0.967
-
-[[10  0  0]
- [ 0  9  1]
- [ 0  0 10]]
-```
-
-Accuracy 0.967 หมายถึงทำนายถูก 29 จาก 30 ตัวอย่าง แต่ confusion matrix บอกข้อมูลเพิ่มว่า Versicolor 1 ตัวอย่างถูกทำนายเป็น Virginica ส่วน Setosa และ Virginica ใน test split นี้ทำนายถูกทั้งหมด
-
-### 10.4 Code dependency และ data leakage
-
-| ขั้น | Input | การทำงาน | Output | ถ้าทำผิด |
-|---|---|---|---|---|
-| Load | Iris dataset | แยก features และ target | `X (150, 4)`, `y (150,)` | เลือก target ปนใน `X` จะเกิด leakage |
-| Split | `X`, `y` | แบ่ง 80/20 แบบ stratified | train 120, test 30 | ใช้ test ฝึกจะทำให้การประเมินสูงเกินจริง |
-| Fit | `X_train`, `y_train` | ประมาณ priors, means, variances | fitted `GaussianNB` | fit ก่อน split ทำลายความเป็น unseen data |
-| Predict | `X_test` | คำนวณ class posterior | `y_pred (30,)` | ใช้ feature order ผิดจะได้ prediction ผิดความหมาย |
-| Evaluate | `y_test`, `y_pred` | เทียบค่าจริงกับค่าทำนาย | metrics | accuracy อย่างเดียวอาจซ่อนปัญหาเฉพาะคลาส |
-
-`stratify=y` ช่วยรักษาสัดส่วนแต่ละ class ไว้ใน train และ test ส่วน `random_state=42` ทำให้แบ่งข้อมูลซ้ำแล้วได้ชุดเดิม จึงตรวจสอบผลร่วมกันได้
-
-### 10.5 ตรวจค่าที่โมเดลเรียนรู้
-
-```python
-print('Class prior:')
-print(model.class_prior_)
-
-print('\nMean of each feature within each class:')
-print(model.theta_)
-
-print('\nVariance of each feature within each class:')
-print(model.var_)
-
-print('\nPredicted probabilities for the first three test rows:')
-print(model.predict_proba(X_test[:3]))
-```
-
-`class_prior_` เก็บ prior ของแต่ละคลาส `theta_` เก็บค่าเฉลี่ย และ `var_` เก็บความแปรปรวนของทุก class-feature pair ซึ่งตรงกับ parameters ใน Gaussian likelihood ตามเอกสาร [GaussianNB](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html)
-
-## 11. Hands-on Lab: Play Tennis จากการนับเองสู่ BernoulliNB
-
-### 11.1 เป้าหมายและข้อมูล
-
-> **จาก lab `naive_bayes.ipynb`:** Lab นี้ใช้ข้อมูลสภาพอากาศ 14 วันเพื่อทำนายว่าจะเล่นเทนนิสหรือไม่ ตัวแปรต้นมี 4 ตัว ได้แก่ Outlook, Temperature, Humidity และ Wind ส่วน target คือ `Play_Tennis`
-
-ตัวอย่างนี้เชื่อมสองมุมมองเข้าด้วยกัน มุมแรกคือการเขียน Naive Bayes ด้วยตัวเองเพื่อให้เห็นว่าโมเดลนับ prior และ likelihood อย่างไร มุมที่สองคือการใช้ `BernoulliNB` ของ scikit-learn หลังแปลง categorical features เป็นคอลัมน์ 0/1
-
-ฟังก์ชัน `pre_processing()` ลบคอลัมน์แรกซึ่งเป็นเลขวัน แล้วแยกคอลัมน์สุดท้ายเป็น target:
-
-```python
-def pre_processing(df):
-    df = df.drop(columns=df.columns[0])
-    X = df.drop(columns=df.columns[-1])
-    y = df[df.columns[-1]]
-    return X, y
-```
-
-หนึ่งแถวของ $X$ จึงแทนสภาพอากาศหนึ่งวัน ส่วนค่าใน $y$ คือ `Yes` หรือ `No` การลบคอลัมน์ด้วยตำแหน่งใช้ได้กับไฟล์นี้ แต่ถ้าลำดับคอลัมน์เปลี่ยน code อาจลบผิดคอลัมน์ ในงานจริงควรระบุชื่อคอลัมน์ให้ชัดเจน
-
-### 11.2 Custom NaiveBayes ทำอะไรตอน fit
-
-Class ที่เขียนใน notebook เก็บข้อมูลสำคัญสามกลุ่ม:
-
-- `class_priors` เก็บ $P(c)$ เช่น สัดส่วน `Yes` และ `No`
-- `likelihoods` เก็บ $P(x_j \mid c)$ ของแต่ละค่าตัวแปรเมื่อกำหนดคลาส
-- `pred_priors` เก็บ $P(x_j)$ หรือ evidence ราย feature
-
-เมื่อเรียก `fit(X, y)` ลำดับการทำงานคือ:
-
-| ขั้น | Input | สิ่งที่คำนวณ | ตัวอย่าง Output |
-|---|---|---|---|
-| กำหนดโครงสร้าง | ชื่อ features และค่าที่พบ | เตรียม dictionary | key เช่น `Rain_Yes` |
-| `_calc_class_prior()` | `y_train` | จำนวนแต่ละคลาสหารจำนวนแถว | $P(Yes)=9/14$ |
-| `_calc_likelihoods()` | `X_train`, `y_train` | สัดส่วนค่าของ feature ภายในคลาส | $P(Rain \mid Yes)$ |
-| `_calc_predictor_prior()` | `X_train` | สัดส่วนค่าของ feature ในข้อมูลทั้งหมด | $P(Rain)$ |
-
-เมื่อ `predict()` รับ query หนึ่งแถว code จะคูณ likelihood ของทั้ง 4 features กับ class prior ทำซ้ำสำหรับทุกคลาส แล้วเลือกคลาสที่มีคะแนนสูงสุด
-
-สำหรับการเลือกคลาสเพียงอย่างเดียว evidence เป็นตัวหารเดียวกันทุกคลาส จึงตัดออกได้โดยไม่เปลี่ยนคำตอบ:
-
-$$
-\hat{y} =\underset{c}{\mathrm{argmax}} [ P(c)\prod_j P(x_j \mid c) ]
-$$
-
-การคูณ evidence แยกราย feature ใน custom code เป็นวิธีสาธิตตาม notebook แต่ไม่ใช่สิ่งจำเป็นสำหรับ MAP classification และไม่ใช่การคำนวณ joint evidence ที่ถูกต้องเสมอไป
-
-### 11.3 Trace การทำนายและผลจาก notebook
-
-Notebook ทดลองสาม query:
-
-| Query | Outlook | Temperature | Humidity | Wind | ผลทำนาย |
+| คนที่ | $x_1$ ชื่อ | $x_2$ สูงเกิน 170 | $x_3$ สีตา | $x_4$ ผม | $y$ เพศ |
 |---|---|---|---|---|---|
-| 1 | Rain | Mild | Normal | Strong | Yes |
-| 2 | Overcast | Cool | Normal | Strong | Yes |
-| 3 | Sunny | Hot | High | Strong | No |
+| 1 | Drew | No | Blue | Short | M |
+| 2 | Claudia | Yes | Brown | Long | F |
+| 3 | Drew | No | Blue | Long | F |
+| 4 | Drew | No | Blue | Long | F |
+| 5 | Alberto | Yes | Brown | Short | M |
+| 6 | Karin | No | Blue | Long | F |
+| 7 | Nina | Yes | Brown | Short | F |
+| 8 | Sergio | Yes | Blue | Long | M |
 
-ตัวอย่าง Query 1 ได้คะแนนที่ notebook พิมพ์ออกมาเป็น `No = 0.2091` และ `Yes = 0.6453` จึงเลือก `Yes` ตัวเลขนี้ใช้เปรียบเทียบระหว่างคลาสได้ แต่ไม่ควรอ่านเป็น posterior ที่ normalize แล้ว เพราะคะแนนสองฝั่งรวมกันไม่เท่ากับ 1
+นับไว้ก่อน: ผู้ชาย (M) 3 คน คือคนที่ 1, 5, 8 ผู้หญิง (F) 5 คน คือคนที่ 2, 3, 4, 6, 7 ชื่อ Drew มี 3 คน เป็นชาย 1 หญิง 2
 
-### 11.4 จาก categorical data สู่ BernoulliNB
+### 2.2 Conditional probability คือการย่อประชากร
 
-`BernoulliNB` ต้องการ features ที่ตีความเป็นเหตุการณ์เกิดหรือไม่เกิด Lab จึงใช้ `pd.get_dummies()` เปลี่ยนแต่ละ category เป็นคอลัมน์ 0/1 เช่น `Outlook_Rain` และ `Wind_Strong`
+$P(Y \mid X)$ คือความน่าจะเป็นของ $Y$ เมื่อรู้แล้วว่า $X$ เกิด วิธีคิดที่ง่ายที่สุดคือ **ตัดประชากรให้เหลือเฉพาะคนที่ $X$ เป็นจริง แล้วนับสัดส่วนของ $Y$ ในกลุ่มที่เหลือ** เช่น $P(F \mid \mathrm{Drew})$ คือ ในบรรดาคนชื่อ Drew 3 คน เป็นผู้หญิงกี่ส่วน คำตอบคือ $2/3$
 
-```python
-query_data = pd.DataFrame(
-    [query1[0], query2[0], query3[0]],
-    columns=['Outlook', 'Temperature', 'Humidity', 'Wind']
-)
+เขียนเป็นสูตร
 
-X_with_query = pd.concat([X, query_data], ignore_index=True)
-X_encoded = pd.get_dummies(X_with_query, dtype='int')
+$$P(Y \mid X) = \frac{P(Y \cap X)}{P(X)} \qquad (1)$$
 
-model = BernoulliNB()
-model.fit(X_encoded.iloc[:len(X)], y)
+ตัวเศษคือความน่าจะเป็นที่ทั้งสองอย่างเกิดพร้อมกัน ตัวส่วนคือความน่าจะเป็นของเงื่อนไข การหารด้วย $P(X)$ คือการย่อประชากรให้เหลือเฉพาะส่วนที่ $X$ เกิด ตรวจกับตัวอย่าง: $P(F \cap \mathrm{Drew}) = 2/8$ (หญิงชื่อ Drew 2 คนจาก 8) และ $P(\mathrm{Drew}) = 3/8$ หารกันได้ $\frac{2/8}{3/8} = 2/3$ ตรงกับการนับตรง
 
-query_pred = model.predict(X_encoded.iloc[len(X):])
-query_prob = model.predict_proba(X_encoded.iloc[len(X):])
+ข้อควรระวัง: $P(Y \mid X)$ กับ $P(X \mid Y)$ **ไม่ใช่สิ่งเดียวกัน** $P(F \mid \mathrm{Drew}) = 2/3$ (คนชื่อ Drew เป็นหญิงสองในสาม) แต่ $P(\mathrm{Drew} \mid F) = 2/5$ (ผู้หญิงชื่อ Drew สองในห้า) ตัวส่วนต่างกัน เพราะประชากรที่ย่อต่างกัน
+
+### 2.3 ที่มาของกฎของเบย์ทีละขั้น
+
+เขียน conditional probability อีกทิศหนึ่ง
+
+$$P(X \mid Y) = \frac{P(X \cap Y)}{P(Y)} \qquad (2)$$
+
+คูณ $P(Y)$ ทั้งสองข้างของ (2)
+
+$$P(X \mid Y)P(Y) = P(X \cap Y) \qquad (3)$$
+
+"$X$ และ $Y$ เกิดพร้อมกัน" กับ "$Y$ และ $X$ เกิดพร้อมกัน" คือเหตุการณ์เดียวกัน ดังนั้น
+
+$$P(X \mid Y)P(Y) = P(X \cap Y) = P(Y \cap X) \qquad (4)$$
+
+แทน $P(Y \cap X)$ จาก (4) ลงในตัวเศษของ (1) ได้กฎของเบย์
+
+$$P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)} \qquad (5)$$
+
+ความหมายของการพิสูจน์นี้: กฎของเบย์ไม่ใช่สมมติฐาน มันเป็นผลทางพีชคณิตของนิยาม conditional probability จึงถูกต้องเสมอ สิ่งที่ทำให้ Naive Bayes "naive" คือสมมติฐานที่เพิ่มเข้ามาในส่วนที่ 5 ไม่ใช่ตัวกฎนี้
+
+### 2.4 ทำไมต้องกลับทิศ
+
+ถ้า $P(Y \mid X)$ คือสิ่งที่ต้องการ ทำไมไม่นับตรงๆ เหมือนในข้อ 2.2 คำตอบคือ เมื่อมี feature หลายตัว ตัวอย่างใหม่มักมีค่า feature **ผสมกันแบบที่ไม่เคยเห็นในข้อมูล** เช่น ชื่อ Drew, ไม่สูงเกิน 170, ตาน้ำตาล, ผมสั้น ไม่มีใครในข้อมูล 8 คนที่ตรงทั้งสี่ค่า การนับตรงจึงได้ $0/0$ ส่วนการกลับทิศเป็น $P(X \mid Y)$ เปิดทางให้แยก $X$ ออกเป็นชิ้นตาม feature แล้วนับทีละชิ้น ซึ่งเป็นสิ่งที่ส่วนที่ 5 ทำ
+
+### สรุปหัวข้อ
+
+- $P(Y \mid X) = P(Y \cap X)/P(X)$ คือการย่อประชากรให้เหลือส่วนที่ $X$ เกิด
+- $P(Y \mid X) \neq P(X \mid Y)$ เพราะตัวส่วนต่างกัน
+- กฎของเบย์ $P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}$ พิสูจน์ได้จากนิยามใน 4 ขั้น
+
+---
+
+## ส่วนที่ 3 กฎของเบย์และส่วนประกอบสี่ตัว
+
+### 3.1 ส่วนประกอบ
+
+$$\underbrace{P(Y \mid X)}_{\mathrm{Posterior}} = \frac{\underbrace{P(X \mid Y)}_{\mathrm{Likelihood}} \cdot \underbrace{P(Y)}_{\mathrm{Prior}}}{\underbrace{P(X)}_{\mathrm{Marginal}}}$$
+
+| ส่วน | สัญลักษณ์ | ความหมาย | ในตัวอย่างชื่อ Drew | ประมาณจากข้อมูลอย่างไร |
+|---|---|---|---|---|
+| Posterior | $P(Y \mid X)$ | ความน่าจะเป็นของกลุ่ม $Y$ หลังเห็น $X$ เป็นคำตอบที่ต้องการ | คนชื่อ Drew เป็นหญิงด้วยความน่าจะเป็นเท่าไร | คำนวณจากอีกสามตัว |
+| Prior | $P(Y)$ | ความเชื่อเรื่องกลุ่มก่อนดู feature | ในข้อมูลมีหญิง $5/8$ | สัดส่วนของกลุ่มในข้อมูลฝึก |
+| Likelihood | $P(X \mid Y)$ | ถ้าเป็นกลุ่ม $Y$ จะเห็น $X$ บ่อยแค่ไหน | ผู้หญิงชื่อ Drew $2/5$ | นับภายในกลุ่ม |
+| Marginal หรือ Evidence | $P(X)$ | ความน่าจะเป็นที่เห็น $X$ ในประชากรทั้งหมด | ชื่อ Drew $3/8$ | นับทั้งข้อมูล หรือรวมจากทุกกลุ่ม (ข้อ 3.3) |
+
+ภาพในหัว: prior คือ "ปกติเจอกลุ่มนี้บ่อยแค่ไหน" likelihood คือ "หลักฐานที่เห็นเข้ากับกลุ่มนี้แค่ไหน" posterior คือการชั่งทั้งสองอย่างรวมกัน เหมือนแพทย์ที่ต้องคิดทั้งว่าอาการเข้ากับโรคไหน (likelihood) และโรคนั้นพบบ่อยแค่ไหนในประชากร (prior) อาการที่เข้ากับโรคหายากมากอาจยังไม่ใช่โรคนั้น เพราะ prior ต่ำ จุดที่อุปมานี้ไม่ตรงคือ แพทย์ใช้วิจารณญาณ ส่วน Naive Bayes ใช้ตัวเลขจากการนับเท่านั้น และเชื่อข้อมูลฝึกทั้งหมดว่าเป็นตัวแทนประชากร
+
+ข้อควรระวังเรื่องคำว่า likelihood: ในสถิติ likelihood มักหมายถึง "ความน่าจะเป็นของข้อมูลที่เห็น มองเป็นฟังก์ชันของพารามิเตอร์" (เหมือนบทที่ 4 ส่วนที่ 7) ในกฎของเบย์ของบทนี้ "พารามิเตอร์" คือกลุ่ม $Y$ จึงอ่าน $P(X \mid Y)$ ว่า โอกาสที่จะเห็นตัวอย่าง $X$ เมื่อกลุ่มเป็น $Y$
+
+### 3.2 Worked example: ทายเพศของ Drew จาก feature ชื่ออย่างเดียว
+
+โจทย์: มีคนใหม่ชื่อ Drew ใช้เฉพาะคอลัมน์ชื่อ (8 แถวแรกของตารางในข้อ 2.1) ทายว่าเป็นเพศอะไร
+
+**ขั้น 1 prior:** $P(M) = 3/8$, $P(F) = 5/8$
+
+**ขั้น 2 likelihood:** ผู้ชาย 3 คน ชื่อ Drew 1 คน ได้ $P(\mathrm{Drew} \mid M) = 1/3$ ผู้หญิง 5 คน ชื่อ Drew 2 คน ได้ $P(\mathrm{Drew} \mid F) = 2/5$
+
+**ขั้น 3 evidence:** คนชื่อ Drew 3 คนจาก 8 ได้ $P(\mathrm{Drew}) = 3/8$
+
+**ขั้น 4 posterior:**
+
+$$P(M \mid \mathrm{Drew}) = \frac{P(\mathrm{Drew} \mid M) \cdot P(M)}{P(\mathrm{Drew})} = \frac{\frac{1}{3} \cdot \frac{3}{8}}{\frac{3}{8}} = \frac{1/8}{3/8} = \frac{1}{3}$$
+
+$$P(F \mid \mathrm{Drew}) = \frac{P(\mathrm{Drew} \mid F) \cdot P(F)}{P(\mathrm{Drew})} = \frac{\frac{2}{5} \cdot \frac{5}{8}}{\frac{3}{8}} = \frac{2/8}{3/8} = \frac{2}{3}$$
+
+**ขั้น 5 ตัดสิน:** $2/3 > 1/3$ ทายว่าเป็น **หญิง**
+
+**ตรวจผล:** posterior สองกลุ่มรวมกันได้ $1/3 + 2/3 = 1$ ตามที่ควรเป็น และตรงกับการนับตรงในข้อ 2.2 (คนชื่อ Drew 3 คน เป็นหญิง 2) ซึ่งเป็นเรื่องที่คาดไว้ เพราะเมื่อมี feature เดียว กฎของเบย์ให้ผลเท่ากับการนับตรง ประโยชน์ของการกลับทิศจะเห็นชัดเมื่อมีหลาย feature
+
+**การตีความ:** สังเกตว่า likelihood ของสองกลุ่มต่างกันไม่มาก ($1/3$ กับ $2/5$) ผลที่เอียงไปทางหญิงชัดเจนมาจาก prior ด้วย เพราะผู้หญิงมีมากกว่าในข้อมูล
+
+### 3.3 Evidence คำนวณจากทุกกลุ่มรวมกัน
+
+ไม่จำเป็นต้องนับ $P(X)$ แยก เพราะตัวอย่างที่มีค่า $X$ ต้องอยู่ในกลุ่มใดกลุ่มหนึ่ง จึงรวมจากทุกกลุ่มได้ (กฎความน่าจะเป็นรวม law of total probability)
+
+$$P(X) = \sum_{k=1}^{K} P(X \mid C_k) \cdot P(C_k)$$
+
+เมื่อ $K$ คือจำนวนกลุ่ม ตรวจกับตัวอย่าง: $\frac{1}{3} \cdot \frac{3}{8} + \frac{2}{5} \cdot \frac{5}{8} = \frac{1}{8} + \frac{2}{8} = \frac{3}{8}$ ตรงกับการนับ
+
+ผลที่สำคัญมาก: ตัวส่วน $P(X)$ คือ **ผลรวมของตัวเศษของทุกกลุ่ม** ดังนั้น posterior คือ "ตัวเศษของกลุ่มนี้ หารด้วยผลรวมตัวเศษของทุกกลุ่ม" ทำให้ posterior รวมกันได้ 1 เสมอ
+
+### 3.4 การตัดสินใจไม่ต้องใช้ evidence
+
+เพราะ $P(X)$ เป็นตัวเลขเดียวกันสำหรับทุกกลุ่ม (ขึ้นกับ $X$ ไม่ขึ้นกับ $Y$) กลุ่มที่มีตัวเศษ $P(X \mid Y)P(Y)$ มากที่สุดก็คือกลุ่มที่มี posterior มากที่สุด กฎการตัดสินจึงเขียนได้ว่า
+
+$$\hat{y} = \mathrm{argmax}_{k} \ P(X \mid C_k) \cdot P(C_k)$$
+
+อ่านว่า เลือกกลุ่ม $C_k$ ที่ทำให้ likelihood คูณ prior มากที่สุด กฎนี้เรียกว่า maximum a posteriori (MAP) ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html)) ในตัวอย่าง Drew เทียบแค่ $1/8$ กับ $2/8$ ก็รู้คำตอบแล้ว evidence จำเป็นเฉพาะเมื่อต้องการตัวเลข posterior ที่รวมกันได้ 1
+
+### สรุปหัวข้อ
+
+- Posterior $=$ Likelihood $\times$ Prior $/$ Evidence
+- Prior และ likelihood ประมาณด้วยการนับ evidence $= \sum_k P(X \mid C_k)P(C_k)$
+- ตัดสินกลุ่มด้วย $\mathrm{argmax}_k P(X \mid C_k)P(C_k)$ ไม่ต้องหารด้วย evidence
+- ตัวอย่างชื่อ Drew: $P(M \mid \mathrm{Drew}) = 1/3$, $P(F \mid \mathrm{Drew}) = 2/3$ ทายว่าหญิง
+
+---
+
+## ส่วนที่ 4 หลาย feature: ปัญหาของ likelihood ร่วม
+
+### 4.1 โจทย์
+
+ใช้ทั้งสี่ feature ทายเพศของคนใหม่ที่มี $x_1 = \mathrm{Drew}$, $x_2 = \mathrm{No}$ (ไม่สูงเกิน 170), $x_3 = \mathrm{Brown}$, $x_4 = \mathrm{Short}$ กฎของเบย์ยังเหมือนเดิม เพียงแค่ $X$ กลายเป็นค่าสี่ตัวพร้อมกัน
+
+$$P(Y \mid x_1, x_2, x_3, x_4) = \frac{P(x_1, x_2, x_3, x_4 \mid Y) \cdot P(Y)}{P(x_1, x_2, x_3, x_4)}$$
+
+prior ยังหาได้ง่ายเหมือนเดิม ปัญหาอยู่ที่ likelihood $P(x_1, x_2, x_3, x_4 \mid Y)$ ซึ่งเป็นความน่าจะเป็น **ร่วม** ของสี่ค่า ถ้านับตรงๆ ในผู้ชาย 3 คน ไม่มีใครเป็น (Drew, No, Brown, Short) เลย ในผู้หญิง 5 คนก็ไม่มี ได้ likelihood เป็นศูนย์ทั้งสองกลุ่ม ตัดสินอะไรไม่ได้
+
+### 4.2 Chain rule: เขียน likelihood ร่วมให้ถูกต้องโดยไม่สมมติอะไร
+
+ใช้นิยาม conditional probability ซ้ำๆ (สมการ (3) ในส่วนที่ 2) แยกความน่าจะเป็นร่วมออกเป็นผลคูณของความน่าจะเป็นแบบมีเงื่อนไข
+
+$$P(x_1, x_2, \ldots, x_d \mid Y) = P(x_1 \mid Y) \, P(x_2 \mid x_1, Y) \, P(x_3 \mid x_2, x_1, Y) \cdots P(x_d \mid x_{d-1}, \ldots, x_1, Y)$$
+
+อ่านทีละตัว: ความน่าจะเป็นของ $x_1$ เมื่อรู้กลุ่ม คูณความน่าจะเป็นของ $x_2$ เมื่อรู้ทั้งกลุ่มและ $x_1$ คูณความน่าจะเป็นของ $x_3$ เมื่อรู้กลุ่ม $x_1$ และ $x_2$ ไปเรื่อยๆ สมการนี้ถูกต้องเสมอ ไม่มีสมมติฐาน feature ขึ้นต่อกันอย่างไรก็ได้
+
+ตัวอย่างความหมาย: $P(x_2 = \mathrm{No} \mid x_1 = \mathrm{Drew}, Y = M)$ คือ ในบรรดาผู้ชายชื่อ Drew มีกี่ส่วนที่ไม่สูงเกิน 170 พจน์ท้ายๆ จะเป็นแบบ "ในบรรดาผู้ชายชื่อ Drew ที่ไม่สูงเกิน 170 และตาน้ำตาล มีกี่ส่วนที่ผมสั้น" ซึ่งเงื่อนไขซ้อนจนแทบไม่มีข้อมูลเหลือให้นับ
+
+### 4.3 ต้องรู้กี่ตัวเลข
+
+ถ้า feature ทั้ง $d$ ตัวเป็นแบบสองค่า (เช่น Yes/No) ค่าที่ผสมกันได้มี $2^{d}$ แบบ การรู้การแจกแจงร่วมให้ครบในหนึ่งกลุ่มต้องรู้ความน่าจะเป็นของทุกแบบ แต่ทุกแบบรวมกันต้องได้ 1 ตัวสุดท้ายจึงหาจากตัวอื่นได้ เหลือ **$2^{d} - 1$ ตัวเลขต่อกลุ่ม** ที่ต้องประมาณจากข้อมูล
+
+| จำนวน feature $d$ | ต้องประมาณต่อกลุ่ม (แบบร่วม) $2^{d} - 1$ | ต้องประมาณต่อกลุ่ม (แบบ naive) $d$ |
+|---|---|---|
+| 4 | 15 | 4 |
+| 10 | 1,023 | 10 |
+| 30 | 1,073,741,823 | 30 |
+
+(คอลัมน์ขวาอธิบายในส่วนที่ 5: แบบ naive ต้องการ $P(x_j = \mathrm{Yes} \mid Y)$ หนึ่งตัวต่อ feature เพราะ $P(x_j = \mathrm{No} \mid Y) = 1 - P(x_j = \mathrm{Yes} \mid Y)$)
+
+ที่ 30 feature ต้องประมาณเกินพันล้านตัวเลขต่อกลุ่ม การจะประมาณแต่ละตัวได้น่าเชื่อถือต้องมีข้อมูลหลายตัวอย่างต่อแบบ ซึ่งไม่มีข้อมูลจริงชุดไหนมีพอ ปัญหานี้คือรูปหนึ่งของ curse of dimensionality (ยิ่งมิติมาก ข้อมูลยิ่งกระจายบางจนเรียนไม่ได้)
+
+### สรุปหัวข้อ
+
+- หลาย feature ทำให้ likelihood เป็นความน่าจะเป็นร่วม ซึ่งนับตรงๆ มักได้ศูนย์ เพราะค่าที่ผสมกันไม่เคยเห็น
+- Chain rule เขียน likelihood ร่วมได้ถูกต้องเสมอ แต่ต้องประมาณ $2^{d} - 1$ ตัวเลขต่อกลุ่ม (feature สองค่า) โตแบบเอ็กซ์โพเนนเชียล
+- ต้องมีสมมติฐานมาลดจำนวนตัวเลขที่ต้องประมาณ
+
+---
+
+## ส่วนที่ 5 สมมติฐาน Naive และการคำนวณครบวงจร
+
+### 5.1 สมมติฐาน: อิสระต่อกันเมื่อรู้กลุ่ม
+
+Naive Bayes สมมติว่า **feature ทุกตัวเป็นอิสระต่อกันแบบมีเงื่อนไขเมื่อรู้กลุ่ม** (conditionally independent given the class) แปลว่า เมื่อรู้แล้วว่าเป็นกลุ่ม $Y$ การรู้ค่า feature ตัวอื่นไม่ช่วยทาย feature ตัวนี้เพิ่มเลย เขียนเป็นสูตรคือ
+
+$$P(x_j \mid x_1, \ldots, x_{j-1}, Y) = P(x_j \mid Y)$$
+
+เมื่อแทนลงใน chain rule ของข้อ 4.2 เงื่อนไขที่ซ้อนกันทั้งหมดหายไป เหลือแค่กลุ่ม
+
+$$P(x_1, x_2, \ldots, x_d \mid Y) = P(x_1 \mid Y) \cdot P(x_2 \mid Y) \cdots P(x_d \mid Y) = \prod_{j=1}^{d} P(x_j \mid Y)$$
+
+และกฎการตัดสินในข้อ 3.4 กลายเป็น
+
+$$\hat{y} = \mathrm{argmax}_{k} \ P(C_k) \prod_{j=1}^{d} P(x_j \mid C_k)$$
+
+ทุกพจน์ $P(x_j \mid C_k)$ นับได้ทีละคอลัมน์ภายในกลุ่ม ไม่ต้องหาตัวอย่างที่ตรงทุกค่าพร้อมกัน จำนวนตัวเลขที่ต้องประมาณจึงลดจาก $2^{d} - 1$ เหลือ $d$ ต่อกลุ่ม (feature สองค่า) ตามตารางในข้อ 4.3
+
+### 5.2 ความเป็นอิสระแบบมีเงื่อนไขไม่ใช่ความเป็นอิสระธรรมดา
+
+นิยาม (สิ่งที่สมมติ): ภายในกลุ่มเดียวกัน feature ไม่เกี่ยวข้องกัน
+
+สิ่งที่ **ไม่ได้** สมมติ: ไม่ได้สมมติว่า feature ไม่เกี่ยวข้องกันเลยในประชากรรวม ตัวอย่างเช่น ในประชากรทั้งหมด "สูงเกิน 170" กับ "ผมสั้น" อาจไปด้วยกัน เพราะทั้งสองอย่างพบในผู้ชายมากกว่า ความเกี่ยวข้องนี้มาจากเพศ ถ้ามองภายในผู้ชายด้วยกันแล้ว ความสูงกับความยาวผมอาจไม่เกี่ยวกันเลย กรณีแบบนี้สมมติฐาน naive เป็นจริง ทั้งที่ในประชากรรวมสอง feature สัมพันธ์กัน
+
+กรณีที่สมมติฐานผิดชัดเจน คือ feature ที่ยังสัมพันธ์กันแม้อยู่ในกลุ่มเดียวกัน เช่น "สูงเกิน 170" กับ "ความสูงเป็นเซนติเมตร" (ตัวหนึ่งคำนวณจากอีกตัว) หรือคำว่า "free" กับ "money" ในอีเมล spam ที่มักมาคู่กัน ส่วนที่ 6 จะแสดงว่าเกิดอะไรขึ้นในกรณีนี้
+
+### 5.3 Worked example: ทายเพศจากสี่ feature
+
+ตัวอย่างใหม่: $x_1 = \mathrm{Drew}$, $x_2 = \mathrm{No}$, $x_3 = \mathrm{Brown}$, $x_4 = \mathrm{Short}$
+
+**ขั้น 1 แยกข้อมูลตามกลุ่ม**
+
+| กลุ่ม | คนที่ | ชื่อ | สูงเกิน 170 | สีตา | ผม |
+|---|---|---|---|---|---|
+| M (3 คน) | 1, 5, 8 | Drew, Alberto, Sergio | No, Yes, Yes | Blue, Brown, Blue | Short, Short, Long |
+| F (5 คน) | 2, 3, 4, 6, 7 | Claudia, Drew, Drew, Karin, Nina | Yes, No, No, No, Yes | Brown, Blue, Blue, Blue, Brown | Long, Long, Long, Long, Short |
+
+**ขั้น 2 นับ likelihood ทีละ feature ในกลุ่มชาย**
+
+| พจน์ | นับ | ค่า |
+|---|---|---|
+| $P(x_1 = \mathrm{Drew} \mid M)$ | Drew 1 ใน 3 | $1/3$ |
+| $P(x_2 = \mathrm{No} \mid M)$ | No 1 ใน 3 (คนที่ 1) | $1/3$ |
+| $P(x_3 = \mathrm{Brown} \mid M)$ | Brown 1 ใน 3 (คนที่ 5) | $1/3$ |
+| $P(x_4 = \mathrm{Short} \mid M)$ | Short 2 ใน 3 (คนที่ 1, 5) | $2/3$ |
+
+ผลคูณ likelihood $= \frac{1}{3} \cdot \frac{1}{3} \cdot \frac{1}{3} \cdot \frac{2}{3} = \frac{2}{81}$ คูณ prior $P(M) = 3/8$ ได้
+
+$$\frac{2}{81} \cdot \frac{3}{8} = \frac{6}{648} = \frac{1}{108} \approx 0.009259$$
+
+**ขั้น 3 นับ likelihood ทีละ feature ในกลุ่มหญิง**
+
+| พจน์ | นับ | ค่า |
+|---|---|---|
+| $P(x_1 = \mathrm{Drew} \mid F)$ | Drew 2 ใน 5 (คนที่ 3, 4) | $2/5$ |
+| $P(x_2 = \mathrm{No} \mid F)$ | No 3 ใน 5 (คนที่ 3, 4, 6) | $3/5$ |
+| $P(x_3 = \mathrm{Brown} \mid F)$ | Brown 2 ใน 5 (คนที่ 2, 7) | $2/5$ |
+| $P(x_4 = \mathrm{Short} \mid F)$ | Short 1 ใน 5 (คนที่ 7) | $1/5$ |
+
+ผลคูณ likelihood $= \frac{2}{5} \cdot \frac{3}{5} \cdot \frac{2}{5} \cdot \frac{1}{5} = \frac{12}{625}$ คูณ prior $P(F) = 5/8$ ได้
+
+$$\frac{12}{625} \cdot \frac{5}{8} = \frac{60}{5000} = \frac{3}{250} = 0.012$$
+
+**ขั้น 4 ตัดสินด้วย MAP:** $0.012 > 0.009259$ ทายว่าเป็น **หญิง (F)**
+
+**ขั้น 5 คำนวณ posterior (normalize):** evidence คือผลรวมของสองตัวเลข $0.009259 + 0.012 = 0.021259$
+
+$$P(M \mid x_1, x_2, x_3, x_4) = \frac{0.009259}{0.021259} \approx 0.4355$$
+
+$$P(F \mid x_1, x_2, x_3, x_4) = \frac{0.012}{0.021259} \approx 0.5645$$
+
+ถ้าคิดเป็นเศษส่วนตรงๆ: $\frac{1}{108} = \frac{125}{13500}$ และ $\frac{3}{250} = \frac{162}{13500}$ ผลรวม $\frac{287}{13500}$ จึงได้ $P(M \mid x) = 125/287$ และ $P(F \mid x) = 162/287$ ซึ่งตรงกับผลจากสคริปต์ในส่วนที่ 10 (0.4355 และ 0.5645)
+
+ข้อควรระวังเรื่องการปัดเศษ: ถ้าปัด $1/108$ เป็น 0.0092 ก่อนหาร จะได้ $0.0092/0.0212 \approx 0.434$ และ $0.012/0.0212 \approx 0.566$ ต่างจากค่าจริงที่ทศนิยมตำแหน่งที่สาม ในข้อสอบควรเก็บเศษส่วนไว้จนขั้นสุดท้าย หรือใช้ทศนิยมอย่างน้อยสี่ตำแหน่ง และไม่ว่าจะปัดอย่างไร ข้อสรุปยังเป็น **หญิง** เพราะกลุ่มที่ตัวเศษมากกว่าคือกลุ่มที่ posterior มากกว่าเสมอ
+
+**ขั้น 6 ตรวจผลและตีความ:** posterior รวมกันได้ 1 ตามที่ควรเป็น เพื่อดูว่า feature ไหนดันคำตอบไปทางไหน ให้หารค่าของกลุ่ม F ด้วยกลุ่ม M ทีละพจน์ (ค่ามากกว่า 1 แปลว่าพจน์นั้นเข้าข้าง F)
+
+| พจน์ | F | M | อัตราส่วน F/M | เข้าข้าง |
+|---|---|---|---|---|
+| Prior | $5/8$ | $3/8$ | 1.667 | F |
+| ชื่อ Drew | $2/5$ | $1/3$ | 1.2 | F เล็กน้อย |
+| ไม่สูงเกิน 170 | $3/5$ | $1/3$ | 1.8 | F |
+| ตาน้ำตาล | $2/5$ | $1/3$ | 1.2 | F เล็กน้อย |
+| ผมสั้น | $1/5$ | $2/3$ | 0.3 | M ชัดเจน |
+| **ผลคูณ** | | | **1.296** | **F** |
+
+ผลคูณ 1.296 คือ $0.012 / 0.009259$ พอดี การตีความ: ผมสั้นเป็นหลักฐานเดียวที่เข้าข้างผู้ชาย และเข้าข้างแรง (ผู้ชายผมสั้นบ่อยกว่าผู้หญิงสามเท่ากว่า) แต่หลักฐานเล็กๆ อีกสี่ตัวที่เข้าข้างผู้หญิงคูณกันแล้วชนะ คำตอบจึงเป็นหญิงด้วยความน่าจะเป็นราว 56% ซึ่งไม่ได้มั่นใจมาก ตารางแบบนี้ใช้อธิบายผลของ Naive Bayes ได้ดี เพราะผลรวมคือผลคูณของแต่ละพจน์ที่แยกดูได้
+
+### 5.4 ภาพรวมการทำงาน
+
+```mermaid
+flowchart LR
+    A["ข้อมูลฝึก (มีกลุ่มกำกับ)"] --> B["นับ prior P(C_k) ของทุกกลุ่ม"]
+    A --> C["นับ P(x_j | C_k) ทุก feature ทุกกลุ่ม (ตารางนับ)"]
+    D["ตัวอย่างใหม่ x1..xd"] --> E["เปิดตารางหาค่าของ x แต่ละตัว ในแต่ละกลุ่ม"]
+    B --> E
+    C --> E
+    E --> F["คะแนนกลุ่ม = prior คูณ likelihood ทุกตัว"]
+    F --> G["เลือกกลุ่มที่คะแนนสูงสุด (MAP)"]
+    F --> H["ถ้าต้องการ posterior: หารด้วยผลรวมคะแนนทุกกลุ่ม"]
 ```
 
-ผลจาก notebook คือ `['Yes', 'Yes', 'No']` ซึ่งตรงกับ custom model และ probabilities ของคลาสที่ถูกเลือกเท่ากับประมาณ 0.7994, 0.9711 และ 0.9666 ตามลำดับ
+วิธีอ่านแผนภาพ: ครึ่งบนซ้ายคือการฝึก ซึ่งมีแค่การนับ ผลลัพธ์ของการฝึกคือตารางนับ (ไม่มี $\theta$ ไม่มี gradient descent) ครึ่งล่างคือการทำนาย ซึ่งเป็นการเปิดตารางแล้วคูณ เส้นจากการนับไปยังการทำนายแสดงว่าโมเดลทั้งหมดคือตารางนี้ ถ้าตารางมีช่องที่เป็นศูนย์ คะแนนทั้งกลุ่มจะเป็นศูนย์ (ส่วนที่ 8)
 
-อย่างไรก็ตาม การรวม query ก่อนสร้าง dummy columns ทำให้ข้อมูลใหม่มีส่วนกำหนดโครงสร้าง features วิธีนี้ช่วยให้ lab สั้นและคอลัมน์ตรงกัน แต่ workflow ที่ปลอดภัยกว่าคือ fit encoder ด้วย training data เท่านั้น แล้วกำหนด `handle_unknown='ignore'`:
+### สรุปหัวข้อ
+
+- สมมติฐาน naive: $P(x_1, \ldots, x_d \mid Y) = \prod_j P(x_j \mid Y)$ คือ feature อิสระต่อกันเมื่อรู้กลุ่ม
+- ทำนาย: $\hat{y} = \mathrm{argmax}_k P(C_k)\prod_j P(x_j \mid C_k)$ normalize เมื่อต้องการ posterior
+- ตัวอย่าง (Drew, No, Brown, Short): คะแนน M $= 1/108 \approx 0.0093$, F $= 3/250 = 0.012$, posterior M $\approx 0.4355$, F $\approx 0.5645$ ทายว่า **หญิง**
+
+---
+
+## ส่วนที่ 6 ข้อดี ข้อเสีย และเมื่อสมมติฐานไม่จริง
+
+### 6.1 ข้อดี
+
+**เร็วทั้งตอนฝึกและตอนทำนาย:** การฝึกคือการนับหนึ่งรอบผ่านข้อมูล ใช้เวลาโตตาม $N \times d$ ไม่มีการวนซ้ำแบบ gradient descent การทำนายคือการเปิดตารางแล้วคูณ $d$ ตัวต่อกลุ่ม เพราะแต่ละ feature ถูกประมาณแยกเป็นการแจกแจงหนึ่งมิติ จึงลดปัญหาจากมิติที่สูง (curse of dimensionality) ได้ด้วย ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html))
+
+**รับข้อมูลที่ไหลเข้ามาเรื่อยๆ (streaming) ได้:** เพราะโมเดลคือตารางนับ เมื่อมีอีเมลใหม่ที่ผู้ใช้กดว่าเป็น spam ก็แค่บวกตัวนับของคำในอีเมลนั้นเข้าไปในกลุ่ม spam ไม่ต้องฝึกใหม่จากข้อมูลทั้งหมด ใน scikit-learn ทำได้ด้วยเมธอด `partial_fit` ซึ่งรับข้อมูลทีละก้อน เหมาะกับข้อมูลที่ใหญ่เกินหน่วยความจำด้วย ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html)) งานกรองอีเมล spam จึงเป็นงานคลาสสิกของวิธีนี้
+
+**ใช้ข้อมูลฝึกน้อย:** ต้องประมาณแค่ $d$ ตัวเลขต่อกลุ่มต่อค่าของ feature ไม่ใช่ $2^{d} - 1$ ข้อมูลไม่มากก็ประมาณได้พอสมควร
+
+**อธิบายได้:** ดูอัตราส่วนทีละ feature แบบตารางในข้อ 5.3 ได้ว่าหลักฐานไหนดันไปทางไหน
+
+### 6.2 ข้อเสียหลัก: สมมติฐานความเป็นอิสระ
+
+สมมติฐานนี้ไม่จริงกับข้อมูลส่วนใหญ่ เมื่อ feature สองตัวพูดเรื่องเดียวกัน Naive Bayes จะ **นับหลักฐานเดียวกันซ้ำ** และมั่นใจเกินจริง
+
+**ตัวอย่างที่เห็นผลชัด:** สมมติว่าระบบเก็บข้อมูลเผลอเก็บคอลัมน์ความยาวผมไว้สองคอลัมน์ ($x_4$ และ $x_5$ มีค่าเหมือนกันทุกแถว) ข้อมูลไม่ได้มีหลักฐานใหม่เลย แต่สมมติฐาน naive ถือว่าสองคอลัมน์อิสระต่อกัน จึงคูณ $P(\mathrm{Short} \mid Y)$ เข้าไปสองครั้ง
+
+| | คะแนน M | คะแนน F | posterior M | ทาย |
+|---|---|---|---|---|
+| ข้อมูลเดิม (4 feature) | $1/108 \approx 0.009259$ | $0.012$ | 0.4355 | F |
+| ผมซ้ำสองคอลัมน์ | $0.009259 \times \frac{2}{3} \approx 0.006173$ | $0.012 \times \frac{1}{5} = 0.0024$ | $\approx 0.72$ | M |
+
+คำตอบพลิกจากหญิงเป็นชาย ทั้งที่ข้อมูลจริงไม่ได้เปลี่ยน สาเหตุคืออัตราส่วน 0.3 ของผมสั้นถูกนับสองครั้ง ($1.296 \times 0.3 \approx 0.39 < 1$) ในงานจริงไม่มีใครเก็บคอลัมน์ซ้ำตรงๆ แต่ feature ที่สัมพันธ์กันสูง เช่น "สูงเกิน 170" กับ "ความสูงเป็นเซนติเมตร" หรือรายได้กับภาษีที่จ่าย ก่อผลแบบเดียวกันในระดับที่น้อยกว่า ข้อแนะนำในทางปฏิบัติคือ ตัดหรือรวม feature ที่ซ้ำซ้อนกันก่อนใช้ Naive Bayes
+
+### 6.3 สมมติฐานใช้ได้กับทุกชุดข้อมูลหรือไม่
+
+คำตอบสั้นคือ **ไม่** สมมติฐานความเป็นอิสระแบบมีเงื่อนไขแทบไม่เคยเป็นจริงทุกประการในข้อมูลจริง แต่สิ่งที่น่าสนใจคือ Naive Bayes ยังจำแนกได้ดีในงานจริงหลายงาน โดยเฉพาะงานจำแนกเอกสารและกรอง spam ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html)) เหตุผลมีสองข้อ
+
+1. **การจำแนกต้องการแค่ลำดับ ไม่ต้องการตัวเลขที่ถูก:** กฎ MAP ดูแค่ว่ากลุ่มไหนคะแนนสูงสุด ถึงตัวเลข posterior จะเพี้ยนมาก (เช่น บอก 0.99 ทั้งที่จริงควรเป็น 0.7) ถ้ากลุ่มที่ชนะยังเป็นกลุ่มเดิม การจำแนกก็ยังถูก Domingos และ Pazzani แสดงว่า Naive Bayes อาจเป็นตัวจำแนกที่ดีที่สุดได้แม้สมมติฐานไม่จริง ภายใต้เงื่อนไขที่กว้างกว่าที่คนทั่วไปคิด ([Domingos and Pazzani, 1997](https://doi.org/10.1023/A:1007413511361))
+2. **ความสัมพันธ์ที่หักล้างกัน:** Zhang อธิบายว่าสิ่งที่สำคัญไม่ใช่ว่ามีความสัมพันธ์ระหว่าง feature หรือไม่ แต่เป็นว่าความสัมพันธ์นั้นกระจายตัวต่างกันระหว่างกลุ่มอย่างไร ถ้าความสัมพันธ์ส่งผลไปทางกลุ่มต่างๆ ใกล้เคียงกัน หรือหักล้างกันเอง ผลต่อการจำแนกก็น้อย ([Zhang, 2004](https://www.cs.unb.ca/~hzhang/publications/FLAIRS04ZhangH.pdf))
+
+ผลข้างเคียงที่ต้องรู้: เพราะเหตุผลข้อ 1 Naive Bayes จึงเป็น **ตัวจำแนกที่ดีแต่เป็นตัวประมาณความน่าจะเป็นที่ไม่ดี** ค่าจาก `predict_proba` มักเอียงไปทาง 0 หรือ 1 มากเกินจริง ไม่ควรนำไปใช้ตรงๆ ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html)) ถ้างานต้องใช้ตัวเลขความน่าจะเป็น (เช่น จัดลำดับความเสี่ยงหรือคำนวณต้นทุนคาดหวัง) ต้องปรับเทียบ (calibrate) ก่อน หรือเลือกโมเดลอย่าง logistic regression
+
+### 6.4 เมื่อไรควรใช้ เมื่อไรไม่ควร
+
+| สถานการณ์ | Naive Bayes | เหตุผล |
+|---|---|---|
+| ข้อความ จำนวนคำ (feature) มาก ข้อมูลไม่มาก | เหมาะ | ประมาณแยกทีละ feature ทนมิติสูง ฝึกเร็ว |
+| ข้อมูลไหลเข้าต่อเนื่อง ต้องอัปเดตบ่อย | เหมาะ | อัปเดตตารางนับได้ทันที |
+| ต้องการ baseline เร็วๆ ก่อนลองโมเดลซับซ้อน | เหมาะ | ไม่มี hyperparameter มาก ฝึกเสร็จทันที |
+| feature สัมพันธ์กันมาก หรือมีคอลัมน์ซ้ำซ้อน | ระวัง | นับหลักฐานซ้ำ มั่นใจเกินจริง |
+| ต้องการตัวเลขความน่าจะเป็นที่ถูกต้อง | ไม่เหมาะ | ความน่าจะเป็นมักเพี้ยน ต้อง calibrate |
+| ข้อมูลมากพอและ feature มีปฏิสัมพันธ์ซับซ้อน | มักแพ้โมเดลอื่น | logistic regression, tree-based model เรียนความสัมพันธ์ได้ดีกว่า |
+
+### สรุปหัวข้อ
+
+- ข้อดี: ฝึกและทำนายเร็ว, อัปเดตทีละส่วนได้ (streaming เช่น spam), ใช้ข้อมูลน้อย, อธิบายได้
+- ข้อเสีย: สมมติว่า feature อิสระต่อกันเมื่อรู้กลุ่ม feature ที่ซ้ำซ้อนทำให้นับหลักฐานซ้ำจนคำตอบพลิกได้
+- สมมติฐานไม่จริงกับข้อมูลส่วนใหญ่ แต่การจำแนกมักยังถูก เพราะ MAP ต้องการแค่ลำดับ ส่วนตัวเลขความน่าจะเป็นมักเพี้ยน
+
+---
+
+## ส่วนที่ 7 Feature ที่เป็นค่าต่อเนื่อง: Gaussian Naive Bayes
+
+### 7.1 ปัญหา: นับไม่ได้
+
+ตัวอย่างก่อนหน้านี้ทุก feature เป็นกลุ่มค่า (category) จึงประมาณ $P(x_j \mid Y)$ ด้วยการนับ แต่ถ้า feature เป็นตัวเลขต่อเนื่อง เช่น ความสูง 100, 101, 99, 120, ..., 160 cm การนับใช้ไม่ได้ เพราะคนใหม่ที่สูง 169.3 cm แทบไม่มีทางมีค่าตรงกับใครในข้อมูลฝึก การนับจะได้ศูนย์เกือบทุกครั้ง
+
+ทางออกคือ **สมมติรูปร่างของการแจกแจง** ภายในแต่ละกลุ่ม ค่าที่นิยมที่สุดคือการแจกแจงปกติ (Gaussian) แล้วประมาณพารามิเตอร์ของรูปร่างนั้นจากข้อมูล แทนการนับทีละค่า
+
+### 7.2 สูตร Gaussian probability density function
+
+$$f(x) = \frac{1}{\sqrt{2\pi\sigma_k^{2}}} \, e^{-\frac{(x - \mu_k)^{2}}{2\sigma_k^{2}}}$$
+
+นิยามสัญลักษณ์
+
+- $x$ คือค่า feature ของตัวอย่างที่กำลังทำนาย เช่น ความสูง 169
+- $\mu_k$ คือค่าเฉลี่ยของ feature นี้ **ในกลุ่ม $k$**
+- $\sigma_k^{2}$ คือความแปรปรวนของ feature นี้ในกลุ่ม $k$ และ $\sigma_k$ คือส่วนเบี่ยงเบนมาตรฐาน
+- $e \approx 2.7183$ และ $\pi \approx 3.1416$
+
+สัญชาตญาณของสูตร: ส่วนที่อยู่ในเลขชี้กำลัง $\frac{(x - \mu_k)^{2}}{2\sigma_k^{2}}$ วัดว่า $x$ อยู่ห่างจากค่าเฉลี่ยของกลุ่มกี่เท่าของความกว้างของกลุ่ม ยิ่งห่างยิ่งมาก และ $e$ ยกกำลังลบของค่านี้จึงยิ่งเล็ก แปลว่า "ค่าที่ไกลจากค่ากลางของกลุ่มพบได้ยากในกลุ่มนั้น" ส่วนตัวคูณหน้า $\frac{1}{\sqrt{2\pi\sigma_k^{2}}}$ ทำให้พื้นที่ใต้กราฟรวมเป็น 1 กลุ่มที่กว้าง ($\sigma_k$ ใหญ่) จะมียอดเตี้ยกว่า เพราะต้องกระจายพื้นที่เท่ากันออกไปกว้างกว่า
+
+ใน Naive Bayes ค่า $f(x)$ ใช้แทน $P(x_j \mid C_k)$ ในผลคูณ ส่วน $\mu_k$ และ $\sigma_k^{2}$ ประมาณจากข้อมูลของกลุ่มนั้น ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html))
+
+ข้อควรระวัง: $f(x)$ คือ **ความหนาแน่น (density)** ไม่ใช่ความน่าจะเป็น ความน่าจะเป็นของค่าต่อเนื่องที่จุดใดจุดหนึ่งพอดีเป็นศูนย์ ความหนาแน่นบอกว่าบริเวณรอบ $x$ หนาแน่นแค่ไหน มีค่าเกิน 1 ได้ถ้า $\sigma_k$ เล็กมาก แต่ใช้แทนในผลคูณได้ เพราะการเทียบระหว่างกลุ่มที่จุด $x$ เดียวกันยังสมเหตุสมผล
+
+### 7.3 ขั้นตอน
+
+1. **ตอนฝึก:** สำหรับทุกกลุ่ม $k$ และทุก feature ต่อเนื่อง หาค่าเฉลี่ย $\mu_k$ และความแปรปรวน $\sigma_k^{2}$ จากแถวที่อยู่ในกลุ่มนั้นเท่านั้น
+2. **ตอนทำนาย:** แทน $x$ ลงในสูตรด้วย $\mu_k, \sigma_k^{2}$ ของแต่ละกลุ่ม ได้ $f_k(x)$
+3. **รวมกับส่วนอื่น:** คูณ $f_k(x)$ กับ prior และกับ likelihood ของ feature อื่น (ที่อาจเป็นแบบนับ) แล้วเลือกกลุ่มที่คะแนนสูงสุดเหมือนเดิม
+
+### 7.4 Worked example: ทายเพศจากความสูง
+
+เพื่อสาธิต ขอเพิ่มคอลัมน์ความสูงสมมติให้ข้อมูล 8 คน โดยเลือกค่าให้สอดคล้องกับคอลัมน์ "สูงเกิน 170" เดิม
+
+| คนที่ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| เพศ | M | F | F | F | M | F | F | M |
+| ความสูง (cm) | 168 | 172 | 160 | 158 | 178 | 165 | 171 | 182 |
+
+โจทย์: คนใหม่สูง 169 cm ใช้ความสูงอย่างเดียว ทายว่าเป็นเพศอะไร
+
+**ขั้น 1 พารามิเตอร์ของกลุ่มชาย** (168, 178, 182)
+
+- $\mu_M = (168 + 178 + 182)/3 = 528/3 = 176$
+- ส่วนต่างจากค่าเฉลี่ย: $-8, 2, 6$ ยกกำลังสอง: $64, 4, 36$ รวม $104$
+- $\sigma_M^{2} = 104/3 \approx 34.667$ ได้ $\sigma_M \approx 5.888$
+
+**ขั้น 2 พารามิเตอร์ของกลุ่มหญิง** (172, 160, 158, 165, 171)
+
+- $\mu_F = 826/5 = 165.2$
+- ส่วนต่าง: $6.8, -5.2, -7.2, -0.2, 5.8$ ยกกำลังสอง: $46.24, 27.04, 51.84, 0.04, 33.64$ รวม $158.8$
+- $\sigma_F^{2} = 158.8/5 = 31.76$ ได้ $\sigma_F \approx 5.636$
+
+**ขั้น 3 ความหนาแน่นที่ $x = 169$**
+
+กลุ่มชาย: เลขชี้กำลัง $\frac{(169 - 176)^{2}}{2 \times 34.667} = \frac{49}{69.333} \approx 0.7067$ ได้ $e^{-0.7067} \approx 0.4933$ ตัวคูณหน้า $\frac{1}{\sqrt{2\pi \times 34.667}} = \frac{1}{\sqrt{217.82}} \approx 0.06776$
+
+$$f_M(169) \approx 0.06776 \times 0.4933 \approx 0.03342$$
+
+กลุ่มหญิง: เลขชี้กำลัง $\frac{(169 - 165.2)^{2}}{2 \times 31.76} = \frac{14.44}{63.52} \approx 0.2273$ ได้ $e^{-0.2273} \approx 0.7967$ ตัวคูณหน้า $\frac{1}{\sqrt{2\pi \times 31.76}} = \frac{1}{\sqrt{199.55}} \approx 0.07079$
+
+$$f_F(169) \approx 0.07079 \times 0.7967 \approx 0.05640$$
+
+**ขั้น 4 คูณ prior:** คะแนน M $= 0.03342 \times 3/8 \approx 0.012533$ คะแนน F $= 0.05640 \times 5/8 \approx 0.035247$
+
+**ขั้น 5 ตัดสินและ normalize:** F มากกว่า ทายว่า **หญิง** posterior $P(F \mid 169) = \frac{0.035247}{0.035247 + 0.012533} \approx 0.7377$ และ $P(M \mid 169) \approx 0.2623$ ตรงกับ `GaussianNB` ในส่วนที่ 10
+
+**การตีความ:** 169 อยู่ห่างจากค่าเฉลี่ยผู้หญิง (165.2) ประมาณ $3.8/5.64 \approx 0.67$ เท่าของส่วนเบี่ยงเบนมาตรฐาน แต่ห่างจากค่าเฉลี่ยผู้ชาย (176) ประมาณ $7/5.89 \approx 1.19$ เท่า จึงเข้ากับกลุ่มหญิงมากกว่า และ prior ยังเข้าข้างหญิงอีก ทั้งที่ 169 สูงกว่าค่าเฉลี่ยของผู้หญิง
+
+**ตรวจผล:** ถ้าคนใหม่สูง 176 พอดี (ค่าเฉลี่ยผู้ชาย) $f_M$ จะเป็นค่าสูงสุดของกลุ่มชาย คือแค่ตัวคูณหน้า 0.0678 ซึ่งเป็นการตรวจที่ใช้ได้เสมอ: ความหนาแน่นสูงสุดของ Gaussian อยู่ที่ค่าเฉลี่ย
+
+### 7.5 ข้อควรระวังเรื่องความแปรปรวน
+
+ตัวอย่างนี้หารด้วย $n$ (จำนวนในกลุ่ม) ซึ่งเป็นตัวประมาณแบบ maximum likelihood และเป็นสิ่งที่ `GaussianNB` ของ scikit-learn ใช้ (ส่วนที่ 10 แสดง `var_` เท่ากับ 34.6667 และ 31.76) ตำราสถิติบางเล่มหารด้วย $n - 1$ (sample variance) ซึ่งจะได้ $\sigma_M^{2} = 52$ และ $\sigma_F^{2} = 39.7$ ตัวเลขความหนาแน่นจะเปลี่ยน ถ้าโจทย์ไม่ระบุควรเขียนให้ชัดว่าใช้แบบไหน นอกจากนี้ `GaussianNB` ยังบวกค่าเล็กๆ (`var_smoothing`) เข้าไปในความแปรปรวนเพื่อกันการหารด้วยศูนย์ ซึ่งผลต่อตัวเลขในตัวอย่างนี้น้อยจนไม่เห็น
+
+ข้อจำกัด: ถ้าข้อมูลจริงในกลุ่มไม่เป็นรูประฆัง เช่น เบ้มาก หรือมีสองยอด การสมมติ Gaussian จะประมาณความหนาแน่นผิด ทางเลือกคือแปลงข้อมูลก่อน (เช่น log) หรือแบ่งค่าต่อเนื่องเป็นช่วง (discretize) แล้วใช้วิธีนับ
+
+### สรุปหัวข้อ
+
+- feature ต่อเนื่องนับไม่ได้ จึงสมมติว่าในแต่ละกลุ่มเป็น Gaussian แล้วประมาณ $\mu_k, \sigma_k^{2}$ ต่อกลุ่ม
+- $f(x) = \frac{1}{\sqrt{2\pi\sigma_k^{2}}}e^{-\frac{(x - \mu_k)^{2}}{2\sigma_k^{2}}}$ ใช้แทน $P(x \mid C_k)$ เป็น density ไม่ใช่ probability
+- ตัวอย่างความสูง 169: $f_M \approx 0.0334$, $f_F \approx 0.0564$, posterior F $\approx 0.738$
+
+---
+
+## ส่วนที่ 8 ปัญหาความน่าจะเป็นเป็นศูนย์และ Laplacian Correction
+
+### 8.1 ปัญหา: ศูนย์ตัวเดียวลบหลักฐานทั้งหมด
+
+เพราะคะแนนของกลุ่มคือ **ผลคูณ** ถ้าพจน์ใดพจน์หนึ่งเป็นศูนย์ คะแนนทั้งกลุ่มเป็นศูนย์ทันที ไม่ว่าพจน์อื่นจะเข้าข้างกลุ่มนั้นแค่ไหน และศูนย์เกิดง่ายมาก แค่ค่าหนึ่งไม่เคยปรากฏในกลุ่มนั้นในข้อมูลฝึก ซึ่งไม่ได้แปลว่าเป็นไปไม่ได้จริง อาจแค่ข้อมูลน้อย
+
+**ตัวอย่าง:** คนใหม่มี $x_1 = \mathrm{Claudia}$, $x_2 = \mathrm{No}$, $x_3 = \mathrm{Blue}$, $x_4 = \mathrm{Short}$
+
+| พจน์ | M | F |
+|---|---|---|
+| ชื่อ Claudia | $0/3 = 0$ | $1/5$ |
+| ไม่สูงเกิน 170 | $1/3$ | $3/5$ |
+| ตาฟ้า | $2/3$ | $3/5$ |
+| ผมสั้น | $2/3$ | $1/5$ |
+| คะแนน (คูณ prior) | $0$ | $\frac{5}{8} \cdot \frac{1}{5} \cdot \frac{3}{5} \cdot \frac{3}{5} \cdot \frac{1}{5} = 0.009$ |
+| posterior | 0 | 1 |
+
+ผู้ชายในข้อมูลไม่มีใครชื่อ Claudia คะแนน M จึงเป็นศูนย์ และโมเดลมั่นใจ 100% ว่าเป็นหญิง ทั้งที่ตาฟ้าและผมสั้นเข้าข้างชายพอสมควร ความมั่นใจเต็มร้อยจากข้อมูล 3 คนเป็นสิ่งที่ไม่สมเหตุสมผล และถ้าทุกกลุ่มมีศูนย์พร้อมกัน posterior จะเป็น $0/0$ คำนวณไม่ได้เลย
+
+### 8.2 Laplacian correction: บวกหนึ่งให้ทุกช่อง
+
+แนวคิด: ทำเหมือนว่าเราเห็นทุกค่าที่เป็นไปได้มาแล้วอย่างน้อยหนึ่งครั้งในทุกกลุ่ม โดยบวก 1 ให้ตัวนับทุกช่อง แล้วบวกจำนวนช่องที่เติมเข้าไปในตัวส่วนด้วย เพื่อให้ความน่าจะเป็นยังรวมกันได้ 1
+
+**ตัวอย่างพื้นฐาน:** ข้อมูลฝึก 1,000 ตัวอย่าง feature รายได้มีสามค่า low 0 ตัวอย่าง, medium 990, high 10
+
+| ค่า | ไม่แก้ | Laplace |
+|---|---|---|
+| low | $0/1000 = 0$ | $(0 + 1)/(1000 + 3) = 1/1003 \approx 0.0010$ |
+| medium | $990/1000 = 0.990$ | $(990 + 1)/1003 = 991/1003 \approx 0.9880$ |
+| high | $10/1000 = 0.010$ | $(10 + 1)/1003 = 11/1003 \approx 0.0110$ |
+| รวม | 1 | $1003/1003 = 1$ |
+
+ตัวส่วนบวก 3 เพราะ feature รายได้มี 3 ค่า (บวก 1 ให้สามช่อง ตัวนับรวมจึงเพิ่ม 3) ผลคือ low ได้ความน่าจะเป็นเล็กๆ ที่ไม่ใช่ศูนย์ ส่วน medium และ high เปลี่ยนน้อยมาก เมื่อข้อมูลมาก การบวก 1 แทบไม่กระทบค่าที่นับได้อยู่แล้ว
+
+**สูตรทั่วไปที่ใช้ใน Naive Bayes:** การแก้ต้องทำภายในแต่ละกลุ่ม เพราะ likelihood คือ $P(x_j \mid C_k)$
+
+$$P(x_j = v \mid C_k) = \frac{N_{v,k} + \alpha}{N_k + \alpha V_j}$$
+
+- $N_{v,k}$ คือจำนวนตัวอย่างในกลุ่ม $k$ ที่ feature $j$ มีค่า $v$
+- $N_k$ คือจำนวนตัวอย่างในกลุ่ม $k$
+- $V_j$ คือจำนวนค่าที่เป็นไปได้ของ feature $j$ (จำนวน category)
+- $\alpha$ คือค่าที่บวก $\alpha = 1$ คือ Laplace smoothing ส่วน $\alpha$ ระหว่าง 0 ถึง 1 เรียกว่า Lidstone smoothing ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html))
+
+สูตรนี้ตรงกับที่ `CategoricalNB` ของ scikit-learn ใช้ ซึ่งมี `alpha=1.0` เป็นค่าเริ่มต้น ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html))
+
+### 8.3 Worked example: แก้ตัวอย่าง Claudia
+
+จำนวนค่าที่เป็นไปได้: ชื่อ 6 ค่า (Drew, Claudia, Alberto, Karin, Nina, Sergio), สูงเกิน 170 มี 2 ค่า, สีตา 2 ค่า, ผม 2 ค่า ใช้ $\alpha = 1$
+
+**กลุ่มชาย ($N_M = 3$)**
+
+| พจน์ | นับเดิม | สูตร | ค่า |
+|---|---|---|---|
+| ชื่อ Claudia | 0 | $(0 + 1)/(3 + 6)$ | $1/9 \approx 0.1111$ |
+| ไม่สูงเกิน 170 | 1 | $(1 + 1)/(3 + 2)$ | $2/5 = 0.4$ |
+| ตาฟ้า | 2 | $(2 + 1)/(3 + 2)$ | $3/5 = 0.6$ |
+| ผมสั้น | 2 | $(2 + 1)/(3 + 2)$ | $3/5 = 0.6$ |
+
+คะแนน M $= \frac{3}{8} \cdot \frac{1}{9} \cdot \frac{2}{5} \cdot \frac{3}{5} \cdot \frac{3}{5} = \frac{3}{500} = 0.006$
+
+**กลุ่มหญิง ($N_F = 5$)**
+
+| พจน์ | นับเดิม | สูตร | ค่า |
+|---|---|---|---|
+| ชื่อ Claudia | 1 | $(1 + 1)/(5 + 6)$ | $2/11 \approx 0.1818$ |
+| ไม่สูงเกิน 170 | 3 | $(3 + 1)/(5 + 2)$ | $4/7 \approx 0.5714$ |
+| ตาฟ้า | 3 | $(3 + 1)/(5 + 2)$ | $4/7 \approx 0.5714$ |
+| ผมสั้น | 1 | $(1 + 1)/(5 + 2)$ | $2/7 \approx 0.2857$ |
+
+คะแนน F $= \frac{5}{8} \cdot \frac{2}{11} \cdot \frac{4}{7} \cdot \frac{4}{7} \cdot \frac{2}{7} = \frac{40}{3773} \approx 0.010602$
+
+**posterior:** $P(F \mid x) = \frac{0.010602}{0.010602 + 0.006} \approx 0.6386$ และ $P(M \mid x) \approx 0.3614$
+
+**การตีความ:** ยังทายว่าหญิงเหมือนเดิม แต่ความมั่นใจลดจาก 100% เหลือราว 64% ซึ่งสะท้อนหลักฐานจริงได้ดีกว่า (ชื่อ Claudia เข้าข้างหญิง แต่ตาฟ้าและผมสั้นเข้าข้างชาย) สิ่งที่ Laplace correction แก้คือ "ศูนย์ตัวเดียวลบหลักฐานทั้งหมด" ไม่ได้บังคับให้คำตอบเปลี่ยน
+
+ข้อควรระวังสามข้อ
+
+1. ตัวส่วนบวก $\alpha V_j$ ซึ่ง $V_j$ ต่างกันในแต่ละ feature (ชื่อบวก 6 แต่สีตาบวก 2) ลืมข้อนี้เป็นข้อผิดพลาดที่พบบ่อยที่สุด
+2. ในตัวอย่างนี้ใช้ Laplace กับ likelihood เท่านั้น prior ยังเป็น $3/8$ และ $5/8$ ตามจำนวนจริง ซึ่งเป็นแนวปฏิบัติของ scikit-learn เช่นกัน (prior มาจากสัดส่วนกลุ่มในข้อมูลฝึก)
+3. ค่าที่ไม่เคยเห็นเลยในข้อมูลฝึกทุกกลุ่ม (เช่น ชื่อใหม่ที่ไม่มีในข้อมูล) ไม่ได้อยู่ใน $V_j$ ตอนฝึก การจัดการขึ้นกับเครื่องมือ บางเครื่องมือข้ามพจน์นั้นไป บางเครื่องมือแจ้ง error ตรวจสอบตามเครื่องมือที่ใช้
+
+### สรุปหัวข้อ
+
+- ค่าที่ไม่เคยปรากฏในกลุ่มทำให้ likelihood เป็นศูนย์ และคะแนนทั้งกลุ่มเป็นศูนย์
+- Laplace: $P(x_j = v \mid C_k) = \frac{N_{v,k} + 1}{N_k + V_j}$ ตัวส่วนบวกจำนวน category ของ feature นั้น
+- ตัวอย่างรายได้: $P(\mathrm{low}) = \frac{0 + 1}{1000 + 3}$ ตัวอย่าง Claudia: posterior F เปลี่ยนจาก 1 เป็น 0.6386
+
+---
+
+## ส่วนที่ 9 คำนวณในสเกล log: สิ่งที่โปรแกรมทำจริง
+
+### 9.1 ปัญหา: underflow
+
+ในการจำแนกอีเมล feature คือคำหลายร้อยหรือหลายพันคำ แต่ละพจน์ $P(x_j \mid C_k)$ อาจเล็ก เช่น 0.001 ผลคูณของ 1,000 พจน์คือ $10^{-3000}$ แต่ตัวเลขทศนิยมแบบ float64 ที่คอมพิวเตอร์ใช้เก็บค่าบวกที่เล็กที่สุดได้ราว $10^{-308}$ ผลคูณจึงกลายเป็นศูนย์ในทุกกลุ่ม เรียกว่า underflow (ปัญหาเดียวกับที่บทที่ 4 ส่วนที่ 7.4 กล่าวถึงตอนใส่ $\ln$ ให้ likelihood)
+
+### 9.2 วิธีแก้: บวก log แทนการคูณ
+
+เพราะ $\ln$ เป็นฟังก์ชันเพิ่ม กลุ่มที่มีคะแนนสูงสุดก็คือกลุ่มที่มี $\ln$ ของคะแนนสูงสุด และ $\ln$ เปลี่ยนผลคูณเป็นผลบวก
+
+$$\ln(P(C_k) \prod_{j=1}^{d} P(x_j \mid C_k)) = \ln P(C_k) + \sum_{j=1}^{d} \ln P(x_j \mid C_k)$$
+
+ผลบวกของค่าติดลบหลายพันตัว เช่น $1000 \times \ln 0.001 \approx -6908$ เก็บได้สบาย
+
+**Worked example:** ตัวอย่าง (Drew, No, Brown, Short) จากส่วนที่ 5
+
+- กลุ่ม M: $\ln(3/8) + \ln(1/3) + \ln(1/3) + \ln(1/3) + \ln(2/3) = -0.9808 - 1.0986 - 1.0986 - 1.0986 - 0.4055 = -4.6821$
+- กลุ่ม F: $\ln(5/8) + \ln(2/5) + \ln(3/5) + \ln(2/5) + \ln(1/5) = -0.4700 - 0.9163 - 0.5108 - 0.9163 - 1.6094 = -4.4228$
+
+F มีค่ามากกว่า (ติดลบน้อยกว่า) ทายว่าหญิงเหมือนเดิม ตรวจ: $e^{-4.4228} \approx 0.0120$ และ $e^{-4.6821} \approx 0.00926$ ตรงกับคะแนนในส่วนที่ 5
+
+### 9.3 แปลงกลับเป็น posterior โดยไม่ underflow
+
+ถ้าต้องการ posterior ห้ามยกกำลัง $e$ ตรงๆ เพราะจะ underflow อีก ให้ลบค่าที่มากที่สุดออกก่อน (เทคนิค log-sum-exp) ผลไม่เปลี่ยน เพราะคูณทั้งเศษและส่วนด้วยค่าเดียวกัน
+
+1. ค่ามากที่สุดคือ $-4.4228$ ลบออกจากทุกกลุ่ม ได้ F $= 0$, M $= -0.2593$
+2. ยกกำลัง $e$: F $= 1$, M $= e^{-0.2593} \approx 0.7716$
+3. normalize: $P(F \mid x) = 1/1.7716 \approx 0.5645$ ตรงกับส่วนที่ 5
+
+scikit-learn คำนวณในสเกล log ทั้งหมดและมี `predict_log_proba` ให้ใช้ด้วย
+
+### สรุปหัวข้อ
+
+- ผลคูณของความน่าจะเป็นเล็กๆ จำนวนมาก underflow เป็นศูนย์
+- ใช้ $\ln P(C_k) + \sum_j \ln P(x_j \mid C_k)$ แทน ตัดสินจากค่าที่มากที่สุดได้เลย
+- แปลงกลับเป็น posterior ด้วยการลบค่าสูงสุดก่อนยกกำลัง $e$
+
+---
+
+## ส่วนที่ 10 ลงมือด้วย Python
+
+สคริปต์เดียวนี้สร้างตัวเลขทุกตัวในบท ต้องใช้ `numpy`, `pandas` และ `scikit-learn` (ติดตั้งด้วย `pip install numpy pandas scikit-learn`) ข้อมูลกำหนดไว้ในสคริปต์ ไม่มีการสุ่ม จึงรันซ้ำได้ผลเท่าเดิม
 
 ```python
-from sklearn.compose import ColumnTransformer
-from sklearn.naive_bayes import BernoulliNB
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
+import numpy as np
+import pandas as pd
+from sklearn.naive_bayes import CategoricalNB, GaussianNB
+from sklearn.preprocessing import OrdinalEncoder
 
-model = Pipeline([
-    (
-        'encode',
-        ColumnTransformer([
-            (
-                'categorical',
-                OneHotEncoder(handle_unknown='ignore'),
-                X.columns
-            )
-        ])
-    ),
-    ('classifier', BernoulliNB())
-])
+df = pd.DataFrame({
+    'name':   ['Drew', 'Claudia', 'Drew', 'Drew', 'Alberto', 'Karin', 'Nina', 'Sergio'],
+    'over170': ['No', 'Yes', 'No', 'No', 'Yes', 'No', 'Yes', 'Yes'],
+    'eye':    ['Blue', 'Brown', 'Blue', 'Blue', 'Brown', 'Blue', 'Brown', 'Blue'],
+    'hair':   ['Short', 'Long', 'Long', 'Long', 'Short', 'Long', 'Short', 'Long'],
+    'height': [168, 172, 160, 158, 178, 165, 171, 182],
+    'sex':    ['M', 'F', 'F', 'F', 'M', 'F', 'F', 'M'],
+})
+features = ['name', 'over170', 'eye', 'hair']
 
-model.fit(X, y)
-model.predict(query_data)
+
+def naive_bayes_scores(df, query, features, alpha=0.0):
+    # คะแนนของแต่ละกลุ่ม = prior คูณ likelihood ของทุก feature (สมมติฐาน naive)
+    scores = {}
+    for c, part in df.groupby('sex'):
+        prior = len(part) / len(df)
+        likelihoods = []
+        for col in features:
+            n_cat = df[col].nunique()
+            count = (part[col] == query[col]).sum()
+            likelihoods.append((count + alpha) / (len(part) + alpha * n_cat))
+        scores[c] = prior * np.prod(likelihoods)
+        print(f'   {c}: prior={prior:.4f} likelihoods={np.round(likelihoods, 4)} score={scores[c]:.6f}')
+    total = sum(scores.values())
+    for c, s in scores.items():
+        print(f'   P({c} | x) = {s / total:.4f}' if total > 0 else f'   P({c} | x) undefined')
+    return scores
+
+
+print('A) one feature: name = Drew')
+for c, part in df.groupby('sex'):
+    like = (part['name'] == 'Drew').mean()
+    prior = len(part) / len(df)
+    print(f'   {c}: P(Drew|{c})={like:.4f} P({c})={prior:.4f} product={like * prior:.4f}')
+print('   evidence P(Drew) =', (df['name'] == 'Drew').mean())
+
+q1 = {'name': 'Drew', 'over170': 'No', 'eye': 'Brown', 'hair': 'Short'}
+print('\nB) four features, no smoothing, query =', q1)
+naive_bayes_scores(df, q1, features)
+
+q2 = {'name': 'Claudia', 'over170': 'No', 'eye': 'Blue', 'hair': 'Short'}
+print('\nC) zero count, query =', q2)
+print('   without Laplace'); naive_bayes_scores(df, q2, features, alpha=0.0)
+print('   with Laplace (alpha=1)'); naive_bayes_scores(df, q2, features, alpha=1.0)
+
+print('\nD) log-space for query B')
+for c, part in df.groupby('sex'):
+    logs = np.log(len(part) / len(df))
+    for col in features:
+        logs += np.log((part[col] == q1[col]).mean())
+    print(f'   {c}: log score = {logs:.4f}')
+
+print('\nE) scikit-learn CategoricalNB')
+enc = OrdinalEncoder()
+X = enc.fit_transform(df[features])
+y = df['sex']
+xq = enc.transform(pd.DataFrame([q1]))
+xq2 = enc.transform(pd.DataFrame([q2]))
+nb0 = CategoricalNB(alpha=1e-10, force_alpha=True).fit(X, y)
+nb1 = CategoricalNB(alpha=1.0).fit(X, y)
+print('   classes =', nb0.classes_)
+print('   alpha~0 query B proba =', nb0.predict_proba(xq).round(4), 'pred =', nb0.predict(xq))
+print('   alpha=1 query C proba =', nb1.predict_proba(xq2).round(4), 'pred =', nb1.predict(xq2))
+
+print('\nF) Gaussian, height = 169')
+for c, part in df.groupby('sex'):
+    h = part['height'].to_numpy(dtype=float)
+    mu, var = h.mean(), h.var()
+    dens = np.exp(-(169 - mu) ** 2 / (2 * var)) / np.sqrt(2 * np.pi * var)
+    print(f'   {c}: mean={mu:.4f} var={var:.4f} sd={np.sqrt(var):.4f} density={dens:.6f} x prior={dens * len(h) / len(df):.6f}')
+g = GaussianNB().fit(df[['height']], y)
+print('   GaussianNB theta_ =', g.theta_.ravel().round(4), 'var_ =', g.var_.ravel().round(4))
+print('   GaussianNB proba(169) =', g.predict_proba(pd.DataFrame({'height': [169]})).round(4))
+
+print('\nG) duplicated hair column (double counting)')
+df['hair2'] = df['hair']
+features_dup = features + ['hair2']
+q3 = dict(q1, hair2='Short')
+naive_bayes_scores(df, q3, features_dup)
 ```
 
-Pipeline ทำให้ขั้นแปลงข้อมูลที่เรียนจาก training data ถูกนำไปใช้กับข้อมูลใหม่แบบเดิมโดยอัตโนมัติ และลดความเสี่ยงที่ลำดับหรือจำนวนคอลัมน์จะไม่ตรงกัน
+**อธิบายทีละส่วน**
 
-### 11.5 ข้อจำกัดและแบบทดลอง
+- **การสร้างข้อมูล:** `pd.DataFrame` เก็บข้อมูล 8 แถวในข้อ 2.1 พร้อมคอลัมน์ `height` จากข้อ 7.4 แต่ละ key คือชื่อคอลัมน์ แต่ละ list คือค่าของคอลัมน์นั้นเรียงตามคนที่ 1 ถึง 8 `features` คือรายชื่อคอลัมน์ที่ใช้ทำนาย
+- **ฟังก์ชัน `naive_bayes_scores`:** รับข้อมูล ตัวอย่างใหม่ (`query` เป็น dict ชื่อคอลัมน์กับค่า) รายชื่อ feature และ `alpha` แล้วทำตามแผนภาพในข้อ 5.4 ตรงตัว `df.groupby('sex')` แบ่งข้อมูลเป็นกลุ่ม F และ M (เรียงตามตัวอักษร F จึงมาก่อน) ได้ `part` คือแถวของกลุ่มนั้น `prior = len(part) / len(df)` คือ $P(C_k)$ ในวงในนับ `count = (part[col] == query[col]).sum()` คือ $N_{v,k}$ (การเทียบได้ True/False ต่อแถว และ `.sum()` นับ True) `n_cat = df[col].nunique()` คือ $V_j$ นับจากข้อมูลทั้งหมด แล้วใช้สูตรในข้อ 8.2 เมื่อ `alpha=0` สูตรนี้คือการนับธรรมดา `np.prod` คูณ likelihood ทุกตัว ท้ายฟังก์ชันหารด้วยผลรวมคะแนนเพื่อให้ได้ posterior (ข้อ 3.3)
+- **ส่วน A:** `(part['name'] == 'Drew').mean()` คือสัดส่วนของ True ในกลุ่ม ซึ่งเท่ากับ $P(\mathrm{Drew} \mid C_k)$ ผลตรงกับข้อ 3.2
+- **ส่วน B และ C:** ตัวอย่างในข้อ 5.3 และ 8.3
+- **ส่วน D:** บวก `np.log` แทนการคูณ ตามข้อ 9.2
+- **ส่วน E:** `CategoricalNB` ต้องการ feature เป็นตัวเลข 0, 1, 2, ... ต่อ category จึงใช้ `OrdinalEncoder` แปลงก่อน (`fit_transform` เรียนว่ามี category อะไรบ้างแล้วแปลง `transform` แปลงตัวอย่างใหม่ด้วยรหัสเดิม) ค่าเริ่มต้นของ `CategoricalNB` คือ `alpha=1.0` (Laplace) ถ้าต้องการเทียบกับการนับที่ไม่แก้ศูนย์ ให้ตั้ง `alpha` เล็กมากคู่กับ `force_alpha=True` ซึ่งเป็นค่าเริ่มต้นตั้งแต่รุ่น 1.4 ถ้า `force_alpha=False` ระบบจะปรับ `alpha` ที่ต่ำกว่า `1e-10` ขึ้นเป็น `1e-10` ส่วนการตั้ง `alpha=0` พอดีอาจเกิดปัญหาเชิงตัวเลขเมื่อมีช่องที่เป็นศูนย์ ([scikit-learn: CategoricalNB](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.CategoricalNB.html)) `predict_proba` คืนคอลัมน์ตามลำดับใน `classes_` คือ F แล้ว M
+- **ส่วน F:** `h.var()` ของ numpy หารด้วย $n$ เป็นค่าเริ่มต้น จึงตรงกับ `var_` ของ `GaussianNB` (ข้อ 7.5) `theta_` คือค่าเฉลี่ยของแต่ละกลุ่ม (ชื่อนี้ใน `GaussianNB` ไม่เกี่ยวกับ $\theta$ ของบทที่ 4)
+- **ส่วน G:** เพิ่มคอลัมน์ผมซ้ำเพื่อดูการนับหลักฐานซ้ำในข้อ 6.2
 
-Custom model ไม่มี Laplace smoothing ถ้า query มี category ที่ไม่เคยพบในคลาสหนึ่ง อาจได้ probability เป็นศูนย์ หรือเกิด `KeyError` ถ้าไม่เคยพบค่านั้นเลย นอกจากนี้การคูณ probability จำนวนมากโดยตรงเสี่ยง numerical underflow เมื่อ features เยอะ
-
-ลองเปลี่ยน query ให้มี category ใหม่ เช่น `Outlook='Foggy'` แล้วทำนายผลลัพธ์ก่อนรัน:
-
-- Custom model มีแนวโน้มเกิด `KeyError`
-- Pipeline ที่ใช้ `OneHotEncoder(handle_unknown='ignore')` ยังทำนายได้
-- การทำนายได้ไม่ได้แปลว่า category ใหม่นั้นมีข้อมูลเพียงพอ ควรบันทึกอัตรา unknown categories เพื่อเฝ้าระวัง dataset shift
-
-## 12. Hands-on Lab: Spam Email Classifier
-
-### 12.1 ปัญหา ข้อมูล และ class balance
-
-> **จาก lab `naive_bayes_spam_email_classifier.ipynb`:** Dataset มีอีเมล 5,728 ฉบับและ 2 คอลัมน์ คือข้อความ `text` กับ label `spam` โดย `1` หมายถึง spam และ `0` หมายถึง ham หรืออีเมลปกติ ทั้งสองคอลัมน์ไม่มี missing value
-
-Class distribution คือ ham 4,360 ฉบับและ spam 1,368 ฉบับ หรือประมาณ 76.1% ต่อ 23.9% ถ้าทายทุกฉบับเป็น ham จะได้ accuracy ประมาณ 76.1% อยู่แล้ว ดังนั้นต้องดู confusion matrix, precision และ recall ของ spam เพิ่ม ไม่ควรสรุปจาก accuracy เพียงค่าเดียว
-
-### 12.2 CountVectorizer เปลี่ยนข้อความเป็นตัวเลขอย่างไร
-
-โมเดลไม่สามารถรับประโยคดิบโดยตรง `CountVectorizer` จึงสร้าง vocabulary จากคำที่พบ แล้วเปลี่ยนอีเมลแต่ละฉบับเป็นเวกเตอร์จำนวนครั้งที่แต่ละคำปรากฏ
-
-สมมติมีข้อความสั้นสองฉบับ:
+**ผลที่ได้จากการรันจริง** (Python 3, numpy 2.5.3, pandas 3.0.5, scikit-learn 1.9.1)
 
 ```text
-free prize
-project meeting
+A) one feature: name = Drew
+   F: P(Drew|F)=0.4000 P(F)=0.6250 product=0.2500
+   M: P(Drew|M)=0.3333 P(M)=0.3750 product=0.1250
+   evidence P(Drew) = 0.375
+
+B) four features, no smoothing, query = {'name': 'Drew', 'over170': 'No', 'eye': 'Brown', 'hair': 'Short'}
+   F: prior=0.6250 likelihoods=[0.4 0.6 0.4 0.2] score=0.012000
+   M: prior=0.3750 likelihoods=[0.3333 0.3333 0.3333 0.6667] score=0.009259
+   P(F | x) = 0.5645
+   P(M | x) = 0.4355
+
+C) zero count, query = {'name': 'Claudia', 'over170': 'No', 'eye': 'Blue', 'hair': 'Short'}
+   without Laplace
+   F: prior=0.6250 likelihoods=[0.2 0.6 0.6 0.2] score=0.009000
+   M: prior=0.3750 likelihoods=[0.     0.3333 0.6667 0.6667] score=0.000000
+   P(F | x) = 1.0000
+   P(M | x) = 0.0000
+   with Laplace (alpha=1)
+   F: prior=0.6250 likelihoods=[0.1818 0.5714 0.5714 0.2857] score=0.010602
+   M: prior=0.3750 likelihoods=[0.1111 0.4    0.6    0.6   ] score=0.006000
+   P(F | x) = 0.6386
+   P(M | x) = 0.3614
+
+D) log-space for query B
+   F: log score = -4.4228
+   M: log score = -4.6821
+
+E) scikit-learn CategoricalNB
+   classes = ['F' 'M']
+   alpha~0 query B proba = [[0.5645 0.4355]] pred = ['F']
+   alpha=1 query C proba = [[0.6386 0.3614]] pred = ['F']
+
+F) Gaussian, height = 169
+   F: mean=165.2000 var=31.7600 sd=5.6356 density=0.056395 x prior=0.035247
+   M: mean=176.0000 var=34.6667 sd=5.8878 density=0.033421 x prior=0.012533
+   GaussianNB theta_ = [165.2 176. ] var_ = [31.76   34.6667]
+   GaussianNB proba(169) = [[0.7377 0.2623]]
+
+G) duplicated hair column (double counting)
+   F: prior=0.6250 likelihoods=[0.4 0.6 0.4 0.2 0.2] score=0.002400
+   M: prior=0.3750 likelihoods=[0.3333 0.3333 0.3333 0.6667 0.6667] score=0.006173
+   P(F | x) = 0.2800
+   P(M | x) = 0.7200
 ```
 
-ถ้า vocabulary คือ `free`, `meeting`, `prize`, `project` แถวแรกจะกลายเป็น `[1, 0, 1, 0]` และแถวที่สองเป็น `[0, 1, 0, 1]` นี่คือ input แบบ non-negative count ที่สอดคล้องกับ `MultinomialNB`
+**Error และคำเตือนที่พบบ่อย**
 
-ใน notebook:
+- `ValueError: could not convert string to float` เมื่อส่งข้อความ เช่น 'Drew' เข้า `CategoricalNB` หรือ `GaussianNB` ตรงๆ ต้องแปลงด้วย `OrdinalEncoder` ก่อน
+- ใช้ `GaussianNB` กับ feature ที่เป็นรหัส category (0, 1, 2) จะได้ผลผิดความหมาย เพราะรหัสไม่ใช่ค่าต่อเนื่องที่เป็นรูประฆัง ให้เลือกตัวจำแนกให้ตรงชนิดข้อมูล: `CategoricalNB` สำหรับ category, `GaussianNB` สำหรับค่าต่อเนื่อง, `MultinomialNB` สำหรับจำนวนนับ เช่น จำนวนคำ, `BernoulliNB` สำหรับมี/ไม่มี ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html))
+- `IndexError` ตอน `predict` ด้วย `CategoricalNB` เมื่อตัวอย่างใหม่มี category ที่ไม่เคยเห็นตอนฝึก (รหัสเกินจำนวนที่เรียนไว้) ต้องรวม category ทั้งหมดไว้ในตัวเข้ารหัส หรือกำหนด `min_categories` (ทดสอบกับรุ่น 1.9.1 ได้ข้อความ `index ... is out of bounds` ตรวจสอบตามรุ่นที่ใช้)
+- `RuntimeWarning: divide by zero encountered in log` เมื่อทำส่วน D กับตัวอย่างที่มีศูนย์ (เช่น query C) เพราะ $\ln 0$ เป็นลบอนันต์ แก้ด้วย Laplace correction
+- ลืมว่าลำดับคอลัมน์ของ `predict_proba` ตาม `classes_` ซึ่งเรียงตามตัวอักษร ไม่ใช่ตามลำดับที่พบในข้อมูล
 
-```python
-vectorizer = CountVectorizer()
-data_vec = vectorizer.fit_transform(spam_df['text'])
-```
+**ลองปรับค่าเพื่อเข้าใจ**
 
-ได้ sparse matrix shape `(5728, 37303)` หมายถึงอีเมล 5,728 แถวและคำ 37,303 features มีค่าที่ไม่เป็นศูนย์ 708,380 จุด การใช้ sparse matrix สำคัญเพราะเมทริกซ์ข้อความส่วนใหญ่เป็นศูนย์ จึงไม่ควรแปลงเป็น dense array โดยไม่จำเป็น ค่าสูงสุดในเมทริกซ์คือคำว่า `the` ซึ่งปรากฏ 596 ครั้งในอีเมลหนึ่งฉบับ
+1. ในส่วน C เปลี่ยน `alpha` เป็น 0.5 และ 10 แล้วดูว่า posterior เคลื่อนเข้าหา prior (0.625) อย่างไรเมื่อ `alpha` ใหญ่ขึ้น (ผลไม่ได้แสดงไว้ในบท คาดว่า `alpha` ใหญ่จะทำให้ likelihood ของทุกกลุ่มเข้าใกล้กันจนเหลือแต่ผลของ prior)
+2. ในส่วน F เปลี่ยนความสูงที่ทำนายเป็น 180 และตรวจกับโจทย์ข้อ 4 ในส่วนที่ 13
+3. ในส่วน G ลองเพิ่มคอลัมน์ซ้ำของ `over170` แทน แล้วทำนายว่าคำตอบจะเอียงไปทางไหนก่อนรัน
 
-### 12.3 จุดที่ควรแก้: split ก่อน fit vectorizer
+---
 
-Notebook ต้นฉบับเรียก `fit_transform()` กับข้อความทั้งหมดก่อน `train_test_split()` แม้ label ไม่ได้รั่วเข้าไป แต่ vocabulary ได้เห็นคำจาก test set แล้ว จึงเป็น **preprocessing leakage** และอาจทำให้การประเมินมองโลกดีเกินจริง
+## ส่วนที่ 11 แนวคิดที่มักเข้าใจผิด
 
-ลำดับที่ควรใช้คือ:
-
-1. แบ่งข้อความดิบและ label เป็น train/test
-2. fit `CountVectorizer` ด้วยข้อความ train เท่านั้น
-3. transform ข้อความ test ด้วย vocabulary เดิม
-4. fit `MultinomialNB` ด้วย train matrix
-5. predict และ evaluate test matrix
-
-Pipeline รวมลำดับทั้งหมดและช่วยป้องกันการ fit ผิดชุด:
-
-```python
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-
-X_train, X_test, y_train, y_test = train_test_split(
-    spam_df['text'],
-    spam_df['spam'],
-    test_size=0.20,
-    stratify=spam_df['spam'],
-    random_state=123
-)
-
-spam_model = Pipeline([
-    ('vectorizer', CountVectorizer()),
-    ('classifier', MultinomialNB())
-])
-
-spam_model.fit(X_train, y_train)
-y_pred = spam_model.predict(X_test)
-
-print(confusion_matrix(y_test, y_pred))
-print(classification_report(y_test, y_pred, digits=3))
-```
-
-เพราะ workflow นี้แก้ leakage ผลตัวเลขอาจต่างจาก output เดิมเล็กน้อย ความต่างดังกล่าวเป็นสิ่งที่ควรยอมรับเพื่อให้การประเมินสะท้อนข้อมูลที่ไม่เคยเห็นจริง
-
-### 12.4 ทำไมเลือก MultinomialNB
-
-Notebook แสดงชื่อ Gaussian, Multinomial, Bernoulli และ Categorical Naive Bayes แต่ model ที่ fit จริงคือ `MultinomialNB()` ซึ่งเหมาะกับ word counts:
-
-- `MultinomialNB` ใช้จำนวนครั้งของคำและต้องการค่าไม่ติดลบ
-- `BernoulliNB` เหมาะเมื่อสนใจเพียงมีหรือไม่มีคำ ไม่สนจำนวนครั้ง
-- `ComplementNB` เป็นอีกทางเลือกที่ควรทดลองเมื่อ class distribution ไม่สมดุล
-- `GaussianNB` สมมติ continuous features แบบ Gaussian และไม่เหมาะกับ sparse word counts โดยตรง
-- `CategoricalNB` ใช้กับ categorical feature แต่ละคอลัมน์ ไม่ใช่ vocabulary counts จำนวนมาก
-
-การ import หลายโมเดลไม่ได้หมายความว่า notebook ได้ทดลองทุกโมเดล ต้องดูบรรทัดที่สร้าง object และ `fit()` จริงเสมอ
-
-### 12.5 ผลจาก notebook และการคำนวณ metrics
-
-> **ผลที่บันทึกใน notebook:** Test set มี 1,146 ฉบับ และ confusion matrix ให้ค่า TN = 861, FP = 11, FN = 1, TP = 273
-
-| ค่าจริง / ค่าทำนาย | Ham | Spam |
-|---|---:|---:|
-| Ham | TN = 861 | FP = 11 |
-| Spam | FN = 1 | TP = 273 |
-
-Accuracy คำนวณจาก:
-
-$$
-Accuracy =\frac{TN+TP}{TN+FP+FN+TP} =\frac{861+273}{1146} \approx 0.9895
-$$
-
-สำหรับ spam class:
-
-$$
-Precision_{spam} =\frac{TP}{TP+FP} =\frac{273}{273+11} \approx 0.9613
-$$
-
-$$
-Recall_{spam} =\frac{TP}{TP+FN} =\frac{273}{273+1} \approx 0.9964
-$$
-
-Precision ประมาณ 0.96 หมายความว่า ในอีเมลที่โมเดลแจ้งว่าเป็น spam มีประมาณ 96% ที่เป็น spam จริง ส่วน recall ใกล้ 1.00 หมายความว่าโมเดลพลาด spam จริงเพียง 1 ฉบับจาก 274 ฉบับ
-
-ผลนี้ดูดีมาก แต่ต้องอ่านตามผลกระทบของข้อผิดพลาดด้วย FP 11 ฉบับคืออีเมลปกติที่ถูกส่งไป spam folder ซึ่งอาจสร้างความเสียหายมากกว่า FN ในบางองค์กร การเลือกโมเดลหรือ threshold จึงขึ้นกับต้นทุนของสองความผิดพลาด ไม่ใช่ดู accuracy สูงสุดเพียงอย่างเดียว
-
-### 12.6 Validation และ troubleshooting
-
-| อาการ | สาเหตุที่เป็นไปได้ | วิธีตรวจและแก้ |
-|---|---|---|
-| `ValueError: Negative values in data` | ส่ง standardized features เข้า `MultinomialNB` | ใช้ non-negative counts หรือเลือกโมเดลที่ตรงชนิดข้อมูล |
-| Train/test มีจำนวน features ไม่เท่ากัน | fit vectorizer แยกกันสองชุด | fit บน train แล้วใช้ `transform()` กับ test หรือใช้ Pipeline |
-| Memory เต็ม | แปลง sparse matrix เป็น dense | คง sparse matrix และอย่าเรียก `.toarray()` กับข้อมูลใหญ่ |
-| Accuracy สูงแต่จับ spam ไม่ได้ | class imbalance | ดู recall, F1 และ confusion matrix ของ spam |
-| ผลเปลี่ยนทุกครั้ง | split ไม่คงที่ | กำหนด `random_state` และใช้ `stratify` |
-| คำใหม่ทั้งหมดถูกมองข้าม | vocabulary ไม่มีคำเหล่านั้น | ตรวจ out-of-vocabulary rate และ retrain เมื่อข้อมูลเปลี่ยน |
-
-ก่อนเชื่อผล ควรตรวจอย่างน้อยว่า train/test ไม่ทับกัน, vectorizer fit เฉพาะ train, class proportions ใกล้เคียงกัน, จำนวน prediction เท่ากับจำนวน test labels และ confusion matrix รวมกันได้เท่ากับ test size
-
-### 12.7 แบบทดลองต่อยอด
-
-ทดลองเปลี่ยน `CountVectorizer()` เป็นแต่ละตัวเลือกต่อไปนี้ โดยคง split เดิม แล้วคาดการณ์ก่อนรันว่าค่า precision และ recall จะเปลี่ยนอย่างไร:
-
-1. `CountVectorizer(binary=True)` เพื่อเปรียบเทียบ count กับ word presence
-2. `CountVectorizer(stop_words='english')` เพื่อตัดคำทั่วไป เช่น `the`
-3. `CountVectorizer(ngram_range=(1, 2), min_df=2)` เพื่อเพิ่มวลีสองคำแต่ลดคำที่พบครั้งเดียว
-4. `TfidfVectorizer()` เพื่อให้น้ำหนักคำที่พบเฉพาะบางเอกสารมากขึ้น
-5. `ComplementNB()` เพื่อเปรียบเทียบกับ MultinomialNB ในข้อมูลไม่สมดุล
-
-เปรียบเทียบด้วย precision, recall และ F1 ของ spam พร้อมบันทึกจำนวน features และเวลา fit การเพิ่ม features ไม่ได้รับประกันว่าจะดีขึ้น เพราะอาจเพิ่ม noise, memory และความเสี่ยง overfitting
-
-## 13. การตีความและตรวจสอบผลลัพธ์
-
-### 11.1 Accuracy ไม่เพียงพอเสมอไป
-
-Accuracy เหมาะเมื่อความผิดพลาดทุกคลาสมีต้นทุนใกล้กันและ class distribution ไม่เบ้มาก ถ้า fraud มีเพียง 1% โมเดลที่ตอบว่าไม่ fraud ทุกแถวจะได้ accuracy 99% แต่จับ fraud ไม่ได้เลย กรณีนี้ต้องดู recall, precision, F1-score, confusion matrix และ metric ที่สะท้อนต้นทุนทางธุรกิจ
-
-### 11.2 Predicted class กับ predicted probability คนละเรื่อง
-
-โมเดลอาจจัดอันดับคลาสถูก แต่ probability ไม่ได้ calibrated ดี กล่าวคือ prediction 0.90 อาจไม่ได้ถูกประมาณ 90% จริงเมื่อเก็บตัวอย่างลักษณะเดียวกันจำนวนมาก Conditional independence ที่ผิดสามารถทำให้ evidence ที่สัมพันธ์กันถูกนับซ้ำและ probability มั่นใจเกินจริง เอกสาร scikit-learn แสดงว่า `GaussianNB` อาจผลัก probability ไปใกล้ 0 หรือ 1 เมื่อ features มีความสัมพันธ์กัน [Probability calibration](https://scikit-learn.org/stable/modules/calibration.html)
-
-ดังนั้น:
-
-- ถ้าต้องการเพียง class label ให้ประเมิน classification performance
-- ถ้าจะใช้ probability ตั้ง threshold หรือคำนวณความเสี่ยง ต้องตรวจ calibration เพิ่ม
-- ถ้าค่า probability มีผลต่อการตัดสินใจสูง ควรใช้ calibration curve และพิจารณา probability calibration บนข้อมูลที่แยกจากชุดฝึก
-
-## 14. ข้อดี ข้อจำกัด และ failure modes
-
-### ข้อดี
-
-- ฝึกและทำนายเร็ว เพราะประมาณ statistics แยกตาม class-feature pair
-- ใช้ memory น้อยและรองรับ features จำนวนมาก
-- เหมาะกับ text classification และข้อมูลแบบ count ในหลายสถานการณ์
-- รองรับ incremental learning ในบาง implementation เช่น `partial_fit`
-- เป็น baseline ที่ตีความกลไกได้ค่อนข้างตรงไปตรงมา
-
-### ข้อจำกัด
-
-- Conditional independence มักไม่จริงในข้อมูลจริง
-- Correlated features อาจนับหลักฐานเดิมซ้ำ ทำให้ probability มั่นใจเกินไป
-- Likelihood distribution ต้องเลือกให้เหมาะกับชนิด feature
-- Category ที่ไม่เคยพบทำให้ probability เป็นศูนย์หากไม่ smoothing
-- GaussianNB ไวต่อ distribution ที่เบ้ หลายยอด และ outliers
-- ความแม่นยำดีไม่ได้แปลว่า posterior probability เชื่อถือได้
-
-### อาการ สาเหตุ และแนวทางตรวจ
-
-| อาการ | สาเหตุที่เป็นไปได้ | วิธีตรวจ | แนวทางแก้ |
-|---|---|---|---|
-| Probability เป็น 0 หรือ 1 จำนวนมาก | features สัมพันธ์กันหรือ underflow | correlation, calibration curve, log probabilities | ลด features ซ้ำซ้อน ใช้ log space หรือ calibrate |
-| คลาสหนึ่งไม่เคยถูกทำนาย | imbalance หรือ prior ครอบงำ | class counts และ confusion matrix | ทบทวน sampling, prior, metric และ variant |
-| คะแนนเป็นศูนย์เมื่อพบ category ใหม่ | ไม่ใช้ smoothing | ตรวจ category counts ต่อ class | ใช้ additive smoothing |
-| GaussianNB ทำงานไม่ดี | distribution ไม่ใกล้ Gaussian | histogram แยก class และ feature | transform feature หรือเลือกโมเดลอื่น |
-| ผล test สูงผิดปกติ | data leakage | ตรวจลำดับ split, preprocessing, duplicate entities | split ก่อนเรียน parameters และใช้ pipeline |
-
-## 15. Decision Framework
-
-เลือก Naive Bayes เมื่อข้อมูลตรงกับ likelihood ที่โมเดลสมมติ ต้องการโมเดลเร็ว หรืออยากได้ baseline ที่แข็งแรง โดยเฉพาะข้อมูลข้อความที่มี dimensions สูง แต่ไม่ควรเลือกเพียงเพราะชื่อโมเดลง่าย
-
-| สถานการณ์ | ทางเลือกที่เหมาะ | เหตุผล |
-|---|---|---|
-| Continuous measurements และ distribution ต่อ class พอใกล้ Gaussian | GaussianNB | ประมาณ mean และ variance ได้โดยตรง |
-| Word counts หรือ frequency | MultinomialNB | likelihood ตรงกับ count data |
-| สนใจว่าคำปรากฏหรือไม่ | BernoulliNB | ใช้ binary occurrence |
-| Features เป็น categories หลายค่า | CategoricalNB | ประมาณ categorical distribution แยก feature |
-| Text data มี class imbalance | ทดลอง ComplementNB เทียบ MultinomialNB | ออกแบบมาเพื่อลดปัญหาจาก imbalance |
-| Features สัมพันธ์กันมากและต้องการ probability ที่น่าเชื่อถือ | เปรียบเทียบ Logistic Regression และ calibration | Naive independence อาจทำให้ confidence สูงเกินจริง |
-| ต้องอธิบาย interaction ซับซ้อน | Tree-based model หรือโมเดลที่รองรับ interaction | Naive Bayes ไม่จำลอง dependency โดยตรง |
-
-## 16. Critical Discussion ระดับปริญญาโท
-
-### 16.1 สมมติฐานผิดแล้วเหตุใดยังทำนายได้ดี
-
-Classifier ต้องเลือกคลาสที่มี score สูงสุด ไม่จำเป็นต้องประมาณ joint distribution ได้ถูกต้องทุกจุด แม้ likelihood ของแต่ละคลาสคลาดเคลื่อน แต่ถ้าลำดับคะแนนยังถูก decision boundary ก็ยังจำแนกได้ดี นี่อธิบายว่าทำไม Naive Bayes อาจมี accuracy ดีแม้ probability calibration ไม่ดี
-
-### 16.2 Prediction ไม่ใช่ causation
-
-Feature ที่ช่วยจำแนกไม่จำเป็นต้องเป็นสาเหตุของคลาส ตัวอย่างชื่อกับเพศในสไลด์เป็น association ในข้อมูลขนาดเล็ก และยังเสี่ยงสร้าง bias หากนำไปใช้กับคนจริง การเลือก features ต้องพิจารณาความชอบธรรม ความเป็นส่วนตัว ผลกระทบต่อกลุ่ม และการเปลี่ยนแปลงของ population
-
-### 16.3 Dataset shift
-
-Prior และ likelihood เรียนจากอดีต ถ้าสัดส่วนคลาสหรือรูปแบบ features เปลี่ยน posterior ที่คำนวณย่อมไม่แทนสถานการณ์ปัจจุบัน ระบบ production จึงต้องติดตาม class distribution, feature distribution, performance และ calibration ตามเวลา
-
-### 16.4 Independence ต้องตรวจในเงื่อนไขของคลาส
-
-การดู correlation ของข้อมูลทั้งหมดไม่เท่ากับตรวจ conditional independence ควรสำรวจความสัมพันธ์ของ features ภายในแต่ละ class อย่างไรก็ตาม correlation วัดเพียงความสัมพันธ์เชิงเส้นและไม่พิสูจน์ independence การตรวจนี้จึงเป็น diagnostic ไม่ใช่ข้อพิสูจน์สมมติฐาน
-
-## 17. Common Misconceptions
-
-1. **Naive Bayes ต้องการให้ features เป็นอิสระโดยไม่มีเงื่อนไข** - ไม่ถูก ต้องเป็นอิสระเมื่อกำหนด class แล้ว
-2. **Evidence ต้องคำนวณเสมอ** - ไม่จำเป็นสำหรับการเลือก class เพราะเป็นตัวหารร่วม แต่จำเป็นเมื่อ normalize เป็น posterior
-3. **Probability density คือ probability** - ไม่เหมือนกันสำหรับ continuous variable
-4. **Accuracy สูงแปลว่า probability ถูกต้อง** - ไม่จริง ต้องประเมิน calibration แยก
-5. **ค่า likelihood เป็นศูนย์แปลว่าคลาสเป็นไปไม่ได้จริง** - อาจเกิดเพราะ training data ไม่เคยเห็นค่านั้น จึงต้องพิจารณา smoothing
-6. **Naive Bayes ใช้ได้เฉพาะสองคลาส** - ไม่จริง สามารถคำนวณคะแนนทุกคลาสและเลือกค่าสูงสุดได้
-7. **ชื่อ Laplacian correction หมายถึง Laplacian distribution** - ในบริบทสไลด์หมายถึง Laplace additive smoothing ไม่เกี่ยวกับ Laplace distribution
-
-## 18. Likely Exam Focus
-
-> ส่วนนี้เป็นการอนุมานจากหัวข้อ สมการ และตัวอย่างที่เน้นในเอกสาร ไม่ใช่ข้อมูลข้อสอบจริง
-
-- ระบุและอธิบาย posterior, prior, likelihood และ evidence
-- derive Bayes' Rule จาก conditional probability
-- คำนวณ posterior สำหรับหนึ่ง feature และหลาย features
-- อธิบาย conditional independence และผลต่อจำนวน parameters
-- ตรวจข้อผิดพลาดในการคูณ prior, likelihood และ normalization
-- อธิบาย Gaussian likelihood สำหรับ continuous feature
-- อธิบาย zero-frequency problem และคำนวณ Laplace smoothing
-- เปรียบเทียบข้อดี ข้อจำกัด และสถานการณ์ที่ควรใช้ Naive Bayes
-
-## 19. Progressive Practice พร้อมเฉลย
-
-### ข้อ 1: Recall
-
-ใน Bayes' Rule ส่วนใดแทนความเชื่อก่อนเห็นตัวอย่างใหม่ และส่วนใดแทนความเชื่อหลังเห็นตัวอย่างใหม่
-
-**เฉลย:** $P(Y)$ คือ prior ก่อนเห็น $X$ และ $P(Y \mid X)$ คือ posterior หลังเห็น $X$
-
-### ข้อ 2: Calculation
-
-ในข้อมูล 100 รายการ มี Fraud 20 รายการ ระบบพบ feature `international` ใน Fraud 12 รายการและใน Non-fraud 8 รายการ จงหา $P(Fraud \mid international)$
-
-**เฉลย:**
-
-$$
-P(Fraud)=\frac{20}{100}=0.20
-$$
-
-$$
-P(international \mid Fraud)=\frac{12}{20}=0.60
-$$
-
-$$
-P(international)=\frac{12+8}{100}=0.20
-$$
-
-$$
-P(Fraud \mid international) = \frac{0.60 \times 0.20}{0.20} = 0.60
-$$
-
-แม้ prior ของ Fraud มีเพียง 20% แต่เมื่อทราบว่าเป็น international transaction posterior เพิ่มเป็น 60%
-
-### ข้อ 3: Laplace smoothing
-
-ในคลาสหนึ่งมีข้อมูล 20 แถว Feature `channel` มี 4 categories และ category `mobile` ไม่เคยพบ จงคำนวณ probability ของ `mobile` เมื่อใช้ $\alpha=1$
-
-**เฉลย:**
-
-$$
-P(mobile \mid class) = \frac{0+1}{20+1 \times 4} = \frac{1}{24}
-$$
-
-### ข้อ 4: Analyze
-
-โมเดลอีเมลใช้ features `free`, `free_offer` และ `special_free_offer` ซึ่งสัมพันธ์กันมาก โมเดลทำนาย Spam probability 0.9999 ควรสรุปอย่างไร
-
-**เฉลย:** โมเดลอาจจัด class ได้ถูก แต่ probability มีแนวโน้มมั่นใจเกินจริง เพราะหลักฐานที่มีความหมายซ้ำกันถูกคูณราวกับเป็นอิสระ ควรตรวจ correlation หรือ dependency ภายใน class, calibration curve และเปรียบเทียบกับ feature set ที่ลดความซ้ำซ้อน
-
-### ข้อ 5: Model selection
-
-จับหมวดหมู่ข่าวจากจำนวนครั้งที่แต่ละคำปรากฏควรเริ่มจากโมเดลใด เพราะเหตุใด
-
-**เฉลย:** เริ่มจาก `MultinomialNB` เพราะ features เป็น non-negative word counts ซึ่งสอดคล้องกับ multinomial event model ถ้าข้อมูล class imbalance มากควรทดลอง `ComplementNB` เพิ่มและเปรียบเทียบบน validation data
-
-### ข้อ 6: Debugging
-
-เหตุใดจึงห้าม fit preprocessing หรือโมเดลโดยใช้ข้อมูลทั้งหมดก่อน train-test split
-
-**เฉลย:** เพราะข้อมูลจาก test set จะมีอิทธิพลต่อ parameters ที่ใช้สร้างโมเดล ทำให้ test set ไม่เป็น unseen data และ metric สูงเกินความสามารถจริง ต้อง split ก่อน แล้วเรียน preprocessing parameters และ model parameters จาก training data เท่านั้น
-
-## 20. Mini-project: Spam Message Classifier
-
-สร้างตัวจำแนกข้อความเป็น Spam หรือ Not Spam โดย:
-
-1. กำหนดให้หนึ่งแถวแทนหนึ่งข้อความและตรวจ class distribution
-2. แบ่ง train-test แบบ stratified
-3. แปลงข้อความเป็น word counts ด้วย `CountVectorizer`
-4. ฝึก `MultinomialNB`
-5. รายงาน confusion matrix, precision, recall, F1-score และ accuracy
-6. เปลี่ยนค่า `alpha` อย่างน้อย 3 ค่าแล้วอธิบายผล
-7. ตรวจข้อความที่ทำนายผิดอย่างน้อย 10 รายการ
-8. อภิปราย privacy, bias, dataset shift และต้นทุนของ false positive กับ false negative
-
-### เกณฑ์ประเมิน
-
-| ด้าน | หลักฐานที่ต้องมี |
+| ความเข้าใจผิด | ความจริง |
 |---|---|
-| Correct workflow | split ก่อน fit vectorizer และ model |
-| Reproducibility | กำหนด random state และระบุ package versions |
-| Interpretation | ไม่รายงาน accuracy เพียงค่าเดียว |
-| Validation | ตรวจ confusion matrix และ prediction errors |
-| Experiment | เปรียบเทียบ `alpha` โดยใช้ข้อมูลแบ่งแบบเดียวกัน |
-| Critical thinking | อธิบาย assumption, bias และ deployment risk |
+| $P(Y \mid X)$ กับ $P(X \mid Y)$ เท่ากัน | ต่างกัน เพราะย่อประชากรต่างกัน เช่น $P(F \mid \mathrm{Drew}) = 2/3$ แต่ $P(\mathrm{Drew} \mid F) = 2/5$ |
+| กฎของเบย์เป็นสมมติฐานของ Naive Bayes | กฎของเบย์พิสูจน์ได้จากนิยามและถูกเสมอ สมมติฐานคือความเป็นอิสระแบบมีเงื่อนไข |
+| ต้องคำนวณ evidence $P(X)$ ทุกครั้ง | การตัดสินกลุ่มเทียบแค่ prior คูณ likelihood evidence ใช้เฉพาะเมื่อต้องการตัวเลข posterior |
+| สมมติฐาน naive แปลว่า feature ไม่สัมพันธ์กันเลย | สมมติว่าเป็นอิสระ **เมื่อรู้กลุ่มแล้ว** ในประชากรรวมสัมพันธ์กันได้ |
+| สมมติฐานไม่จริง Naive Bayes จึงใช้ไม่ได้ | การจำแนกมักยังถูก เพราะ MAP ต้องการแค่ลำดับ แต่ตัวเลขความน่าจะเป็นมักเพี้ยน |
+| ใส่ feature มากยิ่งดีเสมอ | feature ที่ซ้ำซ้อนทำให้นับหลักฐานซ้ำจนคำตอบพลิกได้ |
+| ตัวอย่าง (Drew, No, Brown, Short) ทายว่าชาย | คะแนน F $= 0.012$ มากกว่า M $\approx 0.0093$ ทายว่าหญิง (posterior F $\approx 0.5645$) |
+| ค่าจากสูตร Gaussian คือความน่าจะเป็น อยู่ระหว่าง 0 ถึง 1 | เป็นความหนาแน่น เกิน 1 ได้ ใช้เทียบระหว่างกลุ่มที่จุดเดียวกัน |
+| ค่าเฉลี่ยและความแปรปรวนคิดจากข้อมูลทั้งหมด | คิดแยกต่อกลุ่ม $\mu_k, \sigma_k^{2}$ |
+| Laplace บวก 1 ที่ตัวเศษอย่างเดียว | ต้องบวกจำนวน category $V_j$ ที่ตัวส่วนด้วย เช่น $\frac{0 + 1}{1000 + 3}$ |
+| Laplace ใช้ $V_j$ เดียวกันทุก feature | $V_j$ คือจำนวน category ของ feature นั้น ชื่อ 6 สีตา 2 |
+| ความน่าจะเป็นศูนย์แปลว่าเป็นไปไม่ได้จริง | มักแปลว่าข้อมูลฝึกไม่พอ จึงต้องแก้ด้วย smoothing |
 
-## 21. Mastery Checklist
+---
 
-- [ ] อธิบาย classification input และ output ได้
-- [ ] แยก prior, likelihood, evidence และ posterior ได้
-- [ ] derive Bayes' Rule จาก conditional probability ได้
-- [ ] คำนวณตัวอย่าง Drew และอธิบาย source correction ได้
-- [ ] อธิบาย conditional independence โดยไม่สับสนกับ unconditional independence ได้
-- [ ] อธิบายเหตุผลที่ใช้ log probabilities ได้
-- [ ] เลือก Naive Bayes variant ตามชนิด feature ได้
-- [ ] คำนวณ Laplace smoothing และอธิบายตัวส่วนได้
-- [ ] สร้าง `GaussianNB` ด้วย train-test split โดยไม่มี leakage ได้
-- [ ] อธิบาย custom Naive Bayes และเปรียบเทียบผลกับ `BernoulliNB` ได้
-- [ ] แปลงข้อความด้วย `CountVectorizer` โดย fit เฉพาะ training data ได้
-- [ ] สร้าง `MultinomialNB` และตีความ FP/FN ในบริบท spam ได้
-- [ ] ตีความ confusion matrix และข้อจำกัดของ accuracy ได้
-- [ ] แยก classification performance ออกจาก probability calibration ได้
-- [ ] อธิบายข้อจำกัดด้าน bias, privacy และ dataset shift ได้
+## ส่วนที่ 12 Cheat Sheet
 
-## 22. Key Takeaways
+**กฎของเบย์**
 
-Naive Bayes นำ Bayes' Rule มาใช้จำแนกคลาส โดยประมาณ prior จากสัดส่วนคลาสและ likelihood จากการกระจายของ features ภายในคลาส สมมติฐาน conditional independence ทำให้ joint likelihood แตกเป็นผลคูณของ likelihood ราย feature จึงฝึกและทำนายได้เร็ว
+- $P(Y \mid X) = \frac{P(Y \cap X)}{P(X)}$ และ $P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}$
+- Posterior $=$ Likelihood $\times$ Prior $/$ Evidence, Evidence $= \sum_{k=1}^{K} P(X \mid C_k)P(C_k)$
+- ตัดสิน: $\hat{y} = \mathrm{argmax}_k P(X \mid C_k)P(C_k)$ (MAP)
 
-ความเรียบง่ายนี้มีต้นทุน Features ที่สัมพันธ์กันอาจทำให้หลักฐานถูกนับซ้ำและ probability มั่นใจเกินจริง การใช้งานที่ดีจึงต้องเลือก likelihood ให้ตรงชนิดข้อมูล ใช้ smoothing เมื่อมี categorical counts แยก train กับ test อย่างถูกต้อง และประเมินทั้ง classification performance กับ probability calibration ตามวัตถุประสงค์
+**หลาย feature**
 
-## 23. Glossary
+- Chain rule (ถูกเสมอ): $P(x_1, \ldots, x_d \mid Y) = P(x_1 \mid Y)P(x_2 \mid x_1, Y) \cdots P(x_d \mid x_{d-1}, \ldots, x_1, Y)$
+- แบบร่วม ต้องประมาณ $2^{d} - 1$ ตัวต่อกลุ่ม (feature สองค่า)
+- Naive: $P(x_1, \ldots, x_d \mid Y) = \prod_{j=1}^{d} P(x_j \mid Y)$ และ $\hat{y} = \mathrm{argmax}_k P(C_k)\prod_j P(x_j \mid C_k)$
 
-| คำศัพท์ | ความหมาย |
-|---|---|
-| Classification | การทำนาย class label จาก features |
-| Feature | ตัวแปรนำเข้าที่ใช้อธิบายหรือทำนาย |
-| Class | กลุ่มคำตอบที่โมเดลต้องเลือก |
-| Prior | ความน่าจะเป็นของคลาสก่อนเห็นตัวอย่างใหม่ |
-| Likelihood | ความเป็นไปได้ของ features เมื่อกำหนดคลาส |
-| Evidence | ความน่าจะเป็นรวมของ features |
-| Posterior | ความน่าจะเป็นของคลาสหลังเห็น features |
-| Conditional independence | ความเป็นอิสระของ features เมื่อกำหนด class แล้ว |
-| MAP | การเลือกคลาสที่มี posterior สูงสุด |
-| Probability density | ความหนาแน่นของความน่าจะเป็นสำหรับค่าต่อเนื่อง |
-| Laplace smoothing | การเพิ่ม pseudo-count เพื่อป้องกัน probability เป็นศูนย์ |
-| Calibration | ความสอดคล้องระหว่าง predicted probability กับความถี่จริง |
+**ขั้นตอนคำนวณด้วยมือ**
 
-## Learning Gap Audit
+1. นับ prior ของทุกกลุ่ม
+2. นับ $P(x_j \mid C_k)$ ทีละ feature ภายในกลุ่ม (ถ้ามีศูนย์ ใช้ Laplace)
+3. คูณได้คะแนนกลุ่ม เลือกกลุ่มที่สูงสุด
+4. ถ้าต้องการ posterior หารด้วยผลรวมคะแนนทุกกลุ่ม
 
-การตรวจรอบนี้ยืนยันว่าโน้ตไม่ได้เพียงถอด Bayes' Rule จากสไลด์ แต่สอนลำดับ prior → likelihood → unnormalized score → posterior → class decision พร้อมตัวอย่างคำนวณครบขั้น Lab สองชุดถูกใช้เพื่ออธิบายคนละชนิดข้อมูล และชี้จุดที่ output รันได้แต่ workflow ยังมี leakage จากการ fit vocabulary ก่อน split ขอบเขตที่ตั้งใจไม่ลงลึกคือการพิสูจน์ calibration theory และ generative graphical models ซึ่งไม่จำเป็นต่อ Core objectives ของบทนี้
+**ค่าที่ควรจำจากตัวอย่าง**
 
-## 24. Source Coverage Audit
+- Drew (feature เดียว): $P(M \mid \mathrm{Drew}) = 1/3$, $P(F \mid \mathrm{Drew}) = 2/3$
+- (Drew, No, Brown, Short): M $= \frac{2}{81} \cdot \frac{3}{8} = \frac{1}{108}$, F $= \frac{12}{625} \cdot \frac{5}{8} = \frac{3}{250}$, posterior M $= 0.4355$, F $= 0.5645$, ทายว่าหญิง
 
-| เนื้อหาในเอกสาร | ส่วนใน Master Note | สถานะ |
-|---|---|---|
-| Classification overview และ use cases | ส่วน 1 | ครบ |
-| Bayes' Rule และองค์ประกอบ | ส่วน 3 | ครบและขยาย derivation |
-| ตัวอย่างชื่อ Drew หนึ่ง feature | ส่วน 3.3 | ครบ |
-| Multiple features และ chain rule | ส่วน 4 | ครบและขยายปัญหาความซับซ้อน |
-| Naive conditional independence | ส่วน 4.2 | ครบ |
-| ตัวอย่างคำนวณ Male/Female | ส่วน 5 | ตรวจใหม่และแก้ข้อผิดพลาดจากสไลด์ |
-| Advantages and disadvantages | ส่วน 14 | ครบและขยาย failure modes |
-| Continuous values และ Gaussian density | ส่วน 7 | ครบและอธิบาย density |
-| Laplacian correction | ส่วน 8 | ครบและปรับศัพท์เป็น Laplace smoothing |
-| Custom Naive Bayes กับ Play Tennis | ส่วน 11 | ครบทั้ง preprocessing, fit, predict และผลสาม queries |
-| One-hot encoding และ BernoulliNB | ส่วน 11.4 | ครบ พร้อมเพิ่ม Pipeline สำหรับ unknown categories |
-| Spam dataset และ CountVectorizer | ส่วน 12.1-12.2 | ครบ พร้อมอธิบาย sparse matrix และ class balance |
-| Train-test split และ MultinomialNB | ส่วน 12.3-12.4 | ครบ พร้อมชี้ preprocessing leakage ในลำดับเดิม |
-| Confusion matrix และ classification report | ส่วน 12.5 | ครบ พร้อมคำนวณและแปลผล metrics |
-| Reference ในสไลด์ | References | ครบ |
+**ค่าต่อเนื่อง**
+
+- $f(x) = \frac{1}{\sqrt{2\pi\sigma_k^{2}}}e^{-\frac{(x - \mu_k)^{2}}{2\sigma_k^{2}}}$ ใช้ $\mu_k, \sigma_k^{2}$ ของแต่ละกลุ่ม เป็น density
+
+**Laplace**
+
+- $P(x_j = v \mid C_k) = \frac{N_{v,k} + \alpha}{N_k + \alpha V_j}$, $\alpha = 1$ คือ Laplace
+- รายได้: $P(\mathrm{low}) = \frac{0 + 1}{1000 + 3}$
+
+**ข้อดี ข้อเสีย**
+
+- ข้อดี: เร็ว, อัปเดตทีละส่วนได้ (spam), ข้อมูลน้อยก็ใช้ได้
+- ข้อเสีย: สมมติ feature อิสระเมื่อรู้กลุ่ม, นับหลักฐานซ้ำเมื่อ feature ซ้ำซ้อน, ความน่าจะเป็นเพี้ยน
+- ในโปรแกรม: บวก log แทนการคูณเพื่อกัน underflow
+
+---
+
+## ส่วนที่ 13 โจทย์ฝึกพร้อมแนวตอบ
+
+ทุกข้อใช้ข้อมูล 8 คนในข้อ 2.1 (และความสูงในข้อ 7.4)
+
+### โจทย์ปลายเปิด
+
+**ข้อ 1 (กฎของเบย์ feature เดียว):** ใช้เฉพาะ feature สูงเกิน 170 คนใหม่สูงเกิน 170 (Yes) (ก) คำนวณ posterior ทั้งสองกลุ่ม (ข) ตีความผล
+
+แนวตอบ:
+
+(ก) ผู้ชายสูงเกิน 170 สองในสาม (คนที่ 5, 8) $P(\mathrm{Yes} \mid M) = 2/3$ ผู้หญิงสองในห้า (คนที่ 2, 7) $P(\mathrm{Yes} \mid F) = 2/5$ คะแนน M $= \frac{2}{3} \cdot \frac{3}{8} = \frac{1}{4}$ คะแนน F $= \frac{2}{5} \cdot \frac{5}{8} = \frac{1}{4}$ evidence $= \frac{1}{2}$ (ตรวจ: คนสูงเกิน 170 มี 4 จาก 8) posterior ทั้งสองกลุ่มเท่ากับ $0.5$
+
+(ข) เสมอกันพอดี likelihood เข้าข้างชาย ($2/3$ กับ $2/5$) แต่ prior เข้าข้างหญิง ($5/8$ กับ $3/8$) ในอัตราที่หักล้างกันพอดี เพราะทั้งสองกลุ่มมีคนสูงเกิน 170 สองคนเท่ากัน ข้อนี้แสดงว่าไม่ควรตัดสินจาก likelihood อย่างเดียว
+
+ตัวเลือกที่ผิดพลาดง่าย: ตอบว่าชายเพราะดูแค่ $2/3 > 2/5$ ลืม prior
+
+เกณฑ์ให้คะแนน: likelihood ถูก (2) คะแนนและ posterior (2) ตีความบทบาทของ prior (2)
+
+**ข้อ 2 (Naive Bayes ครบวงจร):** ใช้สาม feature (ไม่ใช้ชื่อ) ทายเพศของคนที่ สูงเกิน 170 = Yes, ตา = Blue, ผม = Long แสดงทุกขั้นและหา posterior
+
+แนวตอบ:
+
+1. Prior: $P(M) = 3/8$, $P(F) = 5/8$
+2. กลุ่มชาย: Yes $2/3$ (คนที่ 5, 8), Blue $2/3$ (คนที่ 1, 8), Long $1/3$ (คนที่ 8) ผลคูณ $\frac{4}{27}$ คะแนน $\frac{4}{27} \cdot \frac{3}{8} = \frac{1}{18} \approx 0.05556$
+3. กลุ่มหญิง: Yes $2/5$, Blue $3/5$ (คนที่ 3, 4, 6), Long $4/5$ (คนที่ 2, 3, 4, 6) ผลคูณ $\frac{24}{125}$ คะแนน $\frac{24}{125} \cdot \frac{5}{8} = \frac{3}{25} = 0.12$
+4. ทายว่าหญิง posterior $P(F \mid x) = \frac{0.12}{0.12 + 0.05556} \approx 0.6835$, $P(M \mid x) \approx 0.3165$
+
+ตรวจ: ผมยาวเข้าข้างหญิงชัด ($4/5$ กับ $1/3$) ส่วนสูงเกิน 170 เข้าข้างชาย ผลรวมจึงเอียงหญิง ตัวเลือกที่ผิดพลาดง่าย: นับ Blue ของชายเป็น $1/3$ (ลืมคนที่ 8)
+
+เกณฑ์ให้คะแนน: prior (1) likelihood หกตัว (3) คะแนนและตัดสิน (1) posterior (1)
+
+**ข้อ 3 (Laplace correction เปลี่ยนคำตอบ):** ตัวอย่างใหม่ ชื่อ Sergio, ไม่สูงเกิน 170, ตาน้ำตาล, ผมยาว (ก) คำนวณโดยไม่แก้ศูนย์ (ข) คำนวณด้วย Laplace ($\alpha = 1$) (ค) อธิบายว่าทำไมคำตอบเปลี่ยน และแบบไหนน่าเชื่อกว่า
+
+แนวตอบ:
+
+(ก) กลุ่มชาย: Sergio $1/3$, No $1/3$, Brown $1/3$, Long $1/3$ คะแนน $\frac{1}{81} \cdot \frac{3}{8} = \frac{1}{216} \approx 0.00463$ กลุ่มหญิง: ไม่มีผู้หญิงชื่อ Sergio $P(\mathrm{Sergio} \mid F) = 0$ คะแนนเป็น 0 ทายว่าชายด้วย posterior 1
+
+(ข) $V$ ของชื่อเท่ากับ 6 feature อื่นเท่ากับ 2 กลุ่มชาย: $\frac{1 + 1}{3 + 6} = \frac{2}{9}$, No $\frac{2}{5}$, Brown $\frac{2}{5}$, Long $\frac{2}{5}$ คะแนน $\frac{3}{8} \cdot \frac{2}{9} \cdot \frac{8}{125} \approx 0.005333$ กลุ่มหญิง: $\frac{0 + 1}{5 + 6} = \frac{1}{11}$, No $\frac{4}{7}$, Brown $\frac{3}{7}$, Long $\frac{5}{7}$ คะแนน $\frac{5}{8} \cdot \frac{1}{11} \cdot \frac{60}{343} \approx 0.009939$ ทายว่า **หญิง** posterior $P(F \mid x) \approx 0.6508$
+
+(ค) โดยไม่แก้ ชื่อ Sergio ตัวเดียวลบหลักฐานอีกสามตัวที่เข้าข้างหญิง (ไม่สูงเกิน 170, ผมยาว) จนหมด เมื่อแก้แล้วชื่อยังเข้าข้างชาย แต่ไม่ใช่การตัดสิทธิ์ทั้งกลุ่ม หลักฐานอื่นจึงชนะ แบบ Laplace น่าเชื่อกว่า เพราะข้อมูลผู้หญิงมีเพียง 5 คน การไม่เคยเห็นผู้หญิงชื่อ Sergio ไม่พอจะสรุปว่าเป็นไปไม่ได้ ข้อนี้ยังแสดงว่า ในข้อมูลน้อย การเลือกใช้หรือไม่ใช้ smoothing เปลี่ยนคำตอบได้จริง
+
+ตัวเลือกที่ผิดพลาดง่าย: บวก 2 แทน 6 ในตัวส่วนของชื่อ หรือบวก 1 ที่ตัวเศษอย่างเดียว
+
+เกณฑ์ให้คะแนน: (ก) 2 (ข) 3 (ค) 2
+
+**ข้อ 4 (Gaussian):** ใช้ความสูงในข้อ 7.4 คนใหม่สูง 180 cm คำนวณความหนาแน่นของแต่ละกลุ่ม คะแนน และ posterior (ใช้ $\mu_M = 176$, $\sigma_M^{2} = 34.667$, $\mu_F = 165.2$, $\sigma_F^{2} = 31.76$)
+
+แนวตอบ:
+
+- ชาย: $\frac{(180 - 176)^{2}}{2 \times 34.667} = \frac{16}{69.333} \approx 0.2308$, $e^{-0.2308} \approx 0.7939$, $f_M \approx 0.06776 \times 0.7939 \approx 0.05379$ คะแนน $\times 3/8 \approx 0.02017$
+- หญิง: $\frac{(180 - 165.2)^{2}}{2 \times 31.76} = \frac{219.04}{63.52} \approx 3.4484$, $e^{-3.4484} \approx 0.0318$, $f_F \approx 0.07079 \times 0.0318 \approx 0.00225$ คะแนน $\times 5/8 \approx 0.00141$
+- posterior $P(M \mid 180) = \frac{0.02017}{0.02017 + 0.00141} \approx 0.935$ ทายว่าชาย
+
+ตีความ: 180 ห่างจากค่าเฉลี่ยผู้หญิงราว $14.8/5.64 \approx 2.6$ เท่าของส่วนเบี่ยงเบนมาตรฐาน ซึ่งพบได้ยากในกลุ่มนั้น จึงเอาชนะ prior ที่เข้าข้างหญิงได้ ตัวเลือกที่ผิดพลาดง่าย: ใช้ $\sigma$ แทน $\sigma^{2}$ ในตัวส่วนของเลขชี้กำลัง หรือใช้ค่าเฉลี่ยและความแปรปรวนของข้อมูลทั้งหมด
+
+**ข้อ 5 (อธิบายเชิงเหตุผล):** เพื่อนเพิ่ม feature "ความสูงเป็นเซนติเมตร" (Gaussian) เข้าไปคู่กับ "สูงเกิน 170" ในโมเดลเดียวกัน แล้วพบว่าโมเดลมั่นใจมากขึ้นเรื่อยๆ จงอธิบายว่าเกิดอะไรขึ้น เกี่ยวกับสมมติฐานข้อไหน และควรแก้อย่างไร
+
+แนวตอบ: สอง feature นี้วัดสิ่งเดียวกัน (ตัวหนึ่งคำนวณจากอีกตัว) แม้รู้เพศแล้ว รู้ความสูงเป็นเซนติเมตรก็รู้ทันทีว่าสูงเกิน 170 หรือไม่ จึงขัดกับสมมติฐานความเป็นอิสระแบบมีเงื่อนไข Naive Bayes จะคูณหลักฐานเรื่องความสูงสองครั้ง ทำให้ความน่าจะเป็นเอียงไปทางกลุ่มที่ความสูงชี้ไปเกินจริง และอาจพลิกคำตอบได้เหมือนตัวอย่างคอลัมน์ผมซ้ำในข้อ 6.2 (posterior M จาก 0.4355 เป็น 0.72) วิธีแก้คือเลือกใช้เพียงตัวเดียว (ตัวต่อเนื่องเก็บข้อมูลมากกว่า) หรือตรวจความสัมพันธ์ระหว่าง feature ก่อนเลือก
+
+เกณฑ์ให้คะแนน: ระบุว่าซ้ำซ้อน (2) โยงกับสมมติฐาน conditional independence (2) ผลคือมั่นใจเกิน/คำตอบพลิก (1) วิธีแก้ (1)
+
+**ข้อ 6 (ออกแบบ):** ออกแบบตัวกรอง spam ด้วย Naive Bayes ที่รับอีเมลใหม่วันละหลายแสนฉบับ และผู้ใช้กดรายงาน spam ได้ตลอด อธิบาย (ก) โมเดลเก็บอะไร (ข) อัปเดตอย่างไรเมื่อผู้ใช้กดรายงาน (ค) ปัญหาตัวเลขสองเรื่องที่ต้องรับมือ
+
+แนวตอบ: (ก) เก็บจำนวนอีเมลของแต่ละกลุ่ม (สำหรับ prior) และตารางนับว่าแต่ละคำปรากฏในอีเมลกลุ่ม spam และไม่ใช่ spam กี่ครั้ง (สำหรับ likelihood) (ข) เมื่อผู้ใช้รายงาน บวกตัวนับของกลุ่ม spam และของทุกคำในอีเมลนั้นเข้าไป ไม่ต้องฝึกใหม่ทั้งหมด (ใน scikit-learn คือ `partial_fit`) นี่คือเหตุผลที่ Naive Bayes รับข้อมูลแบบ streaming ได้ (ค) คำที่ไม่เคยพบในกลุ่มใดกลุ่มหนึ่งทำให้ likelihood เป็นศูนย์ แก้ด้วย Laplace correction และผลคูณของคำนับพันคำ underflow แก้ด้วยการบวก log
+
+### แบบฝึกเช็กตัวเอง (ตอบสั้น)
+
+1. $P(\mathrm{Drew} \mid M)$ และ $P(M \mid \mathrm{Drew})$ ในข้อมูล 8 คนเท่ากับเท่าไร
+2. ส่วนประกอบสี่ตัวของกฎของเบย์คืออะไร ตัวไหนไม่ต้องใช้ในการตัดสินกลุ่ม เพราะอะไร
+3. evidence ของชื่อ Drew คำนวณจาก likelihood และ prior อย่างไร
+4. feature สองค่า 5 ตัว ถ้าไม่สมมติ naive ต้องประมาณกี่ตัวเลขต่อกลุ่ม
+5. สมมติฐานของ Naive Bayes เขียนเป็นสูตรว่าอะไร
+6. ทำไมความน่าจะเป็นของตัวอย่าง (Drew, No, Brown, Short) ที่ได้จาก Naive Bayes ไม่ควรถือเป็นตัวเลขที่แม่นยำ
+7. ค่าจากสูตร Gaussian เกิน 1 ได้หรือไม่
+8. feature มี 4 category ในกลุ่มที่มี 20 ตัวอย่าง ค่าหนึ่งนับได้ 0 ด้วย Laplace ได้เท่าไร
+9. ทำไมโปรแกรมจริงบวก log แทนการคูณ
+10. ข้อดีที่ทำให้ Naive Bayes เหมาะกับการกรอง spam มีอะไรบ้าง
+
+**เฉลย:** (1) $1/3$ และ $1/3$ (บังเอิญเท่ากัน: ผู้ชาย 3 คนชื่อ Drew 1 คน และคนชื่อ Drew 3 คนเป็นชาย 1 คน) (2) posterior, likelihood, prior, evidence ไม่ต้องใช้ evidence เพราะเป็นค่าเดียวกันทุกกลุ่ม (3) $\frac{1}{3} \cdot \frac{3}{8} + \frac{2}{5} \cdot \frac{5}{8} = \frac{3}{8}$ (4) $2^{5} - 1 = 31$ (5) $P(x_1, \ldots, x_d \mid Y) = \prod_j P(x_j \mid Y)$ (6) สมมติฐานความเป็นอิสระไม่จริงทุกประการ และ Naive Bayes เป็นตัวจำแนกที่ดีแต่ประมาณความน่าจะเป็นไม่ดี (7) ได้ เพราะเป็น density (8) $\frac{0 + 1}{20 + 4} = \frac{1}{24}$ (9) กัน underflow และผลบวกคำนวณง่ายกว่า (10) ฝึกเร็ว, อัปเดตตารางนับทีละอีเมลได้, ทนจำนวนคำ (feature) มาก
+
+---
+
+## ส่วนที่ 14 โฟกัสที่น่าจะออกสอบ
+
+ส่วนนี้อนุมานจากน้ำหนักของเนื้อหาในบท ไม่ได้มาจากข้อสอบจริง
+
+1. **คำนวณ Naive Bayes ครบวงจรจากตาราง category:** นับ prior, likelihood ทีละ feature, คูณ, ตัดสิน และ normalize เป็น posterior (ตัวอย่างหลักของบทใช้ตารางลักษณะนี้)
+2. **ส่วนประกอบสี่ตัวของกฎของเบย์และการพิสูจน์จาก conditional probability**
+3. **อธิบายสมมติฐาน naive** ทำไมต้องมี (จาก $2^{d} - 1$ เหลือ $d$) และผลเมื่อไม่จริง
+4. **Laplace correction** โดยเฉพาะการบวกจำนวน category ที่ตัวส่วน
+5. **Gaussian Naive Bayes** แทนค่าในสูตร density ด้วย $\mu_k, \sigma_k$ ของแต่ละกลุ่ม
+6. **ข้อดีข้อเสีย** และคำถามว่าสมมติฐานใช้ได้กับทุกชุดข้อมูลหรือไม่
+
+---
+
+## ส่วนที่ 15 ข้อควรระวังและคำถามที่ควรถามอาจารย์
+
+- ข้อสอบต้องการให้เขียน posterior เป็นเศษส่วน หรือทศนิยมกี่ตำแหน่ง เพราะการปัดก่อนหารทำให้ทศนิยมตำแหน่งที่สามต่างกัน (ข้อ 5.3)
+- ตัวอย่าง (Drew, No, Brown, Short) ให้คะแนนหญิงสูงกว่าชาย คำตอบที่ถูกคือหญิง ถ้าพบเอกสารประกอบที่สรุปว่าชาย ควรยืนยันกับอาจารย์ว่าเป็นการพิมพ์ผิด
+- การคำนวณความแปรปรวนใน Gaussian ให้หารด้วย $n$ หรือ $n - 1$
+- เมื่อใช้ Laplace correction ต้องแก้ prior ด้วยหรือแก้เฉพาะ likelihood และกรณีที่ไม่มีศูนย์ต้องใช้ Laplace ทุกครั้งหรือไม่
+- ถ้าเกิดคะแนนเสมอกัน (เช่น โจทย์ข้อ 1) ต้องตอบอย่างไร
+
+---
+
+## ส่วนที่ 16 อ่านเพิ่มเติม (Further Study)
+
+- Olabenjo, B. (2016). Applying naive Bayes classification to Google Play apps categorization. ใช้ Naive Bayes จัดหมวดหมู่แอปจากคำอธิบายแอป เป็นตัวอย่างงานจำแนกข้อความที่ใช้ feature เป็นคำ ([arXiv:1608.08574](https://arxiv.org/abs/1608.08574))
+- ตัวแปรอื่นของ Naive Bayes ใน scikit-learn: `MultinomialNB` และ `ComplementNB` สำหรับจำนวนคำในเอกสาร, `BernoulliNB` สำหรับ feature มี/ไม่มี และการฝึกแบบ out-of-core ด้วย `partial_fit` ([scikit-learn: Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html))
+- ทำไม Naive Bayes จำแนกได้ดีแม้สมมติฐานไม่จริง ([Domingos and Pazzani, 1997](https://doi.org/10.1023/A:1007413511361); [Zhang, 2004](https://www.cs.unb.ca/~hzhang/publications/FLAIRS04ZhangH.pdf))
+- การปรับเทียบความน่าจะเป็น (probability calibration) สำหรับโมเดลที่ให้ความน่าจะเป็นเพี้ยน ([scikit-learn: Probability calibration](https://scikit-learn.org/stable/modules/calibration.html))
+
+---
 
 ## References
 
-1. Ekarat Rattagan. *Week 4: Naive Bayes Classification*. DADS6003 Applied Machine Learning, 20 February 2026.
-2. Scikit-learn developers. [Naive Bayes User Guide](https://scikit-learn.org/stable/modules/naive_bayes.html).
-3. Scikit-learn developers. [GaussianNB API Reference](https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html).
-4. Scikit-learn developers. [Probability Calibration](https://scikit-learn.org/stable/modules/calibration.html).
-5. Olabenjo, B. [Applying Naive Bayes Classification to Google Play Apps Categorization](https://arxiv.org/abs/1608.08574). arXiv:1608.08574, 2016.
-6. Course lab. [Naive Bayes with Play Tennis](https://github.com/mdanmek/nida-dads-notes/blob/main/dads6003-applied_ml/lab/naive_bayes.ipynb).
-7. Course lab. [Naive Bayes Spam Email Classifier](https://github.com/mdanmek/nida-dads-notes/blob/main/dads6003-applied_ml/lab/naive_bayes_spam_email_classifier.ipynb).
+- Domingos, P., and Pazzani, M. (1997). On the optimality of the simple Bayesian classifier under zero-one loss. *Machine Learning*, 29, 103-130. https://doi.org/10.1023/A:1007413511361
+- Olabenjo, B. (2016). Applying naive Bayes classification to Google Play apps categorization. arXiv:1608.08574. https://arxiv.org/abs/1608.08574
+- scikit-learn developers. *1.9 Naive Bayes* (version 1.9.1). https://scikit-learn.org/stable/modules/naive_bayes.html
+- scikit-learn developers. *sklearn.naive_bayes.CategoricalNB* (version 1.9). https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.CategoricalNB.html
+- scikit-learn developers. *1.16 Probability calibration* (version 1.9). https://scikit-learn.org/stable/modules/calibration.html
+- Zhang, H. (2004). The optimality of naive Bayes. *Proceedings of FLAIRS 2004*. https://www.cs.unb.ca/~hzhang/publications/FLAIRS04ZhangH.pdf
