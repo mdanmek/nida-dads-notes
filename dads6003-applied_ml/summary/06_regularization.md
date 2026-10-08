@@ -596,7 +596,7 @@ $$\frac{1}{2N}\lVert X\theta - y\rVert_2^2 + a\rho\lVert\theta\rVert_1 + \frac{a
 | ความแรงรวม | $\lambda$ | `alpha` |
 | สัดส่วนผสม | $\alpha$ = สัดส่วนของ **Ridge** ($\alpha = 1$ คือ Ridge) | `l1_ratio` = สัดส่วนของ **Lasso** (`l1_ratio=1` คือ Lasso) |
 
-คือ `alpha` ของ scikit-learn **ไม่ใช่** $\alpha$ ของวิชา และ `l1_ratio` วิ่งไปในทิศตรงข้ามกับ $\alpha$ ของวิชา บางเอกสารเรียก $\alpha$ ของวิชาว่า “$l_1$-ratio” ด้วย ซึ่งชวนสับสน ให้ยึดนิยาม $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$ เป็นหลักเสมอ
+คือ `alpha` ของ scikit-learn **ไม่ใช่** $\alpha$ ของวิชา และ `l1_ratio` วิ่งไปในทิศตรงข้ามกับ $\alpha$ ของวิชา บางเอกสารเรียก $\alpha$ ของวิชาว่า $l_1$-ratio ด้วย ซึ่งชวนสับสน ให้ยึดนิยาม $\alpha = \lambda_2/(\lambda_1 + \lambda_2)$ เป็นหลักเสมอ
 
 **แปลงค่าจากวิชาไป scikit-learn:** เทียบ cost ของวิชาหารด้วย 2 กับ cost ข้างบน ได้ $a\rho = \lambda_1/2$ และ $a(1 - \rho) = \lambda_2$ ดังนั้น
 
@@ -1100,7 +1100,7 @@ E) error = -2.0
 - ในการคำนวณ SGD ของ Ridge และ Lasso ข้อสอบต้องการให้ปรับ $\theta_0$ ด้วยหรือไม่ เพราะ cost function ไม่ปรับ $\theta_0$ (ผลรวมเริ่มที่ $j = 1$) แต่สูตร SGD บางรูปเขียนพจน์ค่าปรับไว้กับ $\theta_0$ ด้วย ซึ่งให้ตัวเลขต่างกัน
 - สูตร Elastic Net ในข้อสอบใช้รูปที่ไม่มีความแรงรวม $\lambda$ (MSE $+ (1 - \alpha)\sum\lvert\theta_j\rvert + \alpha\sum\theta_j^2$) หรือรูปที่คูณ $\lambda$ ด้วย
 - ถ้าโจทย์ให้ $\theta_j = 0$ พอดีในการคำนวณ Lasso SGD ควรใช้ $\mathrm{sign}(0)$ เป็นค่าใด (0 เป็นค่าที่นิยมในโปรแกรม)
-- เมื่อโจทย์พูดถึง “$l_1$-ratio” หมายถึง $\alpha$ ตามนิยามของวิชา ($\alpha = 1$ คือ Ridge) หรือ `l1_ratio` แบบ scikit-learn ($1$ คือ Lasso)
+- เมื่อโจทย์พูดถึง $l_1$-ratio หมายถึง $\alpha$ ตามนิยามของวิชา ($\alpha = 1$ คือ Ridge) หรือ `l1_ratio` แบบ scikit-learn ($1$ คือ Lasso)
 
 ---
 
