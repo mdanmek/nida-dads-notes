@@ -108,7 +108,7 @@ $$h_\theta(x) = \theta_0 + \theta_1 x_1 + \cdots + \theta_j x_j + \cdots + \thet
 
 ใช้ $x_0 = 1$ แล้วรวบพารามิเตอร์และ feature เป็นเวกเตอร์คอลัมน์สองตัว
 
-$$\theta = \begin{bmatrix} \theta_0 \\ \theta_1 \\ \vdots \\ \theta_d \end{bmatrix}, \qquad x = \begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_d \end{bmatrix} = \begin{bmatrix} 1 \\ x_1 \\ \vdots \\ x_d \end{bmatrix}$$
+$$\theta = \begin{bmatrix} \theta_0 \\\\ \theta_1 \\\\ \vdots \\\\ \theta_d \end{bmatrix}, \qquad x = \begin{bmatrix} x_0 \\\\ x_1 \\\\ \vdots \\\\ x_d \end{bmatrix} = \begin{bmatrix} 1 \\\\ x_1 \\\\ \vdots \\\\ x_d \end{bmatrix}$$
 
 $\theta^{T}$ คือการพลิก $\theta$ เป็นเวกเตอร์แถว $[\theta_0, \theta_1, \ldots, \theta_d]$ แล้วคูณกับเวกเตอร์คอลัมน์ $x$ ได้
 
@@ -1048,3 +1048,4 @@ E) Polynomial features
 - Google for Developers. *Machine Learning Crash Course: Numerical data, Normalization*. https://developers.google.com/machine-learning/crash-course/numerical-data/normalization
 - Raschka, S. *About Feature Scaling and Normalization*. https://sebastianraschka.com/Articles/2014_about_feature_scaling.html
 - scikit-learn developers. *sklearn.preprocessing.PolynomialFeatures* (version 1.9). https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html
+
