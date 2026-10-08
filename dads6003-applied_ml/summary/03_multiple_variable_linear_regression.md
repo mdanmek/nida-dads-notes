@@ -108,7 +108,7 @@ $$h_\theta(x) = \theta_0 + \theta_1 x_1 + \cdots + \theta_j x_j + \cdots + \thet
 
 ใช้ $x_0 = 1$ แล้วรวบพารามิเตอร์และ feature เป็นเวกเตอร์คอลัมน์สองตัว
 
-$$\theta = \begin{bmatrix} \theta_0 \cr \theta_1 \cr \vdots \cr \theta_d \end{bmatrix}, \qquad x = \begin{bmatrix} x_0 \cr x_1 \cr \vdots \cr x_d \end{bmatrix} = \begin{bmatrix} 1 \cr x_1 \cr \vdots \cr x_d \end{bmatrix}$$
+$$\theta = (\theta_0, \theta_1, \vdots, \theta_d)^{T}, \qquad x = (x_0, x_1, \vdots, x_d)^{T} = (1, x_1, \vdots, x_d)^{T}$$
 
 $\theta^{T}$ คือการพลิก $\theta$ เป็นเวกเตอร์แถว $[\theta_0, \theta_1, \ldots, \theta_d]$ แล้วคูณกับเวกเตอร์คอลัมน์ $x$ ได้
 
