@@ -32,7 +32,7 @@ Linear regression ตัวแปรเดียวคือการหาเ�
 พื้นฐานคณิตศาสตร์ที่ใช้ในบทนี้มีสามเรื่อง
 
 1. **การคูณเมทริกซ์และ transpose:** $X^{T}$ คือการพลิกแถวเป็นคอลัมน์ ถ้า $X$ มีขนาด $N \times 2$ แล้ว $X^{T}$ มีขนาด $2 \times N$ และ $X^{T}X$ มีขนาด $2 \times 2$
-2. **อินเวอร์สของเมทริกซ์ $2 \times 2$:** ถ้า $A = \begin{bmatrix} a & b \\\\ c & d \end{bmatrix}$ แล้ว $A^{-1} = \frac{1}{ad - bc} \begin{bmatrix} d & -b \\\\ -c & a \end{bmatrix}$ โดยต้องมี $ad - bc \neq 0$ ค่า $ad - bc$ เรียกว่า determinant ถ้าเป็นศูนย์ เมทริกซ์นั้นไม่มีอินเวอร์ส (non-invertible หรือ singular)
+2. **อินเวอร์สของเมทริกซ์ $2 \times 2$:** ถ้า $A = \begin{bmatrix} a & b \cr c & d \end{bmatrix}$ แล้ว $A^{-1} = \frac{1}{ad - bc} \begin{bmatrix} d & -b \cr -c & a \end{bmatrix}$ โดยต้องมี $ad - bc \neq 0$ ค่า $ad - bc$ เรียกว่า determinant ถ้าเป็นศูนย์ เมทริกซ์นั้นไม่มีอินเวอร์ส (non-invertible หรือ singular)
 3. **อนุพันธ์ของกำลังสองด้วย chain rule:** อนุพันธ์ของ $(u)^2$ คือ $2u$ คูณอนุพันธ์ของ $u$ ใช้ตอนหา gradient ของ MSE
 
 ---
@@ -90,7 +90,7 @@ $$h_\theta(x) = \theta_0 + \theta_1 x$$
 
 เพื่อคำนวณทุกตัวอย่างพร้อมกัน เราเติม feature สมมติ $x_{i,0} = 1$ ให้ทุกแถว แล้วเรียก $x$ เดิมว่า $x_{i,1}$ ทำให้เขียนโมเดลใหม่ได้เป็น $h_\theta(x_i) = \theta_0 x_{i,0} + \theta_1 x_{i,1}$ ซึ่งมีค่าเท่าเดิมเพราะ $x_{i,0} = 1$ การเติมคอลัมน์ 1 นี้ทำให้ $\theta_0$ ถูกจัดการด้วยกฎเดียวกับพารามิเตอร์ตัวอื่น ไม่ต้องเขียนกรณีพิเศษ
 
-$$X = \begin{bmatrix} 1 & x_1 \\\\ 1 & x_2 \\\\ \vdots & \vdots \\\\ 1 & x_N \end{bmatrix}, \quad \theta = \begin{bmatrix} \theta_0 \\\\ \theta_1 \end{bmatrix}, \quad y = \begin{bmatrix} y_1 \\\\ y_2 \\\\ \vdots \\\\ y_N \end{bmatrix}$$
+$$X = \begin{bmatrix} 1 & x_1 \cr 1 & x_2 \cr \vdots & \vdots \cr 1 & x_N \end{bmatrix}, \quad \theta = \begin{bmatrix} \theta_0 \cr \theta_1 \end{bmatrix}, \quad y = \begin{bmatrix} y_1 \cr y_2 \cr \vdots \cr y_N \end{bmatrix}$$
 
 ค่าทำนายของทุกตัวอย่างคือ $\hat{y} = X\theta$ ซึ่งเป็นเวกเตอร์ขนาด $N \times 1$ ในมุมนี้โมเดลคือฟังก์ชันที่รับเมทริกซ์ข้อมูลขนาด $N \times d$ (ก่อนเติมคอลัมน์ 1) แล้วให้เวกเตอร์คำทำนายขนาด $N \times 1$ ซึ่งเขียนแบบย่อได้ว่า $f: \mathbb{R}^{N \times d} \to \mathbb{R}^{N \times 1}$ (หนึ่งค่าทำนายต่อหนึ่งแถว)
 
@@ -210,7 +210,7 @@ $$(\sum x_i) \theta_0 + (\sum x_i^2) \theta_1 = \sum x_i y_i$$
 
 ระบบนี้เขียนในรูปเมทริกซ์ได้พอดีว่า $X^{T}X\theta = X^{T}y$ เพราะเมื่อคูณออกมาจริง
 
-$$X^{T}X = \begin{bmatrix} N & \sum x_i \\\\ \sum x_i & \sum x_i^2 \end{bmatrix}, \qquad X^{T}y = \begin{bmatrix} \sum y_i \\\\ \sum x_i y_i \end{bmatrix}$$
+$$X^{T}X = \begin{bmatrix} N & \sum x_i \cr \sum x_i & \sum x_i^2 \end{bmatrix}, \qquad X^{T}y = \begin{bmatrix} \sum y_i \cr \sum x_i y_i \end{bmatrix}$$
 
 สมการ $X^{T}X\theta = X^{T}y$ เรียกว่า **normal equations** ถ้า $X^{T}X$ มีอินเวอร์ส คูณทั้งสองข้างด้วยอินเวอร์สจะได้
 
@@ -232,19 +232,19 @@ $$\theta_1 = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sum (x_i - \bar{x})^2},
 
 **ขั้น 1 สร้าง $X$ และ $y$**
 
-$$X = \begin{bmatrix} 1 & 0 \\\\ 1 & 2 \\\\ 1 & 3 \end{bmatrix}, \qquad y = \begin{bmatrix} 1 \\\\ 1 \\\\ 4 \end{bmatrix}$$
+$$X = \begin{bmatrix} 1 & 0 \cr 1 & 2 \cr 1 & 3 \end{bmatrix}, \qquad y = \begin{bmatrix} 1 \cr 1 \cr 4 \end{bmatrix}$$
 
 **ขั้น 2 คำนวณผลรวมที่ต้องใช้:** $N = 3$, $\sum x_i = 0 + 2 + 3 = 5$, $\sum x_i^2 = 0 + 4 + 9 = 13$, $\sum y_i = 1 + 1 + 4 = 6$, $\sum x_i y_i = 0 + 2 + 12 = 14$
 
-$$X^{T}X = \begin{bmatrix} 3 & 5 \\\\ 5 & 13 \end{bmatrix}, \qquad X^{T}y = \begin{bmatrix} 6 \\\\ 14 \end{bmatrix}$$
+$$X^{T}X = \begin{bmatrix} 3 & 5 \cr 5 & 13 \end{bmatrix}, \qquad X^{T}y = \begin{bmatrix} 6 \cr 14 \end{bmatrix}$$
 
 **ขั้น 3 หาอินเวอร์ส:** determinant $= 3 \times 13 - 5 \times 5 = 39 - 25 = 14$ ไม่เป็นศูนย์ จึงมีอินเวอร์ส
 
-$$(X^{T}X)^{-1} = \frac{1}{14} \begin{bmatrix} 13 & -5 \\\\ -5 & 3 \end{bmatrix}$$
+$$(X^{T}X)^{-1} = \frac{1}{14} \begin{bmatrix} 13 & -5 \cr -5 & 3 \end{bmatrix}$$
 
 **ขั้น 4 คูณ:**
 
-$$\theta = \frac{1}{14} \begin{bmatrix} 13(6) - 5(14) \\\\ -5(6) + 3(14) \end{bmatrix} = \frac{1}{14} \begin{bmatrix} 8 \\\\ 12 \end{bmatrix} = \begin{bmatrix} 4/7 \\\\ 6/7 \end{bmatrix} \approx \begin{bmatrix} 0.571 \\\\ 0.857 \end{bmatrix}$$
+$$\theta = \frac{1}{14} \begin{bmatrix} 13(6) - 5(14) \cr -5(6) + 3(14) \end{bmatrix} = \frac{1}{14} \begin{bmatrix} 8 \cr 12 \end{bmatrix} = \begin{bmatrix} 4/7 \cr 6/7 \end{bmatrix} \approx \begin{bmatrix} 0.571 \cr 0.857 \end{bmatrix}$$
 
 **ขั้น 5 ตีความ:** เส้นที่ดีที่สุดคือ $h_\theta(x) \approx 0.571 + 0.857x$ ค่าทำนายของสามจุดคือ 0.571, 2.286, 3.143 ความคลาดเคลื่อน (ทำนาย ลบ จริง) คือ -0.429, 1.286, -0.857 ได้ MSE $= (0.184 + 1.653 + 0.735)/3 \approx 0.857$ (ค่าแม่นยำคือ $6/7$) ต่ำกว่าทั้ง $h^{1}$ (3) และ $h^{2}$ (1.333) ในส่วนที่ 3.3
 
@@ -564,8 +564,8 @@ sklearn         : 8.0769 [0.3462]
 **Analytical (normal equation)**
 
 - $\theta = (X^{T}X)^{-1}X^{T}y$, $X$ มีคอลัมน์แรกเป็นเลข 1
-- ตัวแปรเดียว: $X^{T}X = \begin{bmatrix} N & \sum x \\\\ \sum x & \sum x^2 \end{bmatrix}$, $X^{T}y = \begin{bmatrix} \sum y \\\\ \sum xy \end{bmatrix}$
-- อินเวอร์ส $2 \times 2$: $\frac{1}{ad - bc}\begin{bmatrix} d & -b \\\\ -c & a \end{bmatrix}$
+- ตัวแปรเดียว: $X^{T}X = \begin{bmatrix} N & \sum x \cr \sum x & \sum x^2 \end{bmatrix}$, $X^{T}y = \begin{bmatrix} \sum y \cr \sum xy \end{bmatrix}$
+- อินเวอร์ส $2 \times 2$: $\frac{1}{ad - bc}\begin{bmatrix} d & -b \cr -c & a \end{bmatrix}$
 - สูตรค่าเฉลี่ย: $\theta_1 = \frac{\sum(x - \bar{x})(y - \bar{y})}{\sum(x - \bar{x})^2}$, $\theta_0 = \bar{y} - \theta_1\bar{x}$
 - ตรวจคำตอบ: $\sum e_i = 0$ และ $\sum e_i x_i = 0$
 - ปัญหา: ไม่มีอินเวอร์ส (feature ซ้ำซ้อน, $N < d + 1$, $x$ เท่ากันหมด) แก้ด้วยตัด feature หรือ pseudo-inverse ผ่าน SVD, ต้นทุน $O(d^3)$
@@ -595,9 +595,9 @@ sklearn         : 8.0769 [0.3462]
 
 (ก) $h^{1}$: $\theta_0 = 4, \theta_1 = 0$ ค่าทำนาย 4, 4, 4 ความคลาดเคลื่อน 2, 0, -1 กำลังสอง 4, 0, 1 MSE $= 5/3 \approx 1.667$ ส่วน $h^{2}$: $\theta_0 = 0, \theta_1 = 2$ ค่าทำนาย 2, 4, 6 ความคลาดเคลื่อน 0, 0, 1 MSE $= 1/3 \approx 0.333$ ดังนั้น $h^{2}$ ดีกว่า
 
-(ข) $N = 3$, $\sum x = 6$, $\sum x^2 = 14$, $\sum y = 11$, $\sum xy = 2 + 8 + 15 = 25$ ได้ $X^{T}X = \begin{bmatrix} 3 & 6 \\\\ 6 & 14 \end{bmatrix}$ determinant $= 42 - 36 = 6$ และ $X^{T}y = \begin{bmatrix} 11 \\\\ 25 \end{bmatrix}$
+(ข) $N = 3$, $\sum x = 6$, $\sum x^2 = 14$, $\sum y = 11$, $\sum xy = 2 + 8 + 15 = 25$ ได้ $X^{T}X = \begin{bmatrix} 3 & 6 \cr 6 & 14 \end{bmatrix}$ determinant $= 42 - 36 = 6$ และ $X^{T}y = \begin{bmatrix} 11 \cr 25 \end{bmatrix}$
 
-$$\theta = \frac{1}{6}\begin{bmatrix} 14 & -6 \\\\ -6 & 3 \end{bmatrix}\begin{bmatrix} 11 \\\\ 25 \end{bmatrix} = \frac{1}{6}\begin{bmatrix} 4 \\\\ 9 \end{bmatrix} = \begin{bmatrix} 2/3 \\\\ 3/2 \end{bmatrix}$$
+$$\theta = \frac{1}{6}\begin{bmatrix} 14 & -6 \cr -6 & 3 \end{bmatrix}\begin{bmatrix} 11 \cr 25 \end{bmatrix} = \frac{1}{6}\begin{bmatrix} 4 \cr 9 \end{bmatrix} = \begin{bmatrix} 2/3 \cr 3/2 \end{bmatrix}$$
 
 เส้นที่ดีที่สุด $h(x) \approx 0.667 + 1.5x$ ค่าทำนาย 2.167, 3.667, 5.167 ความคลาดเคลื่อน 0.167, -0.333, 0.167 MSE $= (0.0278 + 0.1111 + 0.0278)/3 \approx 0.056$ ต่ำกว่าทั้งสองโมเดลใน (ก) ตรวจ: ผลรวมความคลาดเคลื่อน $= 0$ และ $\sum e_i x_i = 0.167 - 0.667 + 0.5 = 0$
 
@@ -620,8 +620,8 @@ $$\theta = \frac{1}{6}\begin{bmatrix} 14 & -6 \\\\ -6 & 3 \end{bmatrix}\begin{bm
 แนวตอบ (ก):
 
 1. $N = 3$, $\sum x = 8$, $\sum x^2 = 4 + 25 + 1 = 30$, $\sum y = 27$, $\sum xy = 24 + 45 + 6 = 75$
-2. $X^{T}X = \begin{bmatrix} 3 & 8 \\\\ 8 & 30 \end{bmatrix}$ determinant $= 90 - 64 = 26$ และ $X^{T}y = \begin{bmatrix} 27 \\\\ 75 \end{bmatrix}$
-3. $\theta = \frac{1}{26}\begin{bmatrix} 30 & -8 \\\\ -8 & 3 \end{bmatrix}\begin{bmatrix} 27 \\\\ 75 \end{bmatrix} = \frac{1}{26}\begin{bmatrix} 810 - 600 \\\\ -216 + 225 \end{bmatrix} = \frac{1}{26}\begin{bmatrix} 210 \\\\ 9 \end{bmatrix}$
+2. $X^{T}X = \begin{bmatrix} 3 & 8 \cr 8 & 30 \end{bmatrix}$ determinant $= 90 - 64 = 26$ และ $X^{T}y = \begin{bmatrix} 27 \cr 75 \end{bmatrix}$
+3. $\theta = \frac{1}{26}\begin{bmatrix} 30 & -8 \cr -8 & 3 \end{bmatrix}\begin{bmatrix} 27 \cr 75 \end{bmatrix} = \frac{1}{26}\begin{bmatrix} 810 - 600 \cr -216 + 225 \end{bmatrix} = \frac{1}{26}\begin{bmatrix} 210 \cr 9 \end{bmatrix}$
 4. $\theta_0 = 210/26 = 105/13 \approx 8.0769$, $\theta_1 = 9/26 \approx 0.3462$
 5. ตรวจ: ค่าทำนาย 8.769, 9.808, 8.423 ความคลาดเคลื่อน -3.231, 0.808, 2.423 ผลรวม $= 0$ และ $\sum e_i x_i = -6.462 + 4.038 + 2.423 \approx 0$ MSE $\approx (10.438 + 0.652 + 5.871)/3 \approx 5.654$
 
