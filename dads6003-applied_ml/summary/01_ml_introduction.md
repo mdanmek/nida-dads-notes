@@ -183,7 +183,7 @@ $$D = \lbrace (x_1, y_1), (x_2, y_2), \ldots, (x_n, y_n) \rbrace$$
 อ่านทีละส่วน:
 
 - $D$ คือชุดข้อมูลทั้งหมด ประกอบด้วยคู่ข้อมูล $n$ คู่
-- $x_i \in \mathbb{R}^d$ คือ feature vector ของตัวอย่างที่ $i$ อ่านว่า "$x_i$ เป็นสมาชิกของปริภูมิจำนวนจริง $d$ มิติ" แปลว่า $x_i$ คือรายการตัวเลขจริง $d$ ตัว เช่น ถ้าบรรยายบ้านด้วยพื้นที่ จำนวนห้องนอน และอายุบ้าน ก็มี $d = 3$
+- $x_i \in \mathbb{R}^d$ คือ feature vector ของตัวอย่างที่ $i$ อ่านว่า “$x_i$ เป็นสมาชิกของปริภูมิจำนวนจริง $d$ มิติ” แปลว่า $x_i$ คือรายการตัวเลขจริง $d$ ตัว เช่น ถ้าบรรยายบ้านด้วยพื้นที่ จำนวนห้องนอน และอายุบ้าน ก็มี $d = 3$
 - $y_i$ คือ label หรือคำตอบของตัวอย่างที่ $i$
 
 ชนิดของ $y_i$ เป็นตัวแบ่งงานย่อยสองแบบ:
@@ -750,3 +750,4 @@ $$\frac{\partial J}{\partial \theta_0} = \frac{2}{n} \sum_{i=1}^{n} (\hat{y}_i -
 - Amershi, S., Begel, A., Bird, C., DeLine, R., Gall, H., Kamar, E., Nagappan, N., Nushi, B., and Zimmermann, T. (2019). Software Engineering for Machine Learning: A Case Study. *ICSE-SEIP 2019*, 291-300. https://doi.org/10.1109/ICSE-SEIP.2019.00042
 - Sutton, R. S., and Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press. http://incompleteideas.net/book/the-book-2nd.html
 - Hardt, M., and Recht, B. (2021). *Patterns, Predictions, and Actions* (ส่วนที่อธิบายชุดข้อมูล MNIST). https://arxiv.org/pdf/2102.05242
+
