@@ -184,7 +184,7 @@ $$\theta_j^{t+1} := \theta_j^{t} - \eta \frac{1}{N}\sum_{i=1}^{N}(h_\theta(x_i) 
 
 ข้อมูล $(2, 12), (5, 9), (1, 6)$ (1) Analytical $\theta = (X^{T}X)^{-1}X^{T}y$ (2) Iterative: Batch GD, $\theta_0 = \theta_1 = 0.1$, $\eta = 0.01$, 2 iterations
 
-**เฉลย (1):** $X^{T}X = \begin{bmatrix} 3 & 8 \\ 8 & 30 \end{bmatrix}$, $X^{T}y = \begin{bmatrix} 27 \\ 75 \end{bmatrix}$, determinant $= 26$ ได้ $\theta_0 = 105/13 \approx 8.077$, $\theta_1 = 9/26 \approx 0.346$
+**เฉลย (1):** $X^{T}X = [(3, 8); (8, 30)]$, $X^{T}y = (27, 75)^{T}$, determinant $= 26$ ได้ $\theta_0 = 105/13 \approx 8.077$, $\theta_1 = 9/26 \approx 0.346$
 
 **เฉลย (2):**
 - รอบที่ 1: ค่าทำนาย 0.3, 0.6, 0.2 ความคลาดเคลื่อน $-11.7, -8.4, -5.8$ ผลรวม $-25.9$ ผลรวมคูณ $x$ $= -71.2$ ได้ $\theta_0 = 0.1 + 0.01(25.9/3) \approx 0.1863$, $\theta_1 = 0.1 + 0.01(71.2/3) \approx 0.3373$
@@ -318,7 +318,7 @@ MSE ที่ใช้ใน linear regression $J(\theta) = \frac{1}{N}\sum(h_\t
 
 Cross-entropy measures the difference between two probability distributions
 
-$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}\begin{cases} -\ln(h_\theta(x)) & \text{if } y = 1 \\ -\ln(1 - h_\theta(x)) & \text{if } y = 0 \end{cases}$$
+$$J(\theta) = \frac{1}{N}\sum_{i=1}^{N}L_i, \qquad L_i = -\ln(h_\theta(x_i)) \text{ if } y_i = 1, \qquad L_i = -\ln(1 - h_\theta(x_i)) \text{ if } y_i = 0$$
 
 สไลด์แสดงกราฟ $-\ln(h_\theta(x))$ และ $-\ln(1 - h_\theta(x))$ เทียบกับ predicted probability โดยแกนตั้งคือ NLLL
 
@@ -372,7 +372,7 @@ $$\ln(\text{Odds of Gastroschisis}) = \theta_0 + \theta_1 \cdot \text{Maternal A
 
 **Appendix: Logistic Regression (แก้สมการ logit หา $p$)**
 
-$$\mathrm{logit}(p) = \log\left(\frac{p}{1 - p}\right) = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k$$
+$$\mathrm{logit}(p) = \log(\frac{p}{1 - p}) = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k$$
 
 1. Exponentiate and take the multiplicative inverse of both sides: $\frac{1 - p}{p} = \frac{1}{\exp(\beta_0 + \cdots + \beta_k x_k)}$
 2. Partial out the fraction on the left-hand side and add one to both sides: $\frac{1}{p} = 1 + \frac{1}{\exp(\cdots)}$
@@ -609,7 +609,7 @@ $$\theta_j^{t+1} = \theta_j^{t} - \eta((h_\theta(x_i) - y_i)x_{i,j} + \lambda\th
 
 $$\theta_j^{t+1} = \theta_j^{t} - \eta[(h_\theta(x_i) - y_i)x_{i,j} + \lambda\,\mathrm{sign}(\theta_j^{t})], \qquad j = 0, \ldots, d$$
 
-$$\mathrm{sign}(\theta_j^{t}) = \begin{cases} -1 & \text{if } \theta_j^{t} < 0 \\ (-1, 1) & \text{if } \theta_j^{t} = 0 \\ +1 & \text{if } \theta_j^{t} > 0 \end{cases}$$
+$$\mathrm{sign}(\theta_j^{t}) = -1 \text{ if } \theta_j^{t} < 0, \qquad \mathrm{sign}(\theta_j^{t}) \in (-1, 1) \text{ if } \theta_j^{t} = 0, \qquad \mathrm{sign}(\theta_j^{t}) = +1 \text{ if } \theta_j^{t} > 0$$
 
 **Elastic Net**
 
