@@ -15,7 +15,7 @@ Naive Bayes คือการจำแนกประเภทด้วยก�
 | Feature $x_j$ | Attribute, ตัวแปรต้น | คอลัมน์ข้อมูลที่ใช้ทำนาย มีทั้งหมด $d$ ตัว |
 | $P(A)$ | Probability | ความน่าจะเป็นที่เหตุการณ์ $A$ เกิด อยู่ระหว่าง 0 ถึง 1 |
 | $P(A \cap B)$ | Joint probability | ความน่าจะเป็นที่ $A$ และ $B$ เกิดพร้อมกัน |
-| $P(A \mid B)$ | Conditional probability | ความน่าจะเป็นของ $A$ เมื่อรู้แล้วว่า $B$ เกิด อ่านว่า "$A$ given $B$" |
+| $P(A \mid B)$ | Conditional probability | ความน่าจะเป็นของ $A$ เมื่อรู้แล้วว่า $B$ เกิด อ่านว่า “$A$ given $B$” |
 | Prior $P(Y)$ | ความน่าจะเป็นก่อน | ความเชื่อเรื่องกลุ่มก่อนเห็น feature ของตัวอย่างนี้ |
 | Likelihood $P(X \mid Y)$ | ภาวะน่าจะเป็น | ถ้าเป็นกลุ่ม $Y$ จะเห็น feature $X$ แบบนี้บ่อยแค่ไหน |
 | Evidence $P(X)$ | Marginal probability | ความน่าจะเป็นที่เห็น $X$ แบบนี้ในประชากรทั้งหมด ไม่สนกลุ่ม |
@@ -107,7 +107,7 @@ $$P(X \mid Y) = \frac{P(X \cap Y)}{P(Y)} \qquad (2)$$
 
 $$P(X \mid Y)P(Y) = P(X \cap Y) \qquad (3)$$
 
-"$X$ และ $Y$ เกิดพร้อมกัน" กับ "$Y$ และ $X$ เกิดพร้อมกัน" คือเหตุการณ์เดียวกัน ดังนั้น
+“$X$ และ $Y$ เกิดพร้อมกัน” กับ “$Y$ และ $X$ เกิดพร้อมกัน” คือเหตุการณ์เดียวกัน ดังนั้น
 
 $$P(X \mid Y)P(Y) = P(X \cap Y) = P(Y \cap X) \qquad (4)$$
 
@@ -966,3 +966,4 @@ G) duplicated hair column (double counting)
 - scikit-learn developers. *sklearn.naive_bayes.CategoricalNB* (version 1.9). https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.CategoricalNB.html
 - scikit-learn developers. *1.16 Probability calibration* (version 1.9). https://scikit-learn.org/stable/modules/calibration.html
 - Zhang, H. (2004). The optimality of naive Bayes. *Proceedings of FLAIRS 2004*. https://www.cs.unb.ca/~hzhang/publications/FLAIRS04ZhangH.pdf
+
