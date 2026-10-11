@@ -9,7 +9,11 @@
 
 ## 1. Chapter Overview
 
-บทนี้เริ่มต้น Statistical Inference อย่างเป็นทางการ โดยใช้ข้อมูลจาก sample เพื่อประมาณ population parameter ที่ไม่ทราบค่า การประมาณมีสองแบบ:
+บทก่อนอธิบายว่า sample statistic เปลี่ยนได้เมื่อสุ่ม sample ใหม่ และใช้ sampling distribution กับ standard error วัดความผันผวนนั้น บทนี้ตอบคำถามที่ตามมาโดยตรงว่า **เมื่อ point estimate จาก sample หนึ่งชุดไม่เท่ากับ parameter พอดี เราจะรายงานค่าประมาณพร้อมความไม่แน่นอนได้อย่างไร** คำตอบคือ Interval Estimation
+
+ตลอดบทจะใช้เวลารอผู้ป่วยเป็นตัวอย่างเชื่อมโยง หาก sample mean เท่ากับ 4.8 นาที ค่า 4.8 เป็นหลักฐานที่ดีที่สุดจาก sample ปัจจุบัน แต่ไม่ควรถูกกล่าวว่าเป็น population mean ที่รู้แน่นอน Confidence Interval จึงเริ่มจาก estimate แล้วขยายออกตาม standard error และระดับความเชื่อมั่นที่กำหนด
+
+การประมาณมีสองแบบ:
 
 - **Point estimation:** ให้คำตอบเป็นค่าหนึ่งค่า
 - **Interval estimation:** ให้ช่วงของค่าที่สมเหตุสมผล พร้อม confidence level
@@ -42,6 +46,7 @@ flowchart TD
 
 หลังเรียนบทนี้ ผู้เรียนควรสามารถ:
 
+- อธิบายว่า Confidence Interval สร้างต่อจาก sampling distribution และ standard error อย่างไร
 - แยก estimand, estimator และ estimate ได้
 - อธิบาย point estimation และ interval estimation ได้
 - อธิบาย confidence coefficient, confidence level, lower/upper confidence limits ได้
@@ -63,6 +68,27 @@ flowchart TD
 - Binomial distribution และ sample proportion
 - Independent versus dependent/paired samples
 - Variance, standard deviation และ degrees of freedom
+
+## สะพานจาก Sampling Distribution สู่ Confidence Interval
+
+ให้ $\mu$ เป็น population mean ที่ไม่ทราบ และ $\bar{X}$ เป็น estimator ก่อนเก็บข้อมูล $\bar{X}$ ยังเป็น random variable เพราะแต่ละ random sample ให้ค่าไม่เหมือนกัน หลังเก็บข้อมูลแล้วจึงได้ estimate เช่น $\bar{x}=4.8$ นาที
+
+หากทำการสุ่มซ้ำ เราคาดว่า $\bar{X}$ จะกระจายรอบ $\mu$ และมี standard error บอกความกว้างของการกระจาย เมื่อ sampling distribution มีรูปที่ทราบ เราสามารถกำหนดบริเวณตรงกลางที่ครอบคลุม statistic ด้วย probability ที่ต้องการ แล้วจัดรูปกลับเป็นช่วงสำหรับ $\mu$ นี่คือที่มาของโครงสร้าง
+
+$$
+\text{Estimate} \mathbin{\pm} \text{Critical value} \mathbin{\times} \text{Standard error}
+$$
+
+สูตรนี้จึงไม่ใช่กฎที่ต้องจำโดยปราศจากเหตุผล แต่เป็นการนำ **ตำแหน่งของ estimate**, **ความผันผวนจากการสุ่ม** และ **ระดับความครอบคลุมระยะยาว** มารวมกัน
+
+ก่อนเลือกสูตร CI ทุกข้อ ให้ตอบตามลำดับดังนี้:
+
+1. Population และ variable คืออะไร
+2. Estimand คือค่าใด เช่น $\mu$, $\mu_1-\mu_2$ หรือ $\mu_d$
+3. ข้อมูลมาจากหนึ่ง sample, สอง independent samples หรือ matched pairs
+4. Estimator และ standard error ของ design นั้นคืออะไร
+5. Sampling distribution และ assumptions ใดรองรับ critical value
+6. ช่วงที่ได้ต้องตีความถึง population ใดและมีหน่วยอะไร
 
 ## 4. Statistical Inference
 

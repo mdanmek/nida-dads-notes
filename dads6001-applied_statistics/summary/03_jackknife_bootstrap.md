@@ -5,23 +5,19 @@
 > **Source:** `dads6001-applied_statistics/lecture/dads6001_03_jackknife_bootstrap.pptx` จำนวน 14 สไลด์  
 > **Main topics:** Resampling, Jackknife bias and standard error, Bootstrap bias, standard error และ confidence intervals
 
-> **Course navigation:** [Course Overview](00_readme.md) · บทก่อนหน้า [01 Introduction](01_introduction.md) และ [02 Interval Estimation](02_interval_estimation.md)
+> **Course navigation:** [Course Overview](00_readme.md) · บทก่อนหน้า [02 Interval Estimation](02_interval_estimation.md) · บทถัดไป [04 Hypothesis Testing](04_hypothesis_testing.md)
 
 ## 1. ข้อมูลต้นฉบับและขอบเขตบทเรียน
 
 Master Note นี้เรียบเรียงจากสไลด์ **DADS6001: Jackknife and Bootstrap Method for Estimation** จำนวน 14 สไลด์ เนื้อหาจากเอกสารครอบคลุมการทบทวน classical statistical inference แนวคิด resampling, Jackknife สำหรับประมาณ bias และ standard error, Bootstrap สำหรับประมาณ bias, standard error และ confidence interval ตลอดจนแบบฝึกหัด 3 ชุด
 
-บทนี้ต่อยอดจาก sampling distribution และ confidence interval โดยตรง ประเด็นแกนกลางคือ เมื่อสูตรเชิงทฤษฎีของ sampling distribution หาได้ยาก เราสามารถใช้ sample ที่มีอยู่สร้าง resampling distribution เพื่อประมาณความไม่แน่นอนของ estimator ได้ แต่ resampling ไม่ได้เพิ่มสารสนเทศใหม่และไม่สามารถชดเชย sample ที่มีอคติหรือโครงสร้างการพึ่งพาที่ถูกละเลยได้
+บทนี้รับคำถามที่ค้างจาก Interval Estimation โดยตรง ในบทก่อนเราสร้าง Confidence Interval ได้เมื่อรู้หรือประมาณ standard error และรู้ว่า sampling distribution มีรูปแบบใด แต่สำหรับ statistic บางชนิด เช่น median, percentile หรือ estimator ที่ซับซ้อน สูตรเชิงทฤษฎีอาจหาได้ยาก คำถามใหม่จึงเป็นว่า **เราจะเรียนรู้ความผันผวนของ estimator ได้อย่างไรเมื่อไม่สามารถเห็น sampling distribution จริงและไม่มีสูตรสะดวกใช้**
+
+Jackknife และ Bootstrap ตอบคำถามนี้ด้วยการใช้ sample ที่มีอยู่สร้างสถานการณ์คล้ายการสุ่มซ้ำ แล้วดูว่า estimator เปลี่ยนไปเพียงใด แนวคิดนี้ยังอยู่บนฐานเดียวกับบทก่อน ได้แก่ parameter, estimator, sampling variability, bias และ standard error เพียงเปลี่ยนวิธีประมาณ sampling distribution จากสูตรเชิงทฤษฎีมาเป็นการคำนวณซ้ำจากข้อมูล
+
+Resampling ไม่ได้เพิ่มสารสนเทศใหม่และไม่สามารถชดเชย sample ที่มีอคติหรือโครงสร้างการพึ่งพาที่ถูกละเลยได้ หาก sample เดิมไม่เป็นตัวแทนของ population โลกจำลองที่สร้างจาก sample นั้นก็สืบทอดข้อจำกัดเดิม
 
 > **หมายเหตุการถอดความ:** สมการบางส่วนในไฟล์ต้นฉบับเป็นวัตถุ Equation รุ่นเก่าและซ้อนทับกันเมื่อแสดงผล จึงเขียนใหม่ด้วย notation มาตรฐาน พร้อมตรวจสอบสูตรและตัวอย่างเชิงตัวเลขโดยอิสระ แทนการคัดรูปสมการที่อ่านไม่สมบูรณ์
-
-### แผนระดับความลึก
-
-| ระดับ | หัวข้อ |
-|---|---|
-| Core | Sampling distribution, resampling, Jackknife, Bootstrap, bias, standard error, confidence interval |
-| Supporting | Classical inference, empirical distribution, Monte Carlo error, skewness และ robustness |
-| Reference | ประวัติย่อ สูตรสรุป Python workflow และแนวทางเลือกวิธี |
 
 ## 2. Learning Objectives
 
@@ -35,6 +31,20 @@ Master Note นี้เรียบเรียงจากสไลด์ **DA
 6. เขียนโค้ดที่ทำซ้ำได้ ตรวจสอบผล และอธิบายข้อจำกัดของข้อสรุปทางสถิติ
 
 ## 3. พื้นฐานที่ต้องรู้ก่อน
+
+ก่อนเริ่ม ให้ย้อนเส้นทางจากสองบทแรกสั้น ๆ:
+
+```mermaid
+flowchart TD
+    A[Population ที่ไม่รู้] --> B[Random Sample]
+    B --> C[Estimator]
+    C --> D[Sampling Distribution ที่มองไม่เห็น]
+    D --> E[Standard Error และ Bias]
+    E --> F[Confidence Interval]
+    D --> G[ใช้ Resampling ประมาณ]
+```
+
+Classical method และ resampling ไม่ได้ตอบคนละคำถาม ทั้งสองพยายามอธิบายพฤติกรรมของ estimator หากกระบวนการเก็บ sample เกิดซ้ำ ความต่างอยู่ที่ classical method อาศัย distribution และสูตร ส่วน resampling ใช้ empirical distribution ของ sample เป็นตัวแทนชั่วคราวของ population แล้วคำนวณซ้ำ
 
 ### 3.1 Population, sample, parameter และ statistic
 

@@ -9,23 +9,27 @@
 
 ## 1. Chapter Overview
 
-บทนี้สร้างรากฐานสำหรับ Statistical Inference ทั้งวิชา เส้นทางความคิดเริ่มจากการทดลองที่ผลลัพธ์ไม่แน่นอน แล้วกำหนด sample space และ event เพื่อคำนวณ probability จากนั้นแปลง outcome ให้เป็นตัวเลขด้วย random variable และอธิบายพฤติกรรมของตัวแปรผ่าน probability distribution เมื่อเปลี่ยนจากตัวแปรหนึ่งค่าไปเป็น statistic ที่คำนวณจาก sample เช่น sample mean จะเข้าสู่แนวคิด sampling distribution ซึ่งนำไปสู่ Standard Error, Central Limit Theorem, Confidence Interval และ Hypothesis Testing ในบทถัดไป
+บทนี้ไม่ได้เริ่มจากสูตร Probability แต่เริ่มจากปัญหาที่ทำให้เราต้องใช้สถิติ สมมติว่าโรงพยาบาลต้องการทราบว่า **ผู้ป่วยทั้งหมดรอนานเฉลี่ยกี่นาที** ค่าที่ต้องการรู้เป็นคุณสมบัติของผู้ป่วยทั้ง population แต่เราเก็บข้อมูลได้เพียงผู้ป่วยบางคน เมื่อสุ่มคนละกลุ่ม ค่าเฉลี่ยที่คำนวณได้ย่อมเปลี่ยนไป ปัญหาหลักของ Statistical Inference จึงเป็นการเรียนรู้สิ่งที่ไม่รู้เกี่ยวกับ population จาก sample ที่มีความผันผวนจากการสุ่ม
+
+เส้นทางความคิดของบทนี้เริ่มจากปรากฏการณ์จริงและสิ่งที่วัด จากนั้นนิยาม variable และ random variable เพื่อแทนค่าที่ยังไม่ทราบก่อนสุ่ม ใช้ probability distribution อธิบายพฤติกรรมของตัวแปร และเปลี่ยนจากข้อมูลรายคนไปสู่ statistic ที่คำนวณจาก sample เมื่อพิจารณาว่า statistic จะเปลี่ยนอย่างไรหากสุ่มใหม่ จะได้ sampling distribution และ standard error ซึ่งเป็นรากโดยตรงของ Confidence Interval, Jackknife, Bootstrap และ Hypothesis Testing ในบทถัดไป
 
 ```mermaid
 flowchart TD
-    A[Random Experiment] --> B[Sample Space และ Event]
-    B --> C[Probability]
-    C --> D[Random Variable]
-    D --> E[Probability Distribution]
-    E --> F[Sample และ Statistic]
-    F --> G[Sampling Distribution]
-    G --> H[CLT และ Statistical Inference]
+    A[คำถามเกี่ยวกับ Population] --> B[Variable และ Random Variable]
+    B --> C[Population Distribution]
+    C --> D[Random Sample]
+    D --> E[Statistic และ Estimate]
+    E --> F[Sampling Distribution]
+    F --> G[Standard Error]
+    G --> H[Statistical Inference]
 ```
 
 ## 2. Learning Objectives
 
 หลังเรียนบทนี้ ผู้เรียนควรสามารถ:
 
+- เชื่อม population, variable, random sample, parameter, statistic, estimator และ estimate เป็นกระบวนการเดียวกันได้
+- อธิบายว่า sampling variability ทำให้ Statistical Inference จำเป็นอย่างไร
 - แยก random experiment, outcome, sample space และ event ได้
 - สร้าง event ด้วย union, intersection และ complement
 - ใช้ probability axioms, addition rule และ complement rule ได้
@@ -49,6 +53,26 @@ flowchart TD
 - ค่าเฉลี่ย ความแปรปรวน และส่วนเบี่ยงเบนมาตรฐาน
 - Factorial และ combination
 - พื้นที่ใต้กราฟและ integral เบื้องต้น
+
+## เส้นทางจากข้อมูลจริงสู่ Statistical Inference
+
+ก่อนลงรายละเอียด Probability ควรแยกหน่วยความคิดต่อไปนี้ให้ชัด เพราะจะถูกใช้ต่อเนื่องตลอดทั้งสี่บท
+
+| แนวคิด | ในตัวอย่างเวลารอผู้ป่วย | คำถามที่ตอบ |
+|---|---|---|
+| Population | ผู้ป่วยทั้งหมดในขอบเขตที่สนใจ | เราต้องการสรุปถึงใคร |
+| Variable | เวลารอ หน่วยนาที | วัดอะไรจากแต่ละหน่วย |
+| Random variable $X$ | เวลารอของผู้ป่วยที่ยังไม่ทราบก่อนสุ่ม | ค่าที่อาจเกิดขึ้นมีพฤติกรรมอย่างไร |
+| Parameter $\mu$ | Mean waiting time ของผู้ป่วยทั้งหมด | ค่าของ population ที่ต้องการรู้คืออะไร |
+| Random sample | เวลารอของผู้ป่วยที่สุ่มมา $n$ คน | เรามีหลักฐานจากใครบ้าง |
+| Statistic $\bar{X}$ | กฎการคำนวณ sample mean | จะสรุป sample เป็นค่าใด |
+| Estimate $\bar{x}$ | Sample mean ที่คำนวณได้จริง เช่น 4.8 นาที | หลักฐานชุดนี้ให้ค่าเท่าใด |
+| Sampling distribution | การกระจายของ $\bar{X}$ จากการสุ่มซ้ำ | Estimate จะเปลี่ยนเพียงใดหากสุ่มใหม่ |
+| Standard error | SD ของ sampling distribution | Estimate มี sampling uncertainty เท่าใด |
+
+คำว่า **random** ไม่ได้หมายความว่าค่าถูกสร้างขึ้นอย่างไร้เหตุผล แต่หมายความว่าก่อนสุ่มเรายังไม่ทราบว่าจะได้หน่วยใดและค่าที่สังเกตจะเป็นเท่าใด หลังสังเกตแล้วตัวเลขนั้นเป็นข้อมูลจริง ส่วน random variable เป็นแบบจำลองของกระบวนการที่ให้กำเนิดตัวเลข
+
+ความแตกต่างระหว่าง parameter, statistic และ estimate เป็นรากของการตีความทั้งหมด Parameter เป็นค่าคงที่ของ population แต่ไม่ทราบค่า Statistic เป็นฟังก์ชันของ random sample จึงยังเป็น random variable ก่อนเก็บข้อมูล ส่วน estimate เป็นค่าตัวเลขหลังนำข้อมูลจริงเข้าสูตรแล้ว เช่น $\bar{X}$ เป็น estimator แต่ $\bar{x}=4.8$ เป็น estimate
 
 ## 4. Random Experiment, Outcome, Sample Space และ Event
 

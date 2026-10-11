@@ -9,29 +9,24 @@
 
 ## 1. ข้อมูลต้นฉบับและขอบเขตบทเรียน
 
-บทนี้เรียบเรียงจากสไลด์เรื่องการทดสอบสมมุติฐาน เนื้อหาต้นฉบับเริ่มจากตัวอย่างคำถามวิจัย อธิบาย $H_0$, $H_1$, ตรรกะของการทดสอบ ตัวสถิติทดสอบ เขตวิกฤต ความผิดพลาดสองประเภท power และ p-value ก่อนสรุปสูตรทดสอบค่าเฉลี่ยและสัดส่วนหนึ่งหรือสองประชากร รวมถึงการชี้ทางไปยัง ANOVA สำหรับหลายประชากร
+บทนี้เปลี่ยนจากคำถามว่า “parameter น่าจะอยู่ในช่วงใด” ไปเป็น “ข้อมูลให้หลักฐานขัดแย้งกับค่าหรือข้ออ้างที่กำหนดไว้มากเพียงใด” ทั้ง Interval Estimation และ Hypothesis Testing เริ่มจาก estimate และ sampling distribution เดียวกัน Confidence Interval แสดงกลุ่มค่าของ parameter ที่ยังสอดคล้องกับข้อมูล ส่วน Hypothesis Test เริ่มจาก null value แล้ววัดว่าผลที่สังเกตอยู่ห่างจากค่านั้นมากเพียงใดเมื่อเทียบกับ standard error
+
+เนื้อหาต้นฉบับเริ่มจากตัวอย่างคำถามวิจัย อธิบาย $H_0$, $H_1$, ตรรกะของการทดสอบ ตัวสถิติทดสอบ เขตวิกฤต ความผิดพลาดสองประเภท power และ p-value ก่อนสรุปสูตรทดสอบค่าเฉลี่ยและสัดส่วนหนึ่งหรือสองประชากร รวมถึงการชี้ทางไปยัง ANOVA สำหรับหลายประชากร
 
 สมการบางหน้าเป็นวัตถุ Equation รุ่นเก่าที่ซ้อนทับกันเมื่อ render อันอันจึงถอดความหมายและเขียนใหม่ด้วย notation มาตรฐาน โดยยึดหัวข้อและทิศทางการทดสอบจากสไลด์ แต่ตรวจสูตรกับหลักสถิติอีกครั้ง จุดที่ถ้อยคำในสไลด์อาจทำให้เข้าใจผิดจะระบุไว้โดยตรงในหัวข้อ “ข้อแก้ความเข้าใจ”
-
-### แผนระดับความลึก
-
-| ระดับ | หัวข้อ |
-|---|---|
-| Core | $H_0/H_1$, test statistic, rejection region, p-value, Type I/II errors, power, one/two-sample tests for means and proportions |
-| Supporting | one-tailed/two-tailed tests, assumptions, relation to confidence intervals, effect size, sample size |
-| Reference | ANOVA overview, decision table, Python workflow และสูตรสรุป |
 
 ## 2. Learning Objectives
 
 เมื่อเรียนจบบทนี้ ผู้เรียนควรสามารถ:
 
-1. แปลงคำถามวิจัยเป็น parameter และตั้ง $H_0/H_1$ พร้อมเลือกทิศทางการทดสอบ
-2. อธิบายตรรกะของ hypothesis testing โดยไม่ตีความว่า “ไม่ปฏิเสธ $H_0$” เท่ากับพิสูจน์ว่า $H_0$ จริง
-3. คำนวณ test statistic, critical region และ p-value แล้วตัดสินใจที่ระดับนัยสำคัญที่กำหนด
-4. แยก Type I error, Type II error, significance level และ power พร้อมวิเคราะห์ trade-off
-5. เลือกและดำเนินการทดสอบค่าเฉลี่ยหนึ่งประชากร สองกลุ่มอิสระ และข้อมูลจับคู่
-6. เลือกและดำเนินการทดสอบสัดส่วนหนึ่งและสองประชากร
-7. ตรวจ assumptions ตีความผลในบริบท และแยก statistical significance ออกจาก practical significance
+1. อธิบายความเชื่อมโยงระหว่าง estimate, standard error, confidence interval และ hypothesis test
+2. แปลงคำถามวิจัยเป็น parameter และตั้ง $H_0/H_1$ พร้อมเลือกทิศทางการทดสอบ
+3. อธิบายตรรกะของ hypothesis testing โดยไม่ตีความว่า “ไม่ปฏิเสธ $H_0$” เท่ากับพิสูจน์ว่า $H_0$ จริง
+4. คำนวณ test statistic, critical region และ p-value แล้วตัดสินใจที่ระดับนัยสำคัญที่กำหนด
+5. แยก Type I error, Type II error, significance level และ power พร้อมวิเคราะห์ trade-off
+6. เลือกและดำเนินการทดสอบค่าเฉลี่ยหนึ่งประชากร สองกลุ่มอิสระ และข้อมูลจับคู่
+7. เลือกและดำเนินการทดสอบสัดส่วนหนึ่งและสองประชากร
+8. ตรวจ assumptions ตีความผลในบริบท และแยก statistical significance ออกจาก practical significance
 
 ## 3. พื้นฐานที่ต้องรู้ก่อน
 
@@ -40,6 +35,31 @@
 ให้ $\theta$ แทน parameter ที่ต้องการศึกษา เช่น population mean $\mu$, difference in means $\mu_1-\mu_2$ หรือ population proportion $p$ ส่วน $\hat{\theta}$ คือ estimator ที่คำนวณจาก sample ความผันผวนของ $\hat{\theta}$ ระหว่างการสุ่มซ้ำวัดด้วย standard error
 
 Confidence interval และ hypothesis test ใช้กลไกเดียวกัน คือเปรียบเทียบค่าประมาณกับความผันผวนตาม sampling distribution ความต่างคือ CI แสดงช่วงค่าที่เข้ากันได้กับข้อมูล ส่วน test เริ่มจากค่าที่กำหนดภายใต้ $H_0$ แล้วถามว่าข้อมูลที่พบสุดโต่งเกินกว่าจะอธิบายด้วยค่านั้นหรือไม่
+
+## สะพานจาก Confidence Interval สู่ Hypothesis Test
+
+สมมติเวลารอผู้ป่วยมี sample mean 4.8 นาที และผู้บริหารตั้งเป้าว่า population mean ต้องต่ำกว่า 5 นาที ในมุม estimation เราสร้าง Confidence Interval เพื่อดูว่าค่าเฉลี่ยประชากรที่สอดคล้องกับข้อมูลครอบคลุมบริเวณใด ในมุม testing เรากำหนด null boundary ที่ 5 นาที แล้วถามว่า 4.8 ต่ำกว่า 5 มากพอหรือไม่เมื่อเทียบกับ sampling uncertainty
+
+ความต่าง 0.2 นาทีเพียงอย่างเดียวยังตอบไม่ได้ หาก standard error เท่ากับ 0.05 ความต่างนี้เท่ากับ 4 standard errors และค่อนข้างสุดโต่ง แต่หาก standard error เท่ากับ 1.0 ความต่างนี้มีเพียง 0.2 standard errors และเกิดจาก sampling variation ได้ง่าย Test statistic จึงมีรูปพื้นฐานว่า
+
+$$
+\text{Test statistic}
+=
+\frac{\text{Estimate}-\text{Null value}}
+{\text{Standard error under }H_0}
+$$
+
+สูตร t หรือ z แต่ละกรณีเป็นรูปเฉพาะของโครงสร้างนี้ สิ่งที่เปลี่ยนคือ estimand, estimator และ standard error ตาม study design ไม่ใช่ตรรกะพื้นฐานของการทดสอบ
+
+ก่อนเลือก test ให้แปลโจทย์ตามลำดับ:
+
+1. Population และ variable คืออะไร
+2. Parameter หรือ contrast ที่ถามคืออะไร
+3. Claim อยู่ในทิศทางใด และลำดับการลบกำหนดเครื่องหมายอย่างไร
+4. ข้อมูลเป็น one sample, independent samples หรือ paired samples
+5. Assumptions ใดทำให้ sampling distribution ที่เลือกสมเหตุสมผล
+6. Test statistic และ p-value บอกอะไรเกี่ยวกับข้อมูลภายใต้ $H_0$
+7. ข้อสรุปใดตอบบริบทได้โดยไม่อ้างเกินกว่าการออกแบบข้อมูล
 
 ## 4. Concept Foundation: Hypothesis Testing คืออะไร
 
