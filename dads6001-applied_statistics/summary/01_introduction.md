@@ -495,28 +495,15 @@ Lab นี้ให้ข้อมูล `ecost` จำนวน 50 ค่า �
 %load_ext rpy2.ipython
 ```
 
-จากนั้นติดตั้งและเรียกใช้ package ที่ต้องใช้ทั้งหมดไว้ตอนต้นเพียงครั้งเดียว โค้ดใช้ `requireNamespace()` ตรวจสอบก่อนติดตั้ง เพื่อไม่ให้ Colab ติดตั้ง package ซ้ำทุกครั้ง หาก `qqconf` ติดตั้งไม่ได้ โปรแกรมจะยังทำงานส่วนอื่นต่อและใช้ Q-Q plot จาก Base R แทน ทุก cell ที่เป็นภาษา R ต้องเริ่มด้วย `%%R`
+จากนั้นติดตั้งและเรียกใช้ `psych` ไว้ตอนต้นเพียงครั้งเดียว โค้ดใช้ `requireNamespace()` ตรวจสอบก่อนติดตั้ง เพื่อไม่ให้ Colab ติดตั้ง package ซ้ำทุกครั้ง ส่วน P-P plot จะสร้างด้วย Base R จึงไม่ต้องติดตั้ง `qqconf` ทุก cell ที่เป็นภาษา R ต้องเริ่มด้วย `%%R`
 
 ```r
 %%R
 # ติดตั้ง package ที่ใช้ใน Lab
 if (!requireNamespace("psych", quietly = TRUE)) { install.packages("psych", repos = "https://cloud.r-project.org") }
 
-tryCatch({
-  if (!requireNamespace("qqconf", quietly = TRUE)) {
-    install.packages("qqconf", repos = "https://cloud.r-project.org", type = "source")
-  }
-}, error = function(e) {
-  message("Could not install qqconf, falling back to base Q-Q plotting.")
-})
-
 # เรียกใช้ package
 library(psych)
-if (requireNamespace("qqconf", quietly = TRUE)) {
-  library(qqconf)
-} else {
-  message("qqconf is not available. Using base R graphics for Q-Q plots instead.")
-}
 ```
 
 เตรียมรูปแบบการแสดงผลและข้อมูล `ecost` ใน cell ถัดไป:
@@ -675,27 +662,38 @@ Histogram ในเอกสารมีรูปยอดเดียวแล�
 
 ### 13.6 P-P plot ให้หลักฐานอีกมุมหนึ่ง
 
-P-P plot เปรียบเทียบ cumulative probabilities ของข้อมูลกับ Normal model จุดที่อยู่ใกล้แนวทแยงและอยู่ภายใน confidence band สนับสนุนความสอดคล้องกับแบบจำลอง
+P-P plot เปรียบเทียบ cumulative probabilities ของข้อมูลกับ Normal model จุดที่อยู่ใกล้เส้นอ้างอิง 45 องศาสนับสนุนว่าข้อมูลสอดคล้องกับแบบจำลอง
 
 ```r
 %%R
-# วาด P-P plot เมื่อ qqconf พร้อมใช้งาน
-if (requireNamespace("qqconf", quietly = TRUE)) {
-  pp_conf_plot(
-    ecost,
-    pdist = pnorm,
-    main = "P-P Plot for Normal Distribution",
-    xlab = "Theoretical Probabilities (Normal)",
-    ylab = "Empirical Probabilities"
-  )
-} else {
-  # หากไม่มี qqconf ให้ใช้ Q-Q plot จาก Base R แทน
-  qqnorm(ecost)
-  qqline(ecost)
-}
+# เรียงข้อมูลจากน้อยไปมาก
+sorted_ecost <- sort(ecost)
+
+# Probability ที่พบจากข้อมูลจริง
+empirical_probability <- ppoints(length(ecost))
+
+# Probability ที่ควรได้ภายใต้ Normal distribution
+normal_probability <- pnorm(
+  sorted_ecost,
+  mean = mean(ecost),
+  sd = sd(ecost)
+)
+
+# สร้าง P-P plot
+plot(
+  normal_probability,
+  empirical_probability,
+  main = "P-P Plot for Normal Distribution",
+  xlab = "Theoretical Probabilities (Normal)",
+  ylab = "Empirical Probabilities",
+  pch = 1
+)
+
+# เพิ่มเส้นอ้างอิง 45 องศา
+abline(a = 0, b = 1, col = "red", lwd = 2)
 ```
 
-จาก P-P plot ในเอกสาร จุดเรียงตามแนวทแยงและอยู่ภายในแถบความเชื่อมั่น จึงไม่เห็นความคลาดเคลื่อนจาก Normal model ที่เด่นชัด โดย Q-Q plot ช่วยดูความต่างบริเวณ tails ได้ชัดกว่า ขณะที่ P-P plot ให้ความสำคัญกับบริเวณกลาง distribution มากกว่า หาก Colab ติดตั้ง `qqconf` ไม่สำเร็จ ให้ใช้ Q-Q plot ประกอบกับ Histogram และ Shapiro-Wilk test โดยไม่จำเป็นต้องหยุดทำข้อสอบเพราะ P-P plot เพียงกราฟเดียว
+จุดที่เรียงใกล้เส้นอ้างอิง 45 องศาแสดงว่า cumulative probabilities ของข้อมูลสอดคล้องกับ Normal model ในระดับหนึ่ง P-P plot ที่สร้างด้วย Base R นี้ไม่มี confidence band จึงควรอ่านร่วมกับ Histogram, Q-Q plot และ Shapiro-Wilk test โดย Q-Q plot ช่วยดูความต่างบริเวณ tails ได้ชัดกว่า ขณะที่ P-P plot ให้ความสำคัญกับบริเวณกลาง distribution มากกว่า
 
 ### 13.7 ใช้ Shapiro-Wilk test แล้วอ่านให้ถูกความหมาย
 
@@ -746,7 +744,7 @@ P(Z <= -1.645) = 0.0500
 
 หากโจทย์ถามว่า “ข้อมูล `ecost` สอดคล้องกับ Normal distribution หรือไม่ จงอธิบาย” สามารถเขียนตอบได้ว่า:
 
-> ตัวอย่างมี 50 observations ค่าเฉลี่ยเท่ากับ 147.06 และมัธยฐานเท่ากับ 148.50 ซึ่งอยู่ใกล้กัน โดยมี skewness เท่ากับ 0.01 แสดงว่าการแจกแจงค่อนข้างสมมาตร จากเกณฑ์ 1.5 IQR ได้ lower fence เท่ากับ 66.50 และ upper fence เท่ากับ 228.50 ขณะที่ข้อมูลอยู่ระหว่าง 82 และ 213 จึงไม่พบ potential outlier ตามเกณฑ์นี้ Histogram มีรูปยอดเดียวและค่อนข้างสมมาตร จุดใน Q-Q plot อยู่ใกล้เส้นตรง และจุดใน P-P plot อยู่ใกล้แนวทแยงภายใน confidence band นอกจากนี้ Shapiro-Wilk test ให้ $W=0.9898$ และ $p=0.9408$ ซึ่งมากกว่า 0.05 จึงไม่ปฏิเสธสมมติฐานว่า population มี Normal distribution เมื่อพิจารณาหลักฐานทั้งหมด ข้อมูลชุดนี้จึงสอดคล้องกับ Normal model ในระดับที่สมเหตุสมผลสำหรับการวิเคราะห์ต่อไป
+> ตัวอย่างมี 50 observations ค่าเฉลี่ยเท่ากับ 147.06 และมัธยฐานเท่ากับ 148.50 ซึ่งอยู่ใกล้กัน โดยมี skewness เท่ากับ 0.01 แสดงว่าการแจกแจงค่อนข้างสมมาตร จากเกณฑ์ 1.5 IQR ได้ lower fence เท่ากับ 66.50 และ upper fence เท่ากับ 228.50 ขณะที่ข้อมูลอยู่ระหว่าง 82 และ 213 จึงไม่พบ potential outlier ตามเกณฑ์นี้ Histogram มีรูปยอดเดียวและค่อนข้างสมมาตร จุดใน Q-Q plot อยู่ใกล้เส้นตรง และจุดใน P-P plot อยู่ใกล้เส้นอ้างอิง 45 องศา นอกจากนี้ Shapiro-Wilk test ให้ $W=0.9898$ และ $p=0.9408$ ซึ่งมากกว่า 0.05 จึงไม่ปฏิเสธสมมติฐานว่า population มี Normal distribution เมื่อพิจารณาหลักฐานทั้งหมด ข้อมูลชุดนี้จึงสอดคล้องกับ Normal model ในระดับที่สมเหตุสมผลสำหรับการวิเคราะห์ต่อไป
 
 ลำดับการตอบนี้ใช้ได้กับโจทย์ใหม่: เริ่มจากค่ากลางและการกระจาย ตรวจ potential outliers ดูกราฟ แล้วใช้ formal test เป็นหลักฐานประกอบ ไม่ตัดสินจากค่าใดค่าหนึ่งเพียงอย่างเดียว
 
