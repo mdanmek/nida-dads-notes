@@ -1,1014 +1,497 @@
-# Introduction to Probability and Sampling Distribution
+# จากข้อมูลหนึ่งชุดสู่การอนุมานเกี่ยวกับประชากร
 
 > **Course:** DADS6001 Applied Modern Statistical Analysis  
 > **Week:** 01  
-> **Source:** `dads6001-applied_statistics/lecture/dads6001_01_introduction.pptx` จำนวน 41 สไลด์  
-> **Main topics:** Probability, random variables, probability distributions, sampling distributions, Central Limit Theorem และการตรวจสอบ Normality
-
+> **Source:** Lecture 01: Introduction to Probability and Sampling Distribution จำนวน 41 สไลด์  
 > **Course navigation:** [Course Overview](00_readme.md) · บทถัดไป [02 Interval Estimation](02_interval_estimation.md)
 
-## 1. Chapter Overview
+สมมติว่าโรงพยาบาลต้องการทราบว่า ผู้ป่วยที่มาใช้บริการทั้งหมดต้องรอนานเฉลี่ยกี่นาที คำถามดูเหมือนง่าย เพราะเพียงจับเวลาแล้วหาค่าเฉลี่ย แต่ความยากเริ่มขึ้นทันทีเมื่อเราไม่สามารถวัดผู้ป่วยทุกคนได้ เราจึงสุ่มผู้ป่วยมาบางส่วน คำนวณค่าเฉลี่ยจากคนกลุ่มนั้น แล้วใช้ผลที่ได้กล่าวถึงผู้ป่วยทั้งหมด
 
-บทนี้ไม่ได้เริ่มจากสูตร Probability แต่เริ่มจากปัญหาที่ทำให้เราต้องใช้สถิติ สมมติว่าโรงพยาบาลต้องการทราบว่า **ผู้ป่วยทั้งหมดรอนานเฉลี่ยกี่นาที** ค่าที่ต้องการรู้เป็นคุณสมบัติของผู้ป่วยทั้ง population แต่เราเก็บข้อมูลได้เพียงผู้ป่วยบางคน เมื่อสุ่มคนละกลุ่ม ค่าเฉลี่ยที่คำนวณได้ย่อมเปลี่ยนไป ปัญหาหลักของ Statistical Inference จึงเป็นการเรียนรู้สิ่งที่ไม่รู้เกี่ยวกับ population จาก sample ที่มีความผันผวนจากการสุ่ม
+บทนี้อธิบายว่าเหตุใดการสรุปจาก “คนบางส่วน” ไปยัง “คนทั้งหมด” จึงทำได้ และทำไมข้อสรุปนั้นต้องมีความไม่แน่นอนติดมาด้วย เราจะเริ่มจากสิ่งที่เกิดขึ้นจริง ค่อยตั้งชื่อแนวคิดเมื่อจำเป็น และจบที่แนวคิดสำคัญที่สุดของบท คือ **การแจกแจงของค่าสถิติจากการสุ่มซ้ำ (sampling distribution)** ซึ่งเป็นฐานของ Confidence Interval, Jackknife, Bootstrap และ Hypothesis Testing
 
-เส้นทางความคิดของบทนี้เริ่มจากปรากฏการณ์จริงและสิ่งที่วัด จากนั้นนิยาม variable และ random variable เพื่อแทนค่าที่ยังไม่ทราบก่อนสุ่ม ใช้ probability distribution อธิบายพฤติกรรมของตัวแปร และเปลี่ยนจากข้อมูลรายคนไปสู่ statistic ที่คำนวณจาก sample เมื่อพิจารณาว่า statistic จะเปลี่ยนอย่างไรหากสุ่มใหม่ จะได้ sampling distribution และ standard error ซึ่งเป็นรากโดยตรงของ Confidence Interval, Jackknife, Bootstrap และ Hypothesis Testing ในบทถัดไป
+## 1. ก่อนมีสูตร เราต้องรู้ก่อนว่ากำลังศึกษาอะไร
 
-```mermaid
-flowchart TD
-    A[คำถามเกี่ยวกับ Population] --> B[Variable และ Random Variable]
-    B --> C[Population Distribution]
-    C --> D[Random Sample]
-    D --> E[Statistic และ Estimate]
-    E --> F[Sampling Distribution]
-    F --> G[Standard Error]
-    G --> H[Statistical Inference]
-```
+ในตัวอย่างเวลารอ กลุ่มที่โรงพยาบาลต้องการกล่าวถึงอาจเป็น “ผู้ป่วยนอกทุกคนที่มาใช้บริการในเดือนตุลาคม” กลุ่มเป้าหมายทั้งหมดนี้เรียกว่า **ประชากร (population)** คำว่า population ในสถิติไม่จำเป็นต้องหมายถึงคนทั้งประเทศ แต่หมายถึงหน่วยทั้งหมดที่ข้อสรุปของเราต้องการครอบคลุม
 
-## 2. Learning Objectives
+สิ่งที่บันทึกจากผู้ป่วยแต่ละคนคือเวลารอ หน่วยเป็นนาที สิ่งที่สามารถมีค่าแตกต่างกันในแต่ละหน่วยเรียกว่า **ตัวแปร (variable)** ผู้ป่วยคนหนึ่งอาจรอ 3 นาที อีกคนอาจรอ 25 นาที ความแตกต่างเหล่านี้เป็นข้อมูลที่เราสังเกตได้
 
-หลังเรียนบทนี้ ผู้เรียนควรสามารถ:
+คำถามว่า “รอนานเฉลี่ยกี่นาที” สนใจค่าเฉลี่ยของประชากรทั้งหมด เราใช้สัญลักษณ์ $\mu$ แทนค่านั้น ค่าที่ใช้อธิบายประชากร เช่น ค่าเฉลี่ย ความแปรปรวน หรือสัดส่วน เรียกว่า **พารามิเตอร์ (parameter)** พารามิเตอร์เป็นค่าคงที่ของประชากรในขอบเขตที่กำหนด แต่โดยทั่วไปเราไม่รู้ค่า เพราะไม่ได้สังเกตประชากรทั้งหมด
 
-- เชื่อม population, variable, random sample, parameter, statistic, estimator และ estimate เป็นกระบวนการเดียวกันได้
-- อธิบายว่า sampling variability ทำให้ Statistical Inference จำเป็นอย่างไร
-- แยก random experiment, outcome, sample space และ event ได้
-- สร้าง event ด้วย union, intersection และ complement
-- ใช้ probability axioms, addition rule และ complement rule ได้
-- แยก subjective, relative-frequency และ classical approaches ได้
-- อธิบาย random variable และจำแนก discrete/continuous random variables ได้
-- สร้างและตรวจสอบ PMF, PDF และ CDF ได้
-- คำนวณ expectation และ variance ของ discrete random variable ได้
-- ตรวจว่าโจทย์เข้าเงื่อนไข Binomial distribution หรือไม่ และคำนวณ probability ได้
-- อธิบาย Uniform, Normal, Standard Normal, Student's t และ Chi-square distributions ได้
-- อธิบาย sampling distribution ของ sample mean ทั้งแบบสุ่มคืนที่และไม่คืนที่ได้
-- อธิบาย Central Limit Theorem และไม่สับสนกับการแจกแจงของข้อมูลดิบ
-- ใช้ histogram, P–P plot และ Q–Q plot ช่วยประเมิน distribution ได้
+นี่คือจุดเริ่มของ Statistical Inference:
 
-## 3. Prerequisite Knowledge
+> เราต้องการรู้ parameter ของ population แต่มีข้อมูลเพียง sample
 
-ควรทบทวนเรื่องต่อไปนี้ก่อน:
+หากสุ่มผู้ป่วยมา 10 คน ผู้ป่วย 10 คนนี้คือ **ตัวอย่าง (sample)** ค่าเฉลี่ยที่คำนวณจากตัวอย่างเรียกว่า **ค่าเฉลี่ยตัวอย่าง (sample mean)** และเขียนเป็น $\bar{x}$ หลังจากมีข้อมูลจริงแล้ว
 
-- Set และ subset
-- Union, intersection และ complement
-- Summation notation: $\sum$
-- ค่าเฉลี่ย ความแปรปรวน และส่วนเบี่ยงเบนมาตรฐาน
-- Factorial และ combination
-- พื้นที่ใต้กราฟและ integral เบื้องต้น
+คำสามคู่ที่ต้องแยกตั้งแต่ต้นคือ:
 
-## เส้นทางจากข้อมูลจริงสู่ Statistical Inference
+- Population คือกลุ่มที่ต้องการสรุป ส่วน sample คือกลุ่มที่สังเกตจริง
+- Parameter คือค่าของ population ส่วน statistic คือค่าที่คำนวณจาก sample
+- Parameter มักไม่ทราบค่า ส่วน statistic คำนวณได้จากข้อมูลที่มี
 
-ก่อนลงรายละเอียด Probability ควรแยกหน่วยความคิดต่อไปนี้ให้ชัด เพราะจะถูกใช้ต่อเนื่องตลอดทั้งสี่บท
+ตอนนี้ยังไม่ต้องจำสูตร สิ่งสำคัญคือมองโจทย์ให้ออกว่า “ต้องการกล่าวถึงใคร วัดอะไร และต้องการรู้ค่าใด”
 
-| แนวคิด | ในตัวอย่างเวลารอผู้ป่วย | คำถามที่ตอบ |
-|---|---|---|
-| Population | ผู้ป่วยทั้งหมดในขอบเขตที่สนใจ | เราต้องการสรุปถึงใคร |
-| Variable | เวลารอ หน่วยนาที | วัดอะไรจากแต่ละหน่วย |
-| Random variable $X$ | เวลารอของผู้ป่วยที่ยังไม่ทราบก่อนสุ่ม | ค่าที่อาจเกิดขึ้นมีพฤติกรรมอย่างไร |
-| Parameter $\mu$ | Mean waiting time ของผู้ป่วยทั้งหมด | ค่าของ population ที่ต้องการรู้คืออะไร |
-| Random sample | เวลารอของผู้ป่วยที่สุ่มมา $n$ คน | เรามีหลักฐานจากใครบ้าง |
-| Statistic $\bar{X}$ | กฎการคำนวณ sample mean | จะสรุป sample เป็นค่าใด |
-| Estimate $\bar{x}$ | Sample mean ที่คำนวณได้จริง เช่น 4.8 นาที | หลักฐานชุดนี้ให้ค่าเท่าใด |
-| Sampling distribution | การกระจายของ $\bar{X}$ จากการสุ่มซ้ำ | Estimate จะเปลี่ยนเพียงใดหากสุ่มใหม่ |
-| Standard error | SD ของ sampling distribution | Estimate มี sampling uncertainty เท่าใด |
+## 2. เหตุใดเวลารอจึงเป็นตัวแปรสุ่ม
 
-คำว่า **random** ไม่ได้หมายความว่าค่าถูกสร้างขึ้นอย่างไร้เหตุผล แต่หมายความว่าก่อนสุ่มเรายังไม่ทราบว่าจะได้หน่วยใดและค่าที่สังเกตจะเป็นเท่าใด หลังสังเกตแล้วตัวเลขนั้นเป็นข้อมูลจริง ส่วน random variable เป็นแบบจำลองของกระบวนการที่ให้กำเนิดตัวเลข
+ก่อนผู้ป่วยรายถัดไปมาถึง เราไม่รู้ว่าเขาจะรอ 2, 7 หรือ 30 นาที ให้ $X$ แทนเวลารอของผู้ป่วยที่ถูกสุ่มมาหนึ่งคน ตัวแปรที่ค่าขึ้นอยู่กับผลของกระบวนการสุ่มและยังไม่ทราบก่อนสังเกตเรียกว่า **ตัวแปรสุ่ม (random variable)**
 
-ความแตกต่างระหว่าง parameter, statistic และ estimate เป็นรากของการตีความทั้งหมด Parameter เป็นค่าคงที่ของ population แต่ไม่ทราบค่า Statistic เป็นฟังก์ชันของ random sample จึงยังเป็น random variable ก่อนเก็บข้อมูล ส่วน estimate เป็นค่าตัวเลขหลังนำข้อมูลจริงเข้าสูตรแล้ว เช่น $\bar{X}$ เป็น estimator แต่ $\bar{x}=4.8$ เป็น estimate
+คำว่า random ไม่ได้แปลว่าค่าเกิดขึ้นโดยไม่มีเหตุผล เวลารออาจได้รับผลจากจำนวนแพทย์ จำนวนผู้ป่วย ความเร่งด่วน และช่วงเวลา แต่ก่อนสุ่มผู้ป่วยหนึ่งคน เรายังไม่รู้ว่าจะพบใครและได้ค่าเท่าใด จึงใช้ตัวแปรสุ่มแทนความไม่แน่นอนนั้น
 
-## 4. Random Experiment, Outcome, Sample Space และ Event
+ตัวพิมพ์ใหญ่ $X$ หมายถึงตัวแปรสุ่มก่อนเห็นผล ส่วนตัวพิมพ์เล็ก $x$ หมายถึงค่าหนึ่งที่สังเกตได้ เช่น เมื่อผู้ป่วยจริงรอ 7 นาที เราอาจเขียนว่า $x=7$
 
-### 4.1 Random Experiment
+### จากผลลัพธ์ไปเป็นตัวเลข
 
-**Random experiment** คือการกระทำหรือกระบวนการที่มีผลลัพธ์เป็นไปได้มากกว่าหนึ่งอย่าง และไม่สามารถทราบล่วงหน้าอย่างแน่นอนว่าจะเกิดผลลัพธ์ใด แม้จะทราบชุดผลลัพธ์ที่เป็นไปได้ทั้งหมด (จากเอกสาร: Slides 2–6)
+ตัวแปรสุ่มทำหน้าที่เปลี่ยนผลลัพธ์ของการทดลองให้เป็นตัวเลข ลองเปลี่ยนเป็นตัวอย่างง่ายกว่า: โยนเหรียญสามครั้ง ผลที่อาจเกิดขึ้น เช่น HHT, HTH หรือ TTT เรียกว่า **ผลลัพธ์ (outcome)** ชุดของผลลัพธ์ที่เป็นไปได้ทั้งหมดเรียกว่า **ปริภูมิตัวอย่าง (sample space)**
 
-ตัวอย่าง:
+หากกำหนดให้ $X$ คือจำนวนครั้งที่ออกหัว:
 
-- โยนเหรียญหนึ่งครั้ง
-- ทอยลูกเต๋าหนึ่งลูก
-- สุ่มลูกค้าหนึ่งรายแล้วบันทึกประเภทประกัน
-- สุ่มหลอดไฟหนึ่งหลอดแล้ววัดอายุการใช้งาน
+- HHT ทำให้ $X=2$
+- HTH ทำให้ $X=2$
+- TTT ทำให้ $X=0$
 
-### 4.2 Outcome
+จะเห็นว่าผลลัพธ์หลายแบบอาจถูกแปลงเป็นค่าของ $X$ ค่าเดียวกัน Random variable จึงไม่ใช่ outcome แต่เป็นกฎที่นำ outcome ไปเป็นตัวเลข
 
-**Outcome** คือผลลัพธ์พื้นฐานหนึ่งค่าที่เกิดจากการทดลอง เช่น ทอยลูกเต๋าได้ 4 หรือสุ่มเหรียญแล้วได้หัว
+### ตัวแปรแบบนับได้และแบบต่อเนื่อง
 
-### 4.3 Sample Space
+จำนวนผู้ป่วยที่มาสายในหนึ่งวันรับค่า 0, 1, 2 และเพิ่มทีละจำนวนเต็ม จึงเป็น **ตัวแปรสุ่มแบบไม่ต่อเนื่อง (discrete random variable)** ส่วนเวลารอสามารถเป็น 4.2 หรือ 4.23 นาทีได้ตามความละเอียดของการวัด จึงถือเป็น **ตัวแปรสุ่มแบบต่อเนื่อง (continuous random variable)**
 
-**Sample space** เขียนแทนด้วย $S$ คือเซตของ outcomes ทั้งหมดที่เป็นไปได้
+ความแตกต่างนี้สำคัญ เพราะ probability ของตัวแปรแบบไม่ต่อเนื่องสามารถผูกกับค่าใดค่าหนึ่งได้ แต่สำหรับตัวแปรต่อเนื่อง probability ต้องพิจารณาเป็นช่วง เช่น โอกาสที่เวลารออยู่ระหว่าง 5 ถึง 10 นาที
 
-| การทดลอง | Sample space |
-|---|---|
-| โยนเหรียญ 1 ครั้ง | $S=\{H,T\}$ |
-| ทอยลูกเต๋า 1 ลูก | $S=\{1,2,3,4,5,6\}$ |
-| นับจำนวนอุบัติเหตุ | $S=\{0,1,2,\ldots\}$ |
-| วัดอายุหลอดไฟ | $S=\{x:x>0\}$ |
-| คะแนน Likert 1–5 | $S=\{1,2,3,4,5\}$ |
+## 3. Probability คือภาษาที่ใช้อธิบายความไม่แน่นอน
 
-Sample space อาจเป็น finite, countably infinite หรือ continuous ก็ได้
-
-### 4.4 Event
-
-**Event** คือ subset ของ sample space เขียนว่า $A\subseteq S$ เหตุการณ์เกิดขึ้นเมื่อ outcome ที่เกิดจริงเป็นสมาชิกของ event นั้น
-
-ตัวอย่าง ทอยลูกเต๋า:
-
-- $A=$ ได้เลขคู่ $=\{2,4,6\}$
-- $B=$ ได้ค่ามากกว่า 4 $=\{5,6\}$
-- $A\cap B=\{6\}$
-
-เหตุการณ์พิเศษ:
-
-- $S$ เป็น **certain event** เพราะเกิดเสมอ
-- $\varnothing$ เป็น **impossible event** เพราะไม่มี outcome ใดอยู่ในเหตุการณ์
-
-### 4.5 ข้อมูล Likert และ Top/Bottom Boxes
-
-Slides 4 และ 6 ใช้คะแนน 1–5 เพื่อสร้าง event เช่น:
-
-- Top 2 Boxes: $\{4,5\}$
-- Bottom 2 Boxes: $\{1,2\}$
-- คะแนนไม่ถึง “ดีมาก”: $\{1,2,3,4\}$
-
-สิ่งสำคัญคือ event เป็นการรวม outcomes ที่สนใจ ส่วนการรวมคะแนนเป็น Top 2 Boxes เป็น business rule ซึ่งควรกำหนดก่อนดูผลเพื่อหลีกเลี่ยงการเลือกเกณฑ์ตามข้อมูล
-
-## 5. Operations on Events
-
-ให้ $A,B\subseteq S$
-
-| สัญลักษณ์ | อ่านว่า | ความหมาย |
-|---|---|---|
-| $A\cap B$ | A intersection B | A และ B เกิดพร้อมกัน |
-| $A\cup B$ | A union B | A หรือ B หรือทั้งสองเหตุการณ์เกิด |
-| $A^c$ | complement of A | A ไม่เกิด |
-| $A\setminus B$ | A minus B | A เกิด แต่ B ไม่เกิด |
-
-คำว่า “or” ใน probability โดยทั่วไปเป็น **inclusive OR** จึงรวมกรณีที่ A และ B เกิดพร้อมกันด้วย
-
-### 5.1 Mutually Exclusive Events
-
-A และ B เป็น **mutually exclusive** เมื่อไม่สามารถเกิดพร้อมกัน:
+เมื่อยังไม่ทราบว่าจะเกิด outcome ใด เราใช้ **ความน่าจะเป็น (probability)** ระบุว่าสิ่งต่าง ๆ มีโอกาสเกิดมากน้อยเพียงใด ค่า probability อยู่ระหว่าง 0 กับ 1:
 
 $$
-A\cap B=\varnothing
+0 \leq P(A) \leq 1
 $$
 
-ตัวอย่างในการทอยลูกเต๋าหนึ่งครั้ง เหตุการณ์ “ได้เลขคู่” กับ “ได้เลขคี่” ไม่เกิดร่วมกัน
+$A$ แทนกลุ่มของ outcomes ที่เราสนใจ กลุ่มเช่นนี้เรียกว่า **เหตุการณ์ (event)** ตัวอย่างเช่น หากทอยลูกเต๋าหนึ่งครั้ง:
 
-> **อย่าสับสน:** Mutually exclusive ไม่เหมือน independent หาก A และ B mutually exclusive และทั้งคู่มี probability มากกว่า 0 การเกิด A ทำให้ B เกิดไม่ได้ จึงไม่ independent
+- เหตุการณ์ $A$: ได้เลขคู่ คือ $\{2,4,6\}$
+- เหตุการณ์ $B$: ได้ค่ามากกว่า 4 คือ $\{5,6\}$
 
-### 5.2 Worked Example: Two-set Venn Diagram
+เหตุการณ์ที่ $A$ และ $B$ เกิดพร้อมกันคือ $A\cap B=\{6\}$ ส่วนเหตุการณ์ที่อย่างน้อยหนึ่งเหตุการณ์เกิดคือ $A\cup B$
 
-จาก Slide 9 นักศึกษาใหม่ 150 คน ลง Math 85 คน ลง English 70 คน และลงทั้งสองวิชา 50 คน
-
-- Math only $=85-50=35$
-- English only $=70-50=20$
-- Math or English $=85+70-50=105$
-- Neither $=150-105=45$
-
-ต้องลบ intersection หนึ่งครั้ง เพราะเมื่อบวก 85 กับ 70 สมาชิกที่ลงทั้งสองวิชาถูกนับสองครั้ง
-
-### 5.3 Worked Example: Three-set Venn Diagram
-
-จาก Slide 9 มีนักศึกษา 100 คน:
-
-- PE 28, Biology 31, English 42
-- PE∩Biology 9, PE∩English 10, Biology∩English 6
-- ทั้งสามวิชา 4
-
-ใช้ inclusion–exclusion:
-
-$$
-|P\cup B\cup E|
-=|P|+|B|+|E|-|P\cap B|-|P\cap E|-|B\cap E|+|P\cap B\cap E|
-$$
-
-$$
-=28+31+42-9-10-6+4=80
-$$
-
-ดังนั้นเรียน none $=100-80=20$ คน
-
-- PE only $=28-(9-4)-(10-4)-4=13$
-- PE และ Biology แต่ไม่ English $=9-4=5$
-
-## 6. Probability
-
-### 6.1 Probability Axioms
-
-Probability เป็นฟังก์ชันที่กำหนดค่าให้ event โดยต้องเป็นไปตาม axioms (จากเอกสาร: Slide 10)
-
-1. Non-negativity: $P(A)\ge 0$
-2. Normalization: $P(S)=1$
-3. Countable additivity: สำหรับ events ที่ไม่ทับซ้อนกัน ความน่าจะเป็นของ union เท่ากับผลรวมของความน่าจะเป็น
-
-สำหรับสอง mutually exclusive events:
-
-$$
-P(A\cup B)=P(A)+P(B)
-$$
-
-### 6.2 Important Properties
-
-$$
-P(\varnothing)=0
-$$
-
-$$
-P(A^c)=1-P(A)
-$$
+เพราะสมาชิกที่อยู่ในทั้งสองเหตุการณ์จะถูกนับซ้ำเมื่อบวก $P(A)$ กับ $P(B)$ เราจึงต้องลบส่วนที่ซ้ำหนึ่งครั้ง:
 
 $$
 P(A\cup B)=P(A)+P(B)-P(A\cap B)
 $$
 
-ถ้า $A\subseteq B$:
+หากสองเหตุการณ์เกิดพร้อมกันไม่ได้ จะเรียกว่า **mutually exclusive** และได้ $P(A\cap B)=0$ แต่ mutually exclusive ไม่เหมือนกับ independent หากการเกิด $A$ ทำให้ $B$ เกิดไม่ได้ ทั้งสองเหตุการณ์ย่อมพึ่งพากัน
+
+เหตุการณ์ที่ $A$ ไม่เกิดเขียนเป็น $A^c$ และคำนวณได้จาก:
 
 $$
-P(A)\le P(B)
+P(A^c)=1-P(A)
 $$
 
-### 6.3 ข้อแก้ความเข้าใจจาก Notation ในสไลด์
+กฎนี้มีประโยชน์เมื่อการคำนวณสิ่งตรงข้ามง่ายกว่า เช่น “อย่างน้อยหนึ่งคน” มักคำนวณจาก 1 ลบ probability ที่ “ไม่มีใครเลย”
 
-Slides 10–11 มี notation ที่ควรอ่านอย่างระมัดระวัง:
+### Probability มาจากไหน
 
-- Non-negativity ต้องเป็น $P(A)\ge0$ ไม่ใช่ $P(A)>0$ เพราะ impossible event มี probability เท่ากับ 0
-- ถ้า $A\subseteq B$ ต้องได้ $P(A)\le P(B)$ ไม่จำเป็นต้องน้อยกว่าแบบ strict เพราะสอง events อาจมี probability เท่ากัน
-- ในความหมายมาตรฐาน $A\subseteq S$ อาจรวมกรณี $A=S$ ส่วนบางตำราใช้ $\subset$ แทน proper subset จึงควรดู convention ของผู้สอน
+ถ้าทอยลูกเต๋ายุติธรรม แต่ละหน้ามีโอกาสเท่ากัน เราหา probability จากจำนวน outcomes ที่สนับสนุนเหตุการณ์ หารด้วยจำนวน outcomes ทั้งหมด วิธีนี้เรียกว่า **แนวทางแบบคลาสสิก (classical approach)**
 
-## 7. Approaches to Probability
+ในข้อมูลโรงพยาบาล เราอาจประมาณโอกาสนัดไม่มาตามนัดจากสัดส่วนที่เคยเกิดขึ้นในอดีต วิธีนี้เรียกว่า **แนวทางจากความถี่สัมพัทธ์ (relative-frequency approach)**
 
-Slide 12 แบ่งวิธีคิด probability เป็น 3 แนวทาง
+หากเป็นเหตุการณ์ที่ไม่มีการเกิดซ้ำในเงื่อนไขเดิม เช่น ผู้เชี่ยวชาญประเมินโอกาสโครงการล่าช้า อาจใช้ข้อมูล ประสบการณ์ และความเชื่อประกอบกัน เรียกว่า **แนวทางเชิงอัตวิสัย (subjective approach)**
 
-### 7.1 Subjective Approach
+ทั้งสามแนวทางไม่ได้เปลี่ยนกฎ probability แต่ต่างกันที่แหล่งซึ่งใช้กำหนดค่าความน่าจะเป็น
 
-ใช้ความเชื่อหรือการประเมินจากข้อมูลและประสบการณ์ เช่น ผู้เชี่ยวชาญประเมินโอกาสโครงการล่าช้า 30% เหมาะเมื่อไม่มีการทดลองซ้ำแบบเดียวกันจำนวนมาก แต่ควรอธิบายฐานข้อมูลและเหตุผลของผู้ประเมิน
+## 4. Distribution คือภาพรวมพฤติกรรมของตัวแปรสุ่ม
 
-### 7.2 Relative-frequency Approach
+การรู้เพียงว่าตัวแปรรับค่าอะไรได้ยังไม่พอ เราต้องรู้ด้วยว่าแต่ละค่าหรือแต่ละช่วงมีโอกาสเกิดมากน้อยเพียงใด กฎที่อธิบายความเป็นไปได้นี้เรียกว่า **การแจกแจงความน่าจะเป็น (probability distribution)**
 
-ประมาณ probability จากสัดส่วนการเกิด event เมื่อทดลองซ้ำจำนวนมาก:
+สมมติให้ $X$ เป็นจำนวนผู้ป่วยที่ขาดนัดในหนึ่งช่วงเวลา และจากแบบจำลอง $X$ รับค่า 0, 1 หรือ 2 พร้อม probability ดังนี้:
 
-$$
-P(A)\approx\frac{n(A)}{n}
-$$
+| $x$ | 0 | 1 | 2 |
+|---:|---:|---:|---:|
+| $P(X=x)$ | 0.20 | 0.50 | 0.30 |
 
-เมื่อ $n$ เพิ่มขึ้น relative frequency มีแนวโน้มคงที่ใกล้ probability จริงตาม Law of Large Numbers ภายใต้เงื่อนไขที่เหมาะสม
+กฎที่ระบุ probability ให้ทุกค่าของตัวแปรสุ่มแบบไม่ต่อเนื่องเรียกว่า **ฟังก์ชันมวลความน่าจะเป็น (probability mass function หรือ PMF)** Probability ทุกค่าต้องไม่ติดลบและรวมกันได้ 1
 
-### 7.3 Classical Approach
+### ค่ากลางที่คาดหมาย
 
-เมื่อ outcomes มีโอกาสเท่ากัน:
+หากกระบวนการเดิมเกิดซ้ำหลายครั้ง ค่าเฉลี่ยระยะยาวของ $X$ เรียกว่า **ค่าคาดหมาย (expected value)**:
 
 $$
-P(A)=\frac{\text{จำนวน outcomes ที่สนับสนุน A}}{\text{จำนวน outcomes ทั้งหมด}}
+E(X)=\sum_x xP(X=x)
 $$
 
-เช่น โยนเหรียญยุติธรรม 3 ครั้ง มี ordered outcomes ทั้งหมด $2^3=8$ และโอกาสได้หัว 2 ครั้งคือ $\binom{3}{2}/8=3/8$
-
-## 8. Random Variables
-
-### 8.1 Definition
-
-**Random variable** คือฟังก์ชันค่าจริงที่ map outcome ใน sample space ไปเป็นตัวเลข:
+ในตัวอย่าง:
 
 $$
-X:S\rightarrow\mathbb{R}
+E(X)=0(0.20)+1(0.50)+2(0.30)=1.10
 $$
 
-ตัวพิมพ์ใหญ่ $X$ หมายถึง random variable ส่วนตัวพิมพ์เล็ก $x$ หมายถึงค่าหนึ่งที่ $X$ อาจรับได้ (จากเอกสาร: Slide 13)
+ค่า 1.10 ไม่จำเป็นต้องเป็นค่าที่เกิดจริงในรอบใดรอบหนึ่ง เพราะ $X$ รับเฉพาะ 0, 1 หรือ 2 แต่เป็นค่าเฉลี่ยระยะยาวของกระบวนการ
 
-ตัวอย่าง โยนเหรียญสามครั้ง และให้ $X=$ จำนวนหัว ถึงแม้ sample space มี 8 ordered outcomes แต่ $X$ รับค่าเพียง $0,1,2,3$
+### การกระจายรอบค่ากลาง
 
-### 8.2 Discrete versus Continuous
-
-| ประเด็น | Discrete | Continuous |
-|---|---|---|
-| ค่าที่เป็นไปได้ | นับเป็นค่า ๆ ได้ | เป็นช่วงต่อเนื่อง |
-| ตัวอย่าง | จำนวนอุบัติเหตุ, จำนวนหัว | เวลา, น้ำหนัก, อายุการใช้งาน |
-| ฟังก์ชันหลัก | PMF | PDF |
-| Probability ณ จุด | อาจมากกว่า 0 | $P(X=x)=0$ |
-| Probability ในช่วง | รวม PMF | พื้นที่ใต้ PDF |
-
-## 9. Discrete Random Variables: PMF, Expectation และ Variance
-
-### 9.1 Probability Mass Function
-
-PMF นิยามว่า:
+ตัวแปรสองตัวอาจมี expected value เท่ากันแต่ความผันผวนต่างกัน เราจึงใช้ **ความแปรปรวน (variance)** วัดระยะห่างกำลังสองเฉลี่ยจากค่ากลาง:
 
 $$
-p_X(x)=P(X=x)
+V(X)=E[(X-\mu)^2]
 $$
 
-โดยต้องมี:
-
-$$
-p_X(x)\ge0,\qquad \sum_xp_X(x)=1
-$$
-
-PMF ต้องกำหนด probability สำหรับทุกค่าที่เป็นไปได้ของ X และรวมกันได้ 1
-
-### 9.2 Expectation
-
-$$
-\mu=E(X)=\sum_xxp_X(x)
-$$
-
-Expectation คือค่าเฉลี่ยระยะยาวเมื่อทำกระบวนการซ้ำ ไม่จำเป็นต้องเป็นค่าที่ X รับได้จริง เช่นจำนวนบุตรคาดหมายอาจเท่ากับ 1.7 แม้ไม่มีครอบครัวใดมีบุตร 1.7 คน
-
-### 9.3 Variance
-
-$$
-\sigma^2=V(X)=E[(X-\mu)^2]
-$$
-
-หรือสูตรคำนวณลัด:
+โดย $\mu=E(X)$ และสามารถคำนวณอีกแบบได้ว่า:
 
 $$
 V(X)=E(X^2)-[E(X)]^2
 $$
 
-Standard deviation คือ $\sigma=\sqrt{V(X)}$ และมีหน่วยเดียวกับ X ขณะที่ variance มีหน่วยยกกำลังสอง
+รากที่สองของ variance คือ **ส่วนเบี่ยงเบนมาตรฐาน (standard deviation หรือ SD)** ซึ่งกลับมาอยู่ในหน่วยเดิมของตัวแปร เช่น นาที
 
-### 9.4 Worked Example: Discrete Uniform 1–5
+### เมื่อตัวแปรต่อเนื่อง
 
-ให้ $P(X=x)=0.2$ สำหรับ $x=1,2,3,4,5$ (Slides 14–15)
+สำหรับเวลารอแบบต่อเนื่อง โอกาสไม่ได้อยู่ที่ค่าจุดเดียว แต่เป็นพื้นที่ใต้เส้นโค้งในช่วงที่สนใจ เส้นโค้งนี้เรียกว่า **ฟังก์ชันความหนาแน่นความน่าจะเป็น (probability density function หรือ PDF)**
 
-$$
-E(X)=\sum_xxp_X(x)=0.2(1+2+3+4+5)=3
-$$
+ความสูงของ PDF ณ จุดหนึ่งไม่ใช่ probability ณ จุดนั้น สำหรับตัวแปรต่อเนื่อง:
 
 $$
-E(X^2)=0.2(1^2+2^2+3^2+4^2+5^2)=11
+P(X=x)=0
 $$
+
+แต่ probability ในช่วงอาจมากกว่าศูนย์ เช่น:
 
 $$
-V(X)=11-3^2=2
+P(5<X<10)
 $$
 
-ดังนั้น $SD(X)=\sqrt2\approx1.414$
+คือพื้นที่ใต้ PDF ตั้งแต่ 5 ถึง 10
 
-## 10. Sampling Distribution of the Sample Mean
+หากต้องการ probability สะสมจนถึงค่า $x$ จะใช้ **ฟังก์ชันการแจกแจงสะสม (cumulative distribution function หรือ CDF)**:
 
-### 10.1 Population Distribution versus Sampling Distribution
-
-- **Population distribution:** การกระจายของค่าของหน่วยใน population
-- **Sample distribution:** การกระจายของ observations ใน sample ที่สุ่มมาแล้วหนึ่งชุด
-- **Sampling distribution:** การกระจายของ statistic เช่น $\bar X$ จากทุก sample ที่เป็นไปได้ภายใต้วิธีสุ่มเดียวกัน
-
-นี่เป็น distinction ที่สำคัญมาก เพราะ inference ใช้ sampling distribution เพื่อวัดว่าค่า statistic เปลี่ยนแปลงมากน้อยเพียงใดจาก sample หนึ่งไปอีก sample หนึ่ง
+$$
+F(x)=P(X\leq x)
+$$
 
-### 10.2 With Replacement
+PMF, PDF และ CDF จึงไม่ใช่สามคำที่ต้องจำแยกกัน แต่เป็นเครื่องมือบอกว่า “ค่าต่าง ๆ ของตัวแปรสุ่มมีโอกาสเกิดอย่างไร” สำหรับข้อมูลคนละชนิด
 
-Slides 16–17 สุ่มตัวเลขสองครั้งจาก $\{1,2,3,4,5\}$ แบบคืนที่ มี ordered samples $5^2=25$ ชุด และสร้าง $\bar X$
+## 5. แบบจำลองการแจกแจงที่พบบ่อย
 
-$$
-E(\bar X)=\mu=3
-$$
+Distribution เป็นแบบจำลองของกระบวนการ ไม่ควรเลือกเพียงเพราะกราฟมีรูปร่างคล้ายกัน ต้องพิจารณาว่าข้อมูลเกิดขึ้นอย่างไรและ assumptions สอดคล้องหรือไม่
 
-$$
-V(\bar X)=\frac{\sigma^2}{n}=\frac{2}{2}=1
-$$
+### จำนวนความสำเร็จจากการทดลองหลายครั้ง
 
-แม้ $\bar X$ มีค่าเฉลี่ยเท่ากับ population mean แต่กระจายน้อยกว่า individual observation เพราะการเฉลี่ยลดความผันผวน
+สมมติแบบสอบถามถูกส่งให้ผู้ป่วย 5 คน แต่ละคนตอบหรือไม่ตอบ หาก:
 
-### 10.3 Without Replacement และ Finite Population Correction
+1. มีจำนวนครั้งคงที่ $n=5$
+2. แต่ละครั้งมีสองผลลัพธ์ตามนิยาม success/failure
+3. แต่ละครั้งเป็นอิสระกัน
+4. Probability of success เท่ากันทุกครั้ง
+5. $X$ นับจำนวน successes
 
-เมื่อสุ่มจาก finite population แบบไม่คืนที่ observations ไม่ independent และ variance ของ sample mean ลดลง:
+แล้ว $X$ มี **การแจกแจงทวินาม (Binomial distribution)** เขียนว่า:
 
 $$
-V(\bar X)=\frac{\sigma^2}{n}(\frac{N-n}{N-1})
+X\sim B(n,p)
 $$
 
-สำหรับ $N=5,n=2,\sigma^2=2$:
+Probability ที่เกิด success จำนวน $x$ ครั้งคือ:
 
 $$
-V(\bar X)=\frac{2}{2}(\frac{5-2}{5-1})=0.75
+P(X=x)=\binom{n}{x}p^x(1-p)^{n-x}
 $$
-
-พจน์ $\frac{N-n}{N-1}$ คือ finite population correction ในรูป variance เมื่อ sample fraction สูง ความไม่แน่นอนลดลงเพราะมีสมาชิกที่ยังไม่ถูกเลือกเหลือน้อยลง
-
-## 11. Binomial Distribution
 
-### 11.1 Conditions
+พจน์ $\binom{n}{x}$ นับจำนวนตำแหน่งที่ successes จำนวน $x$ ครั้งสามารถเกิดใน trials ทั้งหมด $n$ ครั้ง ส่วน $p^x(1-p)^{n-x}$ คือ probability ของลำดับหนึ่งที่มี success และ failure ตามจำนวนนั้น
 
-ให้ $X\sim B(n,p)$ เมื่อ:
+สำหรับ Binomial:
 
-1. มีจำนวน trials คงที่ $n$
-2. แต่ละ trial มีสอง outcomes ตามนิยาม success/failure
-3. Trials independent กัน
-4. Probability of success คงที่เท่ากับ $p$
-5. X นับจำนวน successes
-
-หากสุ่มแบบไม่คืนที่จาก finite population เล็ก ๆ ค่า $p$ จะเปลี่ยนและ trials ไม่ independent จึงไม่ใช่ Binomial โดยตรง
-
-### 11.2 PMF, Mean และ Variance
-
 $$
-P(X=x)=\binom{n}{x}p^x(1-p)^{n-x},\quad x=0,1,\ldots,n
+E(X)=np
 $$
 
 $$
-E(X)=np,\qquad V(X)=np(1-p)
+V(X)=np(1-p)
 $$
 
-$\binom{n}{x}$ นับจำนวนตำแหน่งที่สามารถวาง successes จำนวน x ครั้งใน n trials
+หากสุ่มโดยไม่คืนที่จากประชากรขนาดเล็ก probability ของการเลือกครั้งต่อไปจะเปลี่ยน และ observations ไม่เป็นอิสระ จึงไม่ใช่ Binomial โดยตรง
 
-### 11.3 Worked Example: สุ่มลูกบอล
+### ค่าต่อเนื่องที่กระจายสม่ำเสมอ
 
-Slides 19–20 กำหนด $n=4,p=3/5$ จึงมี $X\sim B(4,3/5)$
+ถ้าทุกช่วงย่อยที่มีความยาวเท่ากันภายในช่วง $a$ ถึง $b$ มีโอกาสเท่ากัน จะได้ **Continuous Uniform distribution** ความหนาแน่นคงที่เท่ากับ:
 
 $$
-P(X=x)=\binom4x(\frac35)^x(\frac25)^{4-x}
+f(x)=\frac{1}{b-a}, \qquad a\leq x\leq b
 $$
 
-| x | Probability |
-|---:|---:|
-| 0 | $16/625$ |
-| 1 | $96/625$ |
-| 2 | $216/625$ |
-| 3 | $216/625$ |
-| 4 | $81/625$ |
+คำว่า “ทุกค่ามี probability เท่ากัน” ต้องอ่านอย่างระมัดระวัง เพราะสำหรับ continuous variable ทุกค่าจุดเดียวมี probability เป็นศูนย์ สิ่งที่เท่ากันจริงคือช่วงที่มีความยาวเท่ากันมีพื้นที่ใต้กราฟเท่ากัน
 
-ตรวจสอบได้ว่าผลรวมเท่ากับ $625/625=1$
+### ค่าต่อเนื่องที่กระจายรอบค่ากลาง
 
-### 11.4 Worked Example: Multiple-choice Exam
+การแจกแจงรูประฆังที่สมมาตรรอบค่าเฉลี่ยเรียกว่า **Normal distribution** เขียนว่า:
 
-จาก Slide 22 มี 5 ข้อ ข้อละ 4 ตัวเลือก เดาสุ่มและคืนลูกบอลทุกครั้ง จึงมี $X\sim B(5,0.25)$
-
-**a) ถูก 5 ข้อ**
-
 $$
-P(X=5)=(0.25)^5=0.0009765625
+X\sim N(\mu,\sigma^2)
 $$
 
-**b) ถูกอย่างน้อย 4 ข้อ**
+$\mu$ กำหนดตำแหน่งกึ่งกลาง ส่วน $\sigma$ กำหนดความกว้างของการกระจาย หากต้องการเปรียบเทียบค่าจาก Normal distributions ต่างหน่วย เราแปลงค่าเป็นจำนวน standard deviations ที่ห่างจาก mean:
 
 $$
-P(X\ge4)=P(X=4)+P(X=5)
+Z=\frac{X-\mu}{\sigma}
 $$
 
-$$
-=\binom54(0.25)^4(0.75)+(0.25)^5=0.015625
-$$
+ค่า $Z=2$ หมายความว่าค่านั้นสูงกว่า mean อยู่ 2 standard deviations การแปลงนี้เรียกว่า **standardization** และทำให้ใช้ Standard Normal distribution ซึ่งมี mean 0 และ variance 1 ได้
 
-**c) ไม่ถูกเลย**
+เมื่อ $n$ ใหญ่และ $p$ ไม่อยู่ใกล้ 0 หรือ 1 มากเกินไป รูปร่างของ Binomial อาจประมาณด้วย Normal distribution ได้ เพราะจำนวน successes เป็นผลรวมของตัวแปร Bernoulli หลายตัว อย่างไรก็ตามต้องตรวจเงื่อนไขก่อนใช้ approximation และใช้ continuity correction เมื่อต้องการความแม่นยำในการแปลงจำนวนเต็มเป็นช่วงต่อเนื่อง
 
-$$
-P(X=0)=(0.75)^5=0.2373046875
-$$
+## 6. จากข้อมูลรายคนไปสู่ค่าเฉลี่ยของกลุ่ม
 
-**d) ถูกไม่เกิน 2 ข้อ**
+กลับมาที่เวลารอผู้ป่วย หากสุ่มผู้ป่วย $n$ คน เราแทนเวลารอของแต่ละคนด้วย:
 
 $$
-P(X\le2)=\sum_{x=0}^{2}\binom5x(0.25)^x(0.75)^{5-x}
-=0.896484375
+X_1,X_2,\ldots,X_n
 $$
-
-คำสำคัญ:
 
-- exactly 2: $P(X=2)$
-- at least 2: $P(X\ge2)$
-- at most/no more than 2: $P(X\le2)$
-- more than 2: $P(X>2)$
+และคำนวณค่าเฉลี่ยด้วย:
 
-## 12. Continuous Random Variables
-
-### 12.1 PDF and CDF
-
-สำหรับ continuous random variable:
-
 $$
-F_X(x)=P(X\le x)
+\bar{X}=\frac{X_1+X_2+\cdots+X_n}{n}
 $$
-
-และหาก differentiable:
 
-$$
-f_X(x)=\frac{d}{dx}F_X(x)
-$$
+ก่อนเก็บข้อมูล $\bar{X}$ ยังเป็นตัวแปรสุ่ม เพราะ $X_1,\ldots,X_n$ ยังไม่ทราบค่า กฎการคำนวณจาก sample เช่น $\bar{X}$ เรียกว่า **สถิติ (statistic)** และเมื่อเราใช้ statistic เพื่อประมาณ parameter จะเรียกกฎนั้นว่า **ตัวประมาณ (estimator)**
 
-Probability ของช่วงคือพื้นที่ใต้ PDF:
+หลังเก็บข้อมูลแล้ว สมมติได้เวลารอ:
 
 $$
-P(a<X<b)=\int_a^b f_X(x)\,dx=F_X(b)-F_X(a)
+3,\ 4,\ 4,\ 5,\ 8
 $$
 
-เงื่อนไขของ PDF:
+จึงคำนวณได้:
 
 $$
-f_X(x)\ge0,\qquad\int_{-\infty}^{\infty}f_X(x)\,dx=1
+\bar{x}=\frac{3+4+4+5+8}{5}=4.8
 $$
-
-ความสูง $f_X(x)$ ไม่ใช่ probability ณ จุด เพราะ $P(X=x)=0$
 
-> Slide 23 เขียน CDF เป็น $P(X<x)$ ซึ่งให้ค่าเท่ากับ $P(X\le x)$ สำหรับ continuous variable แต่คำนิยามมาตรฐานทั่วไปนิยมใช้ $P(X\le x)$
-
-### 12.2 Continuous Uniform Distribution
-
-ถ้า $X\sim U(a,b)$:
-
-$$
-f_X(x)=\frac1{b-a},\quad a<x<b
-$$
+$\bar{X}$ คือ estimator ก่อนเห็นข้อมูล ส่วน $\bar{x}=4.8$ นาทีคือ **ค่าประมาณ (estimate)** ที่ได้จาก sample จริง
 
-$$
-E(X)=\frac{a+b}{2},\qquad V(X)=\frac{(b-a)^2}{12}
-$$
+ค่า 4.8 เป็นคำตอบของ sample นี้ แต่ยังไม่ใช่คำตอบที่แน่นอนของ population เพราะถ้าสุ่มผู้ป่วยอีก 5 คน เราอาจได้ค่าเฉลี่ย 5.2 หรือ 6.1 นาที ความแตกต่างระหว่าง sample เช่นนี้เรียกว่า **ความผันผวนจากการสุ่ม (sampling variability)**
 
-คำว่า uniform หมายถึงช่วงที่มีความยาวเท่ากันมี probability เท่ากัน ไม่ได้หมายความว่าแต่ละจุดมี probability บวกเท่ากัน เพราะทุกจุดมี probability 0
+## 7. Sampling Distribution: แนวคิดที่เชื่อมทั้งวิชา
 
-## 13. Normal Distribution
+ลองจินตนาการว่าเราสามารถทำขั้นตอนต่อไปนี้ซ้ำได้:
 
-ถ้า $X\sim N(\mu,\sigma^2)$ การแจกแจงมีลักษณะสมมาตรรอบ $\mu$ และกำหนดรูปร่างด้วย mean และ variance (Slides 24–26)
+1. สุ่มผู้ป่วย $n$ คนจาก population
+2. คำนวณ sample mean
+3. บันทึก sample mean
+4. คืนข้อมูลและสุ่ม sample ใหม่ด้วยวิธีเดิม
 
-คุณสมบัติสำคัญ:
+เมื่อทำซ้ำจำนวนมาก เราจะได้ sample means จำนวนมาก การแจกแจงของ sample mean เหล่านั้นเรียกว่า **การแจกแจงของค่าเฉลี่ยตัวอย่าง (sampling distribution of the sample mean)**
 
-- $E(X)=\mu$
-- $V(X)=\sigma^2$
-- $P(X<\mu)=P(X>\mu)=0.5$
-- $P(a<X<b)=F(b)-F(a)$
+จุดที่มักสับสนมีสามชั้น:
 
-Empirical rule ตามตัวเลขใน Slide 25:
+- Population distribution คือการกระจายของเวลารอรายคนในผู้ป่วยทั้งหมด
+- Sample distribution คือการกระจายของเวลารอใน sample ที่เก็บมาหนึ่งชุด
+- Sampling distribution คือการกระจายของ sample mean จากการสุ่ม sample ซ้ำ
 
-| ช่วง | Probability โดยประมาณ |
-|---|---:|
-| $\mu\pm1\sigma$ | 0.6826 |
-| $\mu\pm2\sigma$ | 0.9544 |
-| $\mu\pm3\sigma$ | 0.9974 |
+Sampling distribution จึงไม่ใช่กราฟของข้อมูลรายคน แต่เป็นกราฟของ statistic จากหลาย sample ที่เป็นไปได้
 
-### 13.1 Standardization
+หาก observations เป็นอิสระและมาจาก population เดียวกัน:
 
 $$
-Z=\frac{X-\mu}{\sigma}\sim N(0,1)
+E(\bar{X})=\mu
 $$
 
-z-score บอกว่าค่า X อยู่ห่างจาก mean กี่ standard deviations และทำให้ใช้ Standard Normal distribution เป็น reference เดียวกันได้
+หมายความว่า sample mean อาจสูงหรือต่ำกว่า population mean ในแต่ละ sample แต่โดยเฉลี่ยระยะยาวจะอยู่ที่ $\mu$
 
-## 14. Distribution of the Sample Mean, t และ Chi-square
+ความแปรปรวนของ sample mean คือ:
 
-### 14.1 Sample Mean from a Normal Population
-
-ถ้า $X_1,\ldots,X_n$ เป็น i.i.d. จาก $N(\mu,\sigma^2)$:
-
 $$
-\bar X\sim N(\mu,\frac{\sigma^2}{n})
+V(\bar{X})=\frac{\sigma^2}{n}
 $$
 
-ดังนั้น:
+และส่วนเบี่ยงเบนมาตรฐานของ sampling distribution คือ:
 
 $$
-Z=\frac{\bar X-\mu}{\sigma/\sqrt n}\sim N(0,1)
+SE(\bar{X})=\frac{\sigma}{\sqrt{n}}
 $$
 
-$\sigma/\sqrt n$ คือ standard error ของ sample mean เมื่อทราบ population standard deviation
+ค่านี้เรียกว่า **ความคลาดเคลื่อนมาตรฐาน (standard error หรือ SE)** SD อธิบายความแตกต่างระหว่างผู้ป่วยรายคน ส่วน SE อธิบายความแตกต่างระหว่าง sample means หากสุ่ม sample ใหม่
 
-### 14.2 Student's t Distribution
+เมื่อ $n$ เพิ่มขึ้น ตัวหาร $\sqrt{n}$ เพิ่มขึ้น ทำให้ SE ลดลง ค่าเฉลี่ยจาก sample ใหญ่จึงมีแนวโน้มเสถียรกว่าค่าเฉลี่ยจาก sample เล็ก แต่การเพิ่ม sample size ไม่แก้อคติจากวิธีเลือก sample หากเลือกเฉพาะผู้ป่วยบางช่วงเวลาอย่างเป็นระบบ estimate อาจแม่นรอบค่าที่ผิดได้
 
-เมื่อไม่ทราบ $\sigma$ และใช้ sample standard deviation:
+### การสุ่มแบบคืนที่และไม่คืนที่
 
-$$
-S^2=\frac{\sum_{i=1}^{n}(X_i-\bar X)^2}{n-1}
-$$
+สูตรด้านบนมอง observations เป็นอิสระ ซึ่งเกิดขึ้นได้เมื่อสุ่มจาก population ใหญ่มากหรือสุ่มแบบคืนที่ หากสุ่มจาก finite population แบบไม่คืนที่ การเลือกหน่วยหนึ่งทำให้หน่วยที่เหลือเปลี่ยน จึงเกิด dependence
 
-หากสุ่มจาก Normal population:
+ความแปรปรวนของ sample mean จะลดลงตาม finite population correction:
 
 $$
-T=\frac{\bar X-\mu}{S/\sqrt n}\sim t_{n-1}
+V(\bar{X})
+=
+\frac{\sigma^2}{n}
+(\frac{N-n}{N-1})
 $$
 
-t distribution มีหางหนากว่า Standard Normal เพื่อสะท้อน uncertainty จากการประมาณ $\sigma$ ด้วย S เมื่อ degrees of freedom เพิ่มขึ้น t จะเข้าใกล้ Normal
+$N$ คือขนาด population และ $n$ คือขนาด sample เมื่อ sample เป็นสัดส่วนมากของ population เรารู้ข้อมูลเกี่ยวกับ population มากขึ้น ความไม่แน่นอนจึงลดลง
 
-### 14.3 Chi-square Distribution
+## 8. Central Limit Theorem: เหตุใดค่าเฉลี่ยจึงมักใกล้ Normal
 
-ภายใต้ Normal population:
+Population distribution ของเวลารออาจเบ้ขวา เพราะผู้ป่วยส่วนใหญ่รอไม่นาน แต่บางคนรอนานมาก อย่างไรก็ตาม เมื่อสุ่ม observations ที่เป็นอิสระจาก population เดียวกันและคำนวณค่าเฉลี่ยของ sample ขนาดใหญ่พอ การแจกแจงของ $\bar{X}$ จะเข้าใกล้ Normal distribution แนวคิดนี้เรียกว่า **ทฤษฎีขีดจำกัดส่วนกลาง (Central Limit Theorem หรือ CLT)**
 
-$$
-\frac{(n-1)S^2}{\sigma^2}\sim\chi^2_{n-1}
-$$
-
-Chi-square distribution เป็นบวกและเบ้ขวา รูปร่างขึ้นกับ degrees of freedom ความสัมพันธ์นี้ใช้สร้าง inference สำหรับ population variance
+โดยประมาณ:
 
-## 15. Normal Approximation to Binomial
-
-ถ้า $X\sim B(n,p)$ เมื่อ n ใหญ่พอ การแจกแจงของ X สามารถประมาณด้วย:
-
 $$
-X\approx N(np,np(1-p))
+\bar{X}
+\approx
+N(\mu,\frac{\sigma^2}{n})
 $$
 
-หรือ standardized:
+CLT ไม่ได้บอกว่าข้อมูลรายคนจะกลายเป็น Normal และไม่ได้บอกว่าทุก sample ขนาด 30 เพียงพอเสมอ ความเร็วที่ sampling distribution เข้าใกล้ Normal ขึ้นกับรูปร่างของ population หากข้อมูลเบ้รุนแรง มี outliers หรือมี heavy tails อาจต้องใช้ sample ใหญ่กว่า
 
-$$
-\frac{X-np}{\sqrt{np(1-p)}}\approx N(0,1)
-$$
+ความสำคัญของ CLT คือทำให้เราประมาณ probability เกี่ยวกับ sample mean และสร้างวิธีอนุมานได้ แม้ population เดิมไม่เป็น Normal อย่างสมบูรณ์
 
-แนวปฏิบัติที่ใช้บ่อยคือให้ $np$ และ $n(1-p)$ ไม่เล็กเกินไป ทั้งนี้ threshold อาจต่างกันตามตำรา ควรยึดเกณฑ์ของผู้สอน
+### เมื่อไม่รู้ population standard deviation
 
-เพราะ Binomial เป็น discrete แต่ Normal เป็น continuous การคำนวณที่ต้องการความแม่นยำควรใช้ **continuity correction** เช่น:
+ในงานจริงเราแทบไม่รู้ $\sigma$ จึงแทนด้วย sample standard deviation $s$ การแทนค่านี้เพิ่มความไม่แน่นอน โดยเฉพาะเมื่อ sample เล็ก ตัวแปรมาตรฐาน:
 
 $$
-P(X\le10)\approx P(Y<10.5)
+T=\frac{\bar{X}-\mu}{s/\sqrt{n}}
 $$
 
-เมื่อ $Y\sim N(np,np(1-p))$
+จึงใช้ **Student's t distribution** แทน Standard Normal distribution ภายใต้ assumptions ที่เหมาะสม t distribution มีหางหนากว่า Normal เพื่อสะท้อนความไม่แน่นอนจากการประมาณ $\sigma$ และค่อย ๆ เข้าใกล้ Normal เมื่อ degrees of freedom เพิ่มขึ้น
 
-## 16. Central Limit Theorem
+### การแจกแจงของ sample variance
 
-### 16.1 Core Idea
+หากสุ่มจาก Normal population ปริมาณที่สร้างจาก sample variance มี **Chi-square distribution**:
 
-ให้ $X_1,\ldots,X_n$ เป็น i.i.d. มี mean $\mu$ และ finite variance $\sigma^2$ เมื่อ n เพิ่มขึ้น:
-
-$$
-\frac{\bar X-\mu}{\sigma/\sqrt n}\xrightarrow{d}N(0,1)
-$$
-
-หรือกล่าวว่า:
-
 $$
-\bar X\approx N(\mu,\frac{\sigma^2}{n})
+\frac{(n-1)S^2}{\sigma^2}
+\sim
+\chi^2_{n-1}
 $$
-
-แม้ population distribution ไม่เป็น Normal โดย approximation จะดีขึ้นเมื่อ n เพิ่มขึ้น (Slide 31)
-
-### 16.2 CLT สำคัญอย่างไร
 
-CLT ทำให้สามารถสร้าง confidence interval และ hypothesis test สำหรับ mean โดยอาศัย Normal approximation ได้ในหลายสถานการณ์ จึงเป็นรากฐานของ classical inference
+การแจกแจงนี้ไม่สมมาตรและรับค่าไม่ติดลบ เพราะ variance ไม่ติดลบ ในบทต่อไป แนวคิดเดียวกันนี้จะถูกใช้สร้างช่วงประมาณและการทดสอบเกี่ยวกับความแปรปรวน
 
-### 16.3 สิ่งที่ CLT ไม่ได้กล่าว
+Normal, t และ Chi-square จึงไม่ใช่รายชื่อ distribution ที่ต้องจำแยกกัน แต่เกิดจากคำถามคนละแบบ:
 
-- ไม่ได้กล่าวว่าข้อมูลดิบจะกลายเป็น Normal เมื่อ n ใหญ่
-- กล่าวถึงการแจกแจงของ standardized sum หรือ sample mean จากการสุ่มซ้ำ
-- ไม่มีขนาด sample เดียวที่ “ใหญ่พอ” สำหรับทุก population หาก population เบ้มากหรือหางหนักอาจต้องใช้ n มากขึ้น
-- n ใหญ่ไม่ได้แก้ bias, dependence, measurement error หรือ non-representative sampling
+- Normal ใช้อธิบายตัวแปรหรือ sampling distribution เมื่อเงื่อนไขรองรับ
+- t ใช้กับ standardized mean เมื่อแทน $\sigma$ ด้วย $s$
+- Chi-square เกิดเมื่อพิจารณา sample variance จาก Normal population
 
-## 17. Checking Distribution and Normality
+## 9. เราจะรู้ได้อย่างไรว่าวิธีที่อาศัย Normality สมเหตุสมผล
 
-Slide 32 แบ่งวิธีตรวจ distribution เป็น graphical methods และ hypothesis tests
+การตรวจ Normality ไม่ควรเริ่มและจบที่ p-value เพียงค่าเดียว ต้องพิจารณาทั้งกระบวนการเกิดข้อมูล ขนาด sample กราฟ และ outliers
 
-### 17.1 Histogram
+### Histogram
 
-ใช้ดู shape, modality, skewness, gaps และ outliers แต่ผลขึ้นกับ bin width และอาจตีความยากเมื่อ sample เล็ก
+Histogram แสดงการกระจายของ observations ช่วยให้เห็นความเบ้ หลายยอด ช่องว่าง และค่าที่อยู่ห่างจากกลุ่ม แต่รูปร่างเปลี่ยนได้ตามตำแหน่งและความกว้างของ bins จึงไม่ควรใช้เพียงกราฟเดียวตัดสิน
 
-### 17.2 P–P Plot
+### Q-Q plot
 
-P–P plot เปรียบเทียบ cumulative probabilities ของ empirical distribution กับ theoretical distribution จุดใกล้เส้น 45° แสดงว่า CDFs ใกล้เคียงกัน โดยมักไวต่อความแตกต่างบริเวณกลาง distribution มากกว่าหาง (Slides 33–37)
+Q-Q plot เปรียบเทียบ quantiles ของข้อมูลกับ quantiles ที่ควรพบภายใต้ Normal distribution หากจุดเรียงใกล้เส้นตรง ข้อมูลสอดคล้องกับ Normal model ในระดับหนึ่ง
 
-### 17.3 Q–Q Plot
+รูปแบบการเบี่ยงจากเส้นให้ข้อมูลมากกว่าคำว่า “ผ่านหรือไม่ผ่าน”:
 
-Q–Q plot เปรียบเทียบ quantiles ของสอง distributions หาก distributions มีรูปทรงใกล้กัน จุดจะเรียงใกล้เส้นตรง (Slides 38–40)
+- ปลายด้านหนึ่งแยกออกมาก อาจบอกความเบ้
+- ปลายทั้งสองแยกออก อาจบอกหางหนัก
+- จุดหนึ่งอยู่ห่างมาก อาจเป็น outlier
 
-| รูปแบบใน Normal Q–Q plot | ความหมายที่เป็นไปได้ |
-|---|---|
-| จุดใกล้เส้นตรง | approximately Normal |
-| โค้งเป็นระบบ | skewness หรือ shape ต่างจาก Normal |
-| ปลายเบี่ยงออกมาก | tail behavior ต่างหรือมี outliers |
-| เส้นตรงแต่ slope/intercept ต่าง | shape ใกล้กันแต่ location/scale ต่าง |
+P-P plot เปรียบเทียบ cumulative probabilities และไวต่อบริเวณกลาง distribution มากกว่า ส่วน Q-Q plot มักเห็นความแตกต่างบริเวณ tails ได้ชัด จึงถูกใช้ตรวจ Normality บ่อยกว่า
 
-Q–Q plot ให้ข้อมูลเรื่อง tails ชัดกว่า P–P plot และ histogram แต่ควรดูร่วมกับบริบทและ sample size
+### Formal normality test
 
-### 17.4 Formal Tests
+Shapiro-Wilk test ใช้สมมติฐานตั้งต้นว่าข้อมูลมาจาก Normal distribution:
 
-สไลด์กล่าวถึง Goodness-of-fit และ Kolmogorov–Smirnov test การตีความ formal normality test ต้องระวัง:
-
-- Sample ใหญ่มากอาจ detect deviation เล็กที่ไม่มีผลต่อวิธีวิเคราะห์
-- Sample เล็กอาจมี power ไม่พอจะพบ non-normality
-- การไม่ reject ไม่ได้พิสูจน์ว่า distribution เป็น Normal
-- ควรตรวจ residuals ของ model เมื่อ assumption กล่าวถึง errors/residuals ไม่ใช่ดู outcome อย่างเดียว
-
-### 17.5 Utility Data Exercise
-
-Slide 41 ให้ค่าไฟเดือนกรกฎาคมของอพาร์ตเมนต์ 50 แห่ง และให้ประเมิน Normality ด้วย boxplot และ Q–Q plot ขั้นตอนตอบที่ดีคือ:
-
-1. สร้าง boxplot เพื่อตรวจ median, symmetry, IQR และ outliers
-2. สร้าง Normal Q–Q plot
-3. พิจารณาความเบี่ยงเบนอย่างเป็นระบบ โดยเฉพาะ tails
-4. สรุปว่า “approximately normal” หรือไม่ พร้อมหลักฐานจากทั้งสองกราฟ
-5. หลีกเลี่ยงคำสรุปแบบเด็ดขาดจากกราฟเดียว
-
-ตัวอย่าง Python:
-
-```python
-import matplotlib.pyplot as plt
-import scipy.stats as stats
-
-utility = [
-    96, 171, 202, 178, 147, 102, 153, 197, 127, 82,
-    157, 185, 90, 116, 172, 111, 148, 213, 130, 165,
-    141, 149, 206, 175, 123, 128, 144, 168, 109, 167,
-    95, 163, 150, 154, 130, 143, 187, 166, 139, 149,
-    108, 119, 183, 151, 114, 135, 191, 137, 129, 158
-]
-
-fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-axes[0].boxplot(utility, vert=True)
-axes[0].set_title("Utility Cost Boxplot")
-stats.probplot(utility, dist="norm", plot=axes[1])
-axes[1].set_title("Normal Q-Q Plot")
-plt.tight_layout()
-plt.show()
-```
-
-## 18. Common Misconceptions
-
-1. **Event คือ outcome เดียวเสมอ** — Event อาจมีหลาย outcomes
-2. **Mutually exclusive เท่ากับ independent** — ตรงกันข้ามในกรณีที่ probabilities เป็นบวก
-3. **Random variable คือค่าที่เปลี่ยนแบบไม่มีหลักการ** — เป็นฟังก์ชันที่กำหนดชัดเจนจาก outcome ไปสู่ตัวเลข
-4. **PDF ณ จุดคือ probability ของจุดนั้น** — สำหรับ continuous variable ต้องหาพื้นที่ในช่วง
-5. **Expectation ต้องเป็นค่าที่เกิดขึ้นได้จริง** — เป็น weighted long-run average
-6. **Sampling distribution คือ histogram ของ sample หนึ่งชุด** — เป็น distribution ของ statistic จากการสุ่มซ้ำ
-7. **Binomial ใช้ได้กับทุกโจทย์ที่มีสอง outcomes** — ต้องมี fixed n, independence และ constant p
-8. **ใช้ z ทุกครั้งเมื่อ n ใหญ่** — ต้องดูว่าทราบ $\sigma$ หรือไม่ design และ assumptions เป็นอย่างไร
-9. **CLT ทำให้ raw data เป็น Normal** — CLT เกี่ยวกับ standardized sums/sample means
-10. **Q–Q plot ต้องทับเส้น $y=x$ เสมอ** — หากเปรียบเทียบ shape จุดอาจอยู่บนเส้นตรงที่ slope/intercept ต่างได้
-11. **ไม่ reject normality แปลว่าพิสูจน์ว่า Normal** — เป็นเพียงหลักฐานไม่พอที่จะ reject ภายใต้ test นั้น
-
-## 19. Likely Exam Focus
-
-หัวข้อนี้อนุมานจากลำดับ เนื้อหาที่เน้น สูตร และ exercises ในสไลด์ ไม่ใช่ข้อสอบจริง
-
-### Definitions to remember
-
-- Random experiment, outcome, sample space, event
-- Union, intersection, complement, mutually exclusive
-- Probability axioms
-- Random variable, PMF, PDF, CDF
-- Expectation, variance, sampling distribution และ standard error
-- Binomial, Normal, t และ Chi-square distributions
-- Central Limit Theorem
-- P–P plot versus Q–Q plot
-
-### Calculations to perform
-
-- Venn diagram และ inclusion–exclusion
-- Addition/complement rules
-- PMF, $E(X)$ และ $V(X)$
-- Sampling distribution ของ $\bar X$
-- Finite population correction
-- Binomial probability รวมคำว่า exactly/at least/at most
-- Standardization ด้วย z-score
-- Normal approximation to Binomial
-
-### Concepts to explain or compare
-
-- Outcome versus event
-- Discrete versus continuous random variables
-- PMF versus PDF versus CDF
-- Population distribution versus sampling distribution
-- With-replacement versus without-replacement sampling
-- Standard Normal versus Student's t
-- P–P plot versus Q–Q plot
-- Exact Binomial versus Normal approximation
-
-### Scenario decisions
-
-- ตรวจว่าโจทย์เป็น Binomial หรือไม่
-- เลือก distribution ของ statistic ตามสิ่งที่ทราบเกี่ยวกับ population variance
-- ตัดสินว่าควรใช้ continuity correction หรือไม่
-- ประเมิน approximately Normal จากหลายหลักฐาน ไม่ยึดกราฟหรือ test เพียงอย่างเดียว
-
-## 20. Practice Questions
-
-### Recall and Understanding
-
-1. Sample space กับ event ต่างกันอย่างไร
-2. เขียน probability axioms ทั้งสามข้อ
-3. PMF กับ PDF ต่างกันอย่างไร
-4. Sampling distribution หมายถึงอะไร
-5. ระบุเงื่อนไข Binomial distribution
-
-### Multiple Choice
-
-6. หาก A และ B mutually exclusive และ $P(A),P(B)>0$ ข้อใดถูกต้อง
-   - A. A และ B independent
-   - B. $P(A\cap B)=P(A)P(B)$
-   - C. $P(A\cup B)=P(A)+P(B)$
-   - D. $P(A\mid B)=P(A)$
-
-7. ข้อใดเป็น continuous random variable
-   - A. จำนวนรายการสั่งซื้อ
-   - B. จำนวนสินค้าที่ชำรุด
-   - C. ระยะเวลารอรับยา
-   - D. จำนวนสาขาที่ผ่าน audit
-
-8. ถ้า $X\sim B(10,0.2)$ ค่า $E(X)$ เท่ากับเท่าใด
-   - A. 0.2
-   - B. 2
-   - C. 8
-   - D. 10
-
-9. CLT กล่าวถึง distribution ใดเป็นหลัก
-   - A. Raw observations ใน sample เดียว
-   - B. Population ที่ต้องเป็น Normal เสมอ
-   - C. Standardized sum หรือ sample mean เมื่อ n เพิ่มขึ้น
-   - D. เฉพาะ Binomial variable
-
-### Apply and Analyze
-
-10. ทอยลูกเต๋ายุติธรรมสองครั้ง ให้ $X$ เป็นจำนวนครั้งที่ได้เลข 6 จงระบุ distribution และหา $P(X\ge1)$
-11. ให้ PMF: $P(X=0)=0.2$, $P(X=1)=0.5$, $P(X=2)=0.3$ จงหา $E(X)$ และ $V(X)$
-12. Population มี $\mu=50,\sigma=12$ สุ่ม independent sample ขนาด 36 จงหา mean และ standard error ของ $\bar X$
-13. อธิบายว่าทำไม sampling without replacement จาก population เล็กจึงมี variance ของ $\bar X$ ต่ำกว่า with replacement
-14. หาก Normal Q–Q plot เรียงเกือบตรงกลางแต่ปลายทั้งสองเบี่ยงออกจากเส้น ควรตีความอย่างไร
-15. นักวิเคราะห์กล่าวว่า “ข้อมูล 1,000 แถวจึงเป็น Normal ตาม CLT” จงวิจารณ์
-
-## 21. Model Answers with Reasoning
-
-1. Sample space คือ outcomes ทั้งหมด ส่วน event คือ subset ของ outcomes ที่สนใจ
-2. $P(A)\ge0$, $P(S)=1$ และ probability ของ union ของ disjoint events เท่ากับผลรวม
-3. PMF กำหนด point probability สำหรับ discrete variable ส่วน PDF เป็น density ของ continuous variable และต้อง integrate เพื่อหา probability
-4. Distribution ของ statistic จาก samples ที่เป็นไปได้ภายใต้วิธีสุ่มเดียวกัน
-5. Fixed n, two outcomes, independent trials, constant p และ X นับ success
-6. **C** เพราะ intersection ว่าง จึงบวก probabilities ได้โดยตรง แต่ไม่ independent
-7. **C** ระยะเวลารับค่าได้ต่อเนื่อง
-8. **B** เพราะ $E(X)=np=10(0.2)=2$
-9. **C** CLT กล่าวถึง standardized sum/sample mean ไม่ใช่ raw-data distribution
-10. $X\sim B(2,1/6)$ และ $P(X\ge1)=1-P(X=0)=1-(5/6)^2=11/36$
-11. $E(X)=0(0.2)+1(0.5)+2(0.3)=1.1$; $E(X^2)=0+0.5+1.2=1.7$; $V(X)=1.7-1.1^2=0.49$
-12. $E(\bar X)=50$ และ $SE(\bar X)=12/\sqrt{36}=2$
-13. การเลือกหน่วยหนึ่งทำให้ค่าของหน่วยที่เหลือมีข้อมูลมากขึ้นและ observations มี dependence เชิงลบ finite population correction จึงลด variance
-14. ส่วนกลางใกล้ Normal แต่ tails ต่างจาก Normal อาจเป็น heavy/light tails หรือ outliers ควรตรวจข้อมูลและกราฟอื่นร่วมด้วย
-15. CLT ไม่ได้ทำให้ raw data เป็น Normal แต่ทำให้ sampling distribution ของ standardized mean/sum เข้าใกล้ Normal ภายใต้เงื่อนไข ข้อมูล 1,000 แถวอาจยังเบ้ มี outliers หรือ dependent ได้
-
-## 22. Quick Formula Sheet
-
-### Probability
-
-$$P(A^c)=1-P(A)$$
-
-$$P(A\cup B)=P(A)+P(B)-P(A\cap B)$$
-
-### Discrete Random Variable
-
-$$E(X)=\sum_xxp_X(x)$$
-
-$$V(X)=E(X^2)-[E(X)]^2$$
-
-### Sample Mean
-
-$$E(\bar X)=\mu$$
-
-$$V(\bar X)=\frac{\sigma^2}{n}$$
-
-Without replacement from finite population:
-
-$$V(\bar X)=\frac{\sigma^2}{n}(\frac{N-n}{N-1})$$
-
-### Binomial
-
-$$P(X=x)=\binom{n}{x}p^x(1-p)^{n-x}$$
-
-$$E(X)=np,\qquad V(X)=np(1-p)$$
-
-### Normal and t
-
-$$Z=\frac{X-\mu}{\sigma}$$
-
-$$Z=\frac{\bar X-\mu}{\sigma/\sqrt n}$$
-
-$$T=\frac{\bar X-\mu}{S/\sqrt n}\sim t_{n-1}$$
-
-### Chi-square for Variance
+$$
+H_0:\text{ข้อมูลสอดคล้องกับ Normal distribution}
+$$
 
-$$\frac{(n-1)S^2}{\sigma^2}\sim\chi^2_{n-1}$$
+ถ้า p-value เล็ก ข้อมูลให้หลักฐานว่าต่างจาก Normal model แต่ถ้า p-value ไม่เล็ก เราเพียงยังไม่มีหลักฐานเพียงพอที่จะปฏิเสธ Normality ไม่ได้พิสูจน์ว่าข้อมูลเป็น Normal
 
-## 23. Key Takeaways
+เมื่อ sample ใหญ่ การเบี่ยงเพียงเล็กน้อยอาจให้ p-value เล็กมาก แม้ไม่มีผลสำคัญต่อการวิเคราะห์ เมื่อ sample เล็ก test อาจไม่มี power พอจะตรวจพบความเบี่ยงที่มีอยู่ จึงต้องอ่านร่วมกับกราฟและบริบท
 
-- Probability เริ่มจากการกำหนด sample space และ event ให้ถูกต้อง
-- Random variable เป็นสะพานจาก outcomes ไปสู่ตัวเลขและ distributions
-- PMF ใช้กับ discrete variable ส่วน PDF ใช้กับ continuous variable
-- Expectation วัดศูนย์กลางระยะยาว ส่วน variance วัดการกระจาย
-- Sampling distribution ไม่ใช่ distribution ของ raw data แต่เป็น distribution ของ statistic
-- Sample mean เป็น unbiased for population mean ภายใต้การสุ่มที่เหมาะสม และมี variance ลดลงเมื่อ n เพิ่ม
-- Binomial ใช้ได้เมื่อ fixed n, binary outcome, independence และ constant p
-- Normal, t และ Chi-square เป็น reference distributions สำคัญสำหรับ inference
-- CLT อธิบายเหตุผลที่ Normal approximation ใช้กับ sample mean ได้อย่างกว้างขวาง
-- การตรวจ Normality ควรใช้กราฟ การทดสอบ และบริบทประกอบกัน
+### ต้องตรวจ distribution ของอะไร
 
-## 24. Glossary
+คำตอบขึ้นกับ method:
 
-| Term | ความหมาย |
-|---|---|
-| Random experiment | กระบวนการที่ outcome ไม่แน่นอนล่วงหน้า |
-| Outcome | ผลลัพธ์พื้นฐานหนึ่งค่า |
-| Sample space | เซต outcomes ทั้งหมด |
-| Event | Subset ของ sample space |
-| Mutually exclusive | Events ที่เกิดพร้อมกันไม่ได้ |
-| Random variable | ฟังก์ชันจาก outcome ไปยังจำนวนจริง |
-| PMF | Point probabilities ของ discrete random variable |
-| PDF | Density ของ continuous random variable |
-| CDF | $F(x)=P(X\le x)$ |
-| Expectation | ค่าเฉลี่ยถ่วงน้ำหนักระยะยาว |
-| Variance | Expected squared deviation from mean |
-| Sampling distribution | Distribution ของ statistic จาก repeated samples |
-| Standard error | Standard deviation ของ sampling distribution |
-| Finite population correction | ตัวคูณลด variance เมื่อสุ่มไม่คืนที่จาก finite population |
-| Binomial distribution | Distribution ของจำนวน successes ใน n Bernoulli trials |
-| Degrees of freedom | จำนวนข้อมูลอิสระที่เหลือหลังประมาณข้อจำกัด/parameters |
-| Central Limit Theorem | ทฤษฎีการลู่เข้าของ standardized sum/sample mean สู่ Normal |
-| P–P plot | กราฟเปรียบเทียบ cumulative probabilities |
-| Q–Q plot | กราฟเปรียบเทียบ quantiles |
+- One-sample t procedure สนใจ distribution ของตัวแปรใน population โดยเฉพาะเมื่อ sample เล็ก
+- Independent two-sample t procedure พิจารณา distribution ภายในแต่ละกลุ่ม
+- Paired t procedure วิเคราะห์ค่าผลต่างรายคู่ จึงต้องพิจารณา distribution ของ differences ไม่ใช่ข้อมูลก่อนและหลังแยกกัน
 
-## Lab Supplement: สำรวจข้อมูลและตรวจ Normality ด้วย R
+นี่เป็นตัวอย่างว่าการเลือกกราฟหรือ assumption ต้องเริ่มจาก study design ไม่ใช่ทำตาม checklist เดิมทุกโจทย์
 
-ส่วนนี้อธิบาย `lab_01_introduction_solution.pdf` ซึ่งใช้ข้อมูลค่าใช้จ่าย `ecost` จำนวน 50 ค่าเพื่อเชื่อม descriptive statistics, outlier checking และการประเมิน Normality เข้าด้วยกัน เป้าหมายของ Lab ไม่ใช่กดคำสั่งให้ได้ p-value แต่ต้องสามารถอธิบายว่าแต่ละผลลัพธ์ตอบคำถามคนละส่วนอย่างไร
+## 10. จากบทนี้ไปสู่ Interval Estimation
 
-### 1. โจทย์ต้องการพิสูจน์อะไร
+ตอนนี้เรามีองค์ประกอบที่จำเป็นครบแล้ว:
 
-ก่อนใช้วิธีอนุมานที่อาศัย Normality เราต้องสำรวจข้อมูลในสามมุม ได้แก่ ตำแหน่งและการกระจาย รูปร่างและ outliers และความสอดคล้องกับ Normal distribution ไม่มีเครื่องมือชิ้นเดียวตอบครบทั้งสามมุม จึงต้องอ่าน summary statistics, boxplot, histogram, Q–Q/P–P plot และ Shapiro–Wilk test ร่วมกัน
+1. Population มี parameter ที่ต้องการรู้
+2. เราสังเกตเพียง random sample
+3. Statistic จาก sample ใช้ประมาณ parameter
+4. Statistic เปลี่ยนได้เมื่อสุ่ม sample ใหม่
+5. Sampling distribution อธิบายความผันผวนนั้น
+6. Standard error วัดขนาดของ sampling variability
+7. CLT และ t distribution ช่วยอธิบายรูปของ sampling distribution
 
-### 2. R workflow ฉบับรันได้
+บทถัดไปจะนำองค์ประกอบเหล่านี้มาสร้าง Confidence Interval โครงสร้าง:
 
-```r
-ecost <- c(
-  96, 171, 202, 178, 147, 102, 153, 197, 127, 82,
-  157, 185, 90, 116, 172, 111, 148, 213, 130, 165,
-  141, 149, 206, 175, 123, 128, 144, 168, 109, 167,
-  95, 163, 150, 154, 130, 143, 187, 166, 139, 149,
-  108, 119, 183, 151, 114, 135, 191, 137, 129, 158
-)
+$$
+\text{Estimate}
+\mathbin{\pm}
+\text{Critical value}
+\mathbin{\times}
+\text{Standard error}
+$$
 
-length(ecost)
-mean(ecost)
-sd(ecost)
-summary(ecost)
+จึงไม่ใช่สูตรที่โผล่ขึ้นมาใหม่ Estimate บอกตำแหน่งจากข้อมูล Standard error บอกความไม่แน่นอนจากการสุ่ม และ critical value กำหนดว่าต้องการขยายออกไปกว้างเพียงใดเพื่อให้วิธีมี coverage ตามที่กำหนด
 
-cv <- sd(ecost) / mean(ecost) * 100
-cv
+## 11. ลองใช้แนวคิดกับสถานการณ์ใหม่
 
-quant_ec <- quantile(ecost)
-lower_fence <- quant_ec[2] - 1.5 * IQR(ecost)
-upper_fence <- quant_ec[4] + 1.5 * IQR(ecost)
+บริษัทต้องการประมาณเวลาเฉลี่ยที่ใช้ตอบคำร้องเรียนของลูกค้าทั้งหมด จึงสุ่มคำร้องเรียน 40 รายการและคำนวณเวลาเฉลี่ยได้ 18.2 ชั่วโมง
 
-boxplot(ecost)
-hist(ecost)
-qqnorm(ecost)
-qqline(ecost, col = 'steelblue')
-shapiro.test(ecost)
+ก่อนเลือกสูตร ให้แปลโจทย์เป็นโครงสร้าง:
 
-pnorm(-1.645)
-```
+- Population คือคำร้องเรียนทั้งหมดในขอบเขตเวลาที่กำหนด
+- Variable คือเวลาตอบคำร้องเรียน หน่วยชั่วโมง
+- Parameter คือ population mean response time $\mu$
+- Sample คือคำร้องเรียนที่สุ่มมา 40 รายการ
+- Estimator คือ sample mean $\bar{X}$
+- Estimate คือ 18.2 ชั่วโมง
+- Sampling uncertainty คือการที่ $\bar{X}$ จะเปลี่ยนหากสุ่ม 40 รายการชุดใหม่
 
-### 3. อธิบายโค้ด R ทีละส่วน
+หาก response time เบ้ขวาเพราะบางรายการใช้เวลานานมาก ประเด็นต่อไปไม่ใช่รีบประกาศว่าใช้ t procedure ไม่ได้ แต่ต้องพิจารณาระดับความเบ้ outliers ขนาด sample ความเป็นอิสระ และว่าวิธีอนุมานไวต่อความผิด assumption เพียงใด
 
-| Code | Input | สิ่งที่ R ทำ | Output/ความหมาย |
-|---|---|---|---|
-| `c(...)` | ตัวเลขหลายค่า | รวมเป็น numeric vector | `ecost` มี observation 50 ค่า |
-| `length(ecost)` | vector | นับจำนวนสมาชิก | (n=50) |
-| `mean()` | vector | คำนวณ arithmetic mean | 147.06 |
-| `sd()` | vector | คำนวณ sample SD โดยใช้ตัวหาร (n-1) | 31.69 |
-| `summary()` | vector | สรุป min, quartiles, median, mean และ max | เห็นตำแหน่งและช่วงข้อมูล |
-| `IQR()` | vector | คำนวณ (Q_3-Q_1) | ใช้สร้าง outlier fences |
-| `qqnorm()` | vector | เทียบ sample quantiles กับ Normal quantiles | จุดใกล้เส้นตรงสนับสนุน Normality |
-| `shapiro.test()` | vector | ทดสอบ (H_0): ข้อมูลมาจาก Normal population | รายงาน (W) และ p-value |
-| `pnorm(-1.645)` | z score | หาพื้นที่สะสมด้านซ้ายใต้ Standard Normal | ประมาณ 0.05 |
+นี่คือรูปแบบการคิดที่ต้องพกไปทุกโจทย์:
 
-เครื่องหมาย `<-` คือ assignment operator: นำค่าด้านขวามาเก็บในชื่อตัวแปรด้านซ้าย ส่วน `library(psych)` หรือ `library(qqconf)` เป็นการโหลด package ก่อนเรียกฟังก์ชันที่ไม่ได้อยู่ใน base R
+> ระบุสิ่งที่ต้องการรู้ → เข้าใจว่าข้อมูลเกิดอย่างไร → ระบุ statistic → พิจารณาความผันผวนจากการสุ่ม → จึงเลือกวิธีอนุมาน
 
-### 4. อ่านผลลัพธ์จาก Lab
+## 12. ความเข้าใจผิดที่ควรแก้ตั้งแต่ต้น
 
-Lab รายงาน mean 147.06, median 148.5 และ skewness 0.01 ซึ่งอยู่ใกล้กันมาก จึงไม่เห็นความเบ้เด่นชัด SD เท่ากับ 31.69 และ coefficient of variation เท่ากับ 21.55% หมายความว่า SD มีขนาดประมาณหนึ่งในห้าของ mean แต่ CV เหมาะกับข้อมูล ratio scale ที่ศูนย์มีความหมายและ mean ไม่ใกล้ศูนย์
+**“Random variable คือคอลัมน์ที่สุ่มตัวเลข”**  
+ไม่ใช่ Random variable เป็นแบบจำลองที่จับ outcome จากกระบวนการสุ่มไปเป็นตัวเลข
 
-Quartiles คือ (Q_1=127.25) และ (Q_3=167.75) จึงได้ (IQR=40.50), lower fence 66.50 และ upper fence 228.50 ข้อมูลต่ำสุด 82 และสูงสุด 213 ยังอยู่ภายใน fences จึงไม่ถูก flag เป็น outlier ตามกฎ 1.5 IQR อย่างไรก็ตาม “ไม่ถูก flag” ไม่ได้พิสูจน์ว่าทุกค่าถูกต้อง ต้องตรวจบริบทและกระบวนการเก็บข้อมูลด้วย
+**“Sample mean เท่ากับ population mean”**  
+ไม่จำเป็น Sample mean เป็น estimate ที่มี sampling variability แม้จะเป็น unbiased estimator ภายใต้เงื่อนไขทั่วไป
 
-Shapiro–Wilk test ให้ (W=0.98977) และ p-value 0.9408 ที่ระดับ 0.05 เราจึง fail to reject Normality null ข้อนี้หมายถึงข้อมูลไม่แสดงหลักฐานชัดว่าผิดจาก Normal distribution ไม่ใช่พิสูจน์ว่าข้อมูล Normal แน่นอน ควรยืนยันกับ histogram, Q–Q plot และ outlier analysis
+**“SD กับ SE เป็นสิ่งเดียวกัน”**  
+SD วัดการกระจายของ observations ส่วน SE วัดการกระจายของ estimator ระหว่าง samples
 
-### 5. วิธีเขียนคำตอบข้อสอบเรื่อง Normality
+**“CLT ทำให้ข้อมูลดิบเป็น Normal”**  
+ไม่ใช่ CLT กล่าวถึง sampling distribution ของผลรวมหรือค่าเฉลี่ยภายใต้เงื่อนไขที่เหมาะสม
 
-คำตอบที่ครบควรมีสี่ชั้น:
+**“p-value ของ Shapiro-Wilk มากกว่า 0.05 พิสูจน์ว่า Normal”**  
+ไม่ใช่ เป็นเพียงการไม่พบหลักฐานเพียงพอที่จะปฏิเสธ Normal model จากข้อมูลชุดนั้น
 
-1. **ตั้งเกณฑ์:** กำหนด α และอธิบาย (H_0/H_1) ของ Shapiro–Wilk
-2. **รายงานตัวเลข:** ระบุ (W) และ p-value
-3. **ตัดสินใจ:** p-value มากกว่า α จึง fail to reject (H_0)
-4. **สรุปอย่างไม่เกินหลักฐาน:** ผลทดสอบและกราฟไม่พบการเบี่ยงเบนจาก Normality อย่างมีนัยสำคัญ จึงถือว่า Normality assumption สมเหตุสมผลสำหรับการวิเคราะห์ขั้นถัดไป
+**“Continuous PDF ที่สูงหมายถึง probability ณ จุดนั้นสูง”**  
+Probability ของค่าจุดเดียวเป็นศูนย์ ต้องคำนวณจากพื้นที่ในช่วง
 
-ตัวอย่างคำตอบ:
+**“Sample ใหญ่แก้ปัญหาทุกอย่าง”**  
+Sample ใหญ่ลด random error แต่ไม่แก้ selection bias, measurement error หรือ dependence ที่ถูกละเลย
 
-> ที่ระดับนัยสำคัญ 0.05 ผล Shapiro–Wilk ให้ (W=0.9898) และ p-value 0.9408 ซึ่งมากกว่า 0.05 จึงไม่ปฏิเสธสมมุติฐานว่าข้อมูลมาจากประชากร Normal เมื่อพิจารณาร่วมกับ Q–Q plot ที่จุดอยู่ใกล้เส้นตรงและไม่พบ outlier ตามกฎ 1.5 IQR จึงถือว่า Normality assumption มีความสมเหตุสมผล อย่างไรก็ตามผลนี้ไม่ใช่การพิสูจน์ว่า population เป็น Normal อย่างสมบูรณ์
+## 13. สรุปความคิดของบท
 
-### 6. จุดผิดพลาดที่พบบ่อย
+บทนี้เริ่มจากคำถามเกี่ยวกับ population ที่เราไม่สามารถสังเกตทั้งหมด จึงสุ่ม sample และใช้ statistic ประมาณ parameter ปัญหาคือ statistic เปลี่ยนไปตาม sample ที่สุ่มได้ Sampling distribution ทำให้ความผันผวนนี้กลายเป็นสิ่งที่ศึกษาได้ และ standard error สรุปขนาดของความผันผวนเป็นตัวเลข
 
-- สรุปว่า p-value สูง “ยืนยันว่าข้อมูล Normal” แทนการใช้คำว่าไม่มีหลักฐานพอที่จะปฏิเสธ
-- ใช้เกณฑ์ skewness เพียงตัวเดียวโดยไม่ตรวจกราฟและ outliers
-- สับสน Q–Q plot กับกราฟของ raw values ตามลำดับเวลา
-- ตีความ `pnorm(-1.645)` เป็นค่า z ทั้งที่ output คือ cumulative probability
-- ตั้งชื่อตัวแปร `sd` แล้วภายหลังเรียก `sd()` ไม่ได้ เพราะชื่อ object บังชื่อฟังก์ชัน ควรใช้ `sd_ecost`
+Probability distribution อธิบายพฤติกรรมของ random variable ขณะที่ sampling distribution อธิบายพฤติกรรมของ statistic Normal, t และ Chi-square distributions ปรากฏขึ้นเพราะ statistic คนละชนิดและระดับความไม่แน่นอนต่างกัน ไม่ใช่เพราะเป็นรายการสูตรที่ต้องท่องแยกจากกัน
 
-## 25. Source Coverage Audit
+หากต้องเก็บประโยคเดียวจากบทนี้ ให้เก็บว่า:
 
-| Source slides | Primary teaching home |
-|---|---|
-| 1–6 | Chapter overview; random experiment, outcome, sample space และ event |
-| 7–12 | Event operations, Venn diagrams, probability axioms และ probability approaches |
-| 13–18 | Random variables, PMF, expectation, variance และ sampling with/without replacement |
-| 19–22 | Binomial distribution และ multiple-choice exercise |
-| 23–30 | Continuous uniform, Normal, Standard Normal, t, Chi-square และ Normal approximation |
-| 31 | Central Limit Theorem |
-| 32–40 | Distribution checking, P–P plot และ Q–Q plot |
-| 41 | Utility-data normality exercise |
-| `lab_01_introduction_solution.pdf`, pp. 1–5 | Lab Supplement: descriptive statistics, outlier fences, plots, Shapiro–Wilk และ R walkthrough |
+> Statistical Inference คือการใช้ statistic จาก sample เรียนรู้ parameter ของ population โดยยอมรับและวัดความไม่แน่นอนที่เกิดจากการสุ่ม
 
-บทนี้เป็น prerequisite โดยตรงของ [02 Interval Estimation](02_interval_estimation.md) โดยเฉพาะ sampling distribution, Standard Error, Normal, Student's t, Chi-square และ CLT
+## 14. References
 
-## 26. References
+1. เอกสารประกอบการสอน DADS6001 Lecture 01: Introduction to Probability and Sampling Distribution, Slides 1–41.
+2. Berenson, M. L., Levine, D. M., & Krehbiel, T. C. *Basic Business Statistics: Concepts and Applications*. Pearson.
+3. Weiss, N. A. *Introductory Statistics*. Pearson.
 
-1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_01_introduction.pptx`, Slides 1–41.
-2. Berenson, M., Levine, D. M., & Krehbiel, T. C. (2012). *Basic Business Statistics: Concepts and Applications* (12th ed.). Pearson. อ้างถึงใน Slide 41.
-3. แหล่งข้อมูลประกอบที่ระบุไว้ในสไลด์: Wikipedia pages for Binomial, Normal, Student's t, Chi-square, P–P plot และ Q–Q plot. ใช้เพื่อชี้แหล่งเดิมของภาพ/คำอธิบายในเอกสาร ไม่ได้ใช้แทนเนื้อหาหลักของรายวิชา
-4. เอกสาร Lab `dads6001-applied_statistics/lab/lab_01_introduction_solution.pdf`, pp. 1–5.
