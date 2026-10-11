@@ -1,1054 +1,616 @@
-# Interval Estimation
+# จากค่าประมาณหนึ่งค่าไปสู่ช่วงที่สะท้อนความไม่แน่นอน
 
 > **Course:** DADS6001 Applied Modern Statistical Analysis  
 > **Week:** 02  
-> **Source:** `dads6001-applied_statistics/lecture/dads6001_02_interval_estimation.pptx` จำนวน 17 สไลด์  
-> **Main topics:** Point estimation, confidence intervals, one/two population means, paired means และ one/two population proportions
-
+> **Sources:** Lecture 02 จำนวน 24 สไลด์, Lab 02 และ Lab 02 Solution in R  
 > **Course navigation:** [Course Overview](00_readme.md) · บทก่อนหน้า [01 Introduction](01_introduction.md) · บทถัดไป [03 Jackknife and Bootstrap](03_jackknife_bootstrap.md)
 
-## 1. Chapter Overview
+สมมติว่าสุ่มลูกค้า 15 คนแล้วพบว่าใช้เงินมื้อกลางวันที่ร้าน fast-food เฉลี่ย 7.09 ดอลลาร์ ตัวเลขนี้เป็นคำตอบจาก sample ปัจจุบัน แต่ถ้าสุ่มลูกค้าใหม่ ค่าเฉลี่ยอาจเปลี่ยนไป เราจึงไม่ควรรายงาน 7.09 แล้วทำเหมือนรู้ค่าเฉลี่ยของลูกค้าทั้งหมดอย่างแน่นอน
 
-บทก่อนอธิบายว่า sample statistic เปลี่ยนได้เมื่อสุ่ม sample ใหม่ และใช้ sampling distribution กับ standard error วัดความผันผวนนั้น บทนี้ตอบคำถามที่ตามมาโดยตรงว่า **เมื่อ point estimate จาก sample หนึ่งชุดไม่เท่ากับ parameter พอดี เราจะรายงานค่าประมาณพร้อมความไม่แน่นอนได้อย่างไร** คำตอบคือ Interval Estimation
+บทที่ 01 อธิบายว่าค่าเฉลี่ยตัวอย่างเปลี่ยนได้เมื่อสุ่ม sample ใหม่ และใช้ standard error วัดความผันผวนนั้น บทนี้นำแนวคิดดังกล่าวมาสร้าง **ช่วงความเชื่อมั่น (confidence interval หรือ CI)** เพื่อรายงานทั้งค่าประมาณและความไม่แน่นอน
 
-ตลอดบทจะใช้เวลารอผู้ป่วยเป็นตัวอย่างเชื่อมโยง หาก sample mean เท่ากับ 4.8 นาที ค่า 4.8 เป็นหลักฐานที่ดีที่สุดจาก sample ปัจจุบัน แต่ไม่ควรถูกกล่าวว่าเป็น population mean ที่รู้แน่นอน Confidence Interval จึงเริ่มจาก estimate แล้วขยายออกตาม standard error และระดับความเชื่อมั่นที่กำหนด
+## 1. จาก Point Estimate ไปสู่ Interval Estimate
 
-การประมาณมีสองแบบ:
+ในตัวอย่าง fast-food สิ่งที่ต้องการรู้คือค่าเฉลี่ยยอดใช้จ่ายของ population เขียนเป็น $\mu$ ค่านี้คือ **estimand** หรือ parameter เป้าหมาย
 
-- **Point estimation:** ให้คำตอบเป็นค่าหนึ่งค่า
-- **Interval estimation:** ให้ช่วงของค่าที่สมเหตุสมผล พร้อม confidence level
-
-โครงสร้างของ confidence interval ส่วนใหญ่เขียนได้เป็น:
+เราใช้ค่าเฉลี่ยตัวอย่าง:
 
 $$
-\text{Point estimate}\ \pm\ \text{Critical value}\times\text{Standard error}
+\bar X=\frac{1}{n}\sum_{i=1}^{n}X_i
 $$
 
-หรือ:
+เป็น **estimator** ก่อนเห็นข้อมูล $\bar X$ ยังเปลี่ยนไปตาม sample หลังเก็บข้อมูลและคำนวณได้ $\bar x=7.0933$ ตัวเลขนี้คือ **estimate**
+
+ความสัมพันธ์คือ:
+
+> ต้องการรู้ estimand → ใช้ estimator กับ random sample → ได้ estimate
+
+Point estimate บอกตำแหน่งที่ข้อมูลชี้ไป แต่ไม่บอกว่าแม่นเพียงใด Interval estimate จึงขยายออกจาก estimate ตามความผันผวนของ estimator
+
+## 2. Confidence Interval ถูกสร้างจากอะไร
+
+Confidence interval ส่วนใหญ่มีโครงสร้าง:
 
 $$
-\text{Estimate}\pm\text{Margin of error}
+\text{Estimate}
+\mathbin{\pm}
+\text{Critical value}
+\mathbin{\times}
+\text{Standard error}
 $$
 
-สิ่งที่ต้องตัดสินใจในโจทย์ไม่ใช่เพียงแทนสูตร แต่ต้องระบุให้ได้ว่า parameter คืออะไร sample เป็นอิสระหรือจับคู่ รู้ population variance หรือไม่ และ distribution/ขนาด sample รองรับวิธีนั้นหรือไม่
-
-```mermaid
-flowchart TD
-    A[Research Question] --> B[ระบุ Parameter]
-    B --> C[เลือก Estimator]
-    C --> D[หา Sampling Distribution]
-    D --> E[เลือก Critical Value]
-    E --> F[Estimate ± Critical × SE]
-    F --> G[ตีความในบริบท]
-```
-
-## 2. Learning Objectives
-
-หลังเรียนบทนี้ ผู้เรียนควรสามารถ:
-
-- อธิบายว่า Confidence Interval สร้างต่อจาก sampling distribution และ standard error อย่างไร
-- แยก estimand, estimator และ estimate ได้
-- อธิบาย point estimation และ interval estimation ได้
-- อธิบาย confidence coefficient, confidence level, lower/upper confidence limits ได้
-- สร้าง confidence interval จาก pivotal quantity ได้
-- เลือกใช้ z หรือ t interval สำหรับ population mean ได้
-- สร้าง CI สำหรับ population proportion ด้วย Normal approximation ได้
-- สร้าง CI สำหรับผลต่างค่าเฉลี่ยของ independent samples ได้ทั้ง known variance, Welch และ pooled-variance cases
-- สร้าง paired t interval จาก within-pair differences ได้
-- สร้าง CI สำหรับผลต่าง population proportions ได้
-- ตีความ confidence interval อย่างถูกต้องและไม่สับสนกับ probability statement ของ fixed parameter
-- อธิบายผลของ confidence level, sample size และ variability ต่อความกว้างของช่วงได้
-
-## 3. Prerequisite Knowledge
-
-- Population, sample, parameter และ statistic
-- Sampling distribution และ Standard Error
-- Central Limit Theorem
-- Standard Normal, Student's t และ Chi-square distributions
-- Binomial distribution และ sample proportion
-- Independent versus dependent/paired samples
-- Variance, standard deviation และ degrees of freedom
-
-## สะพานจาก Sampling Distribution สู่ Confidence Interval
-
-ให้ $\mu$ เป็น population mean ที่ไม่ทราบ และ $\bar{X}$ เป็น estimator ก่อนเก็บข้อมูล $\bar{X}$ ยังเป็น random variable เพราะแต่ละ random sample ให้ค่าไม่เหมือนกัน หลังเก็บข้อมูลแล้วจึงได้ estimate เช่น $\bar{x}=4.8$ นาที
-
-หากทำการสุ่มซ้ำ เราคาดว่า $\bar{X}$ จะกระจายรอบ $\mu$ และมี standard error บอกความกว้างของการกระจาย เมื่อ sampling distribution มีรูปที่ทราบ เราสามารถกำหนดบริเวณตรงกลางที่ครอบคลุม statistic ด้วย probability ที่ต้องการ แล้วจัดรูปกลับเป็นช่วงสำหรับ $\mu$ นี่คือที่มาของโครงสร้าง
+ส่วนที่คูณกันคือ **margin of error**:
 
 $$
-\text{Estimate} \mathbin{\pm} \text{Critical value} \mathbin{\times} \text{Standard error}
+E=\text{Critical value}\times\text{Standard error}
 $$
 
-สูตรนี้จึงไม่ใช่กฎที่ต้องจำโดยปราศจากเหตุผล แต่เป็นการนำ **ตำแหน่งของ estimate**, **ความผันผวนจากการสุ่ม** และ **ระดับความครอบคลุมระยะยาว** มารวมกัน
+Estimate บอกจุดกึ่งกลาง Standard error บอกว่า estimator เปลี่ยนเพียงใดเมื่อสุ่ม sample ใหม่ และ critical value บอกว่าต้องขยายออกกี่ standard errors เพื่อให้วิธีมีระดับความเชื่อมั่นที่กำหนด
 
-ก่อนเลือกสูตร CI ทุกข้อ ให้ตอบตามลำดับดังนี้:
+สำหรับ 95% CI ภายใต้ Standard Normal distribution พื้นที่ตรงกลาง 95% อยู่ระหว่าง $-1.96$ กับ $1.96$ จึงใช้ critical value 1.96 เมื่อไม่ทราบ population SD และใช้ sample SD แทน จะใช้ Student's t distribution ซึ่งมีหางหนากว่า Normal
 
-1. Population และ variable คืออะไร
-2. Estimand คือค่าใด เช่น $\mu$, $\mu_1-\mu_2$ หรือ $\mu_d$
-3. ข้อมูลมาจากหนึ่ง sample, สอง independent samples หรือ matched pairs
-4. Estimator และ standard error ของ design นั้นคืออะไร
-5. Sampling distribution และ assumptions ใดรองรับ critical value
-6. ช่วงที่ได้ต้องตีความถึง population ใดและมีหน่วยอะไร
+## 3. ความหมายของ 95% Confidence
 
-## 4. Statistical Inference
-
-Slide 2 แบ่ง Statistical Inference เป็นสองส่วนหลัก:
-
-1. **Estimation:** ใช้ sample เพื่อประมาณ parameter
-2. **Hypothesis testing:** ใช้ sample ประเมินหลักฐานต่อข้ออ้างเกี่ยวกับ parameter
-
-ทั้งสองส่วนเชื่อมกันผ่าน sampling distribution ตัวอย่างเช่น 95% confidence interval แบบ two-sided จะรวมค่าของ parameter ที่ไม่ถูก reject ด้วย two-sided hypothesis test ที่ $\alpha=0.05$ ภายใต้ assumptions และวิธีเดียวกัน
-
-## 5. Estimand, Estimator และ Estimate
-
-### 5.1 Estimand
-
-**Estimand** คือ population quantity ที่ต้องการทราบ เขียนแทนทั่วไปด้วย $\theta$ เช่น:
-
-- Population mean: $\mu$
-- Population proportion: $p$
-- Difference in means: $\mu_1-\mu_2$
-- Difference in proportions: $p_1-p_2$
-
-การระบุ estimand ต้องชัดทั้ง population, variable และ contrast ที่สนใจ
-
-### 5.2 Estimator
-
-**Estimator** คือ random statistic หรือกฎที่ใช้ประมาณ parameter:
+ก่อนสุ่มข้อมูล ขอบล่าง $L$ และขอบบน $U$ เป็น random quantities:
 
 $$
-\hat\theta=T(X_1,X_2,\ldots,X_n)
+P(L<\theta<U)=1-\alpha
 $$
 
-ก่อนเก็บข้อมูล estimator เป็น random variable เพราะขึ้นกับ random sample
+หากสุ่ม sample และสร้าง 95% CI ด้วยวิธีเดิมซ้ำจำนวนมาก ประมาณ 95% ของช่วงทั้งหมดจะครอบคลุม parameter จริง หลังเก็บข้อมูลแล้ว parameter เป็นค่าคงที่และช่วงที่คำนวณได้จะครอบคลุมหรือไม่ครอบคลุมค่านั้น
 
-### 5.3 Estimate
+จึงเขียนในบริบทว่า:
 
-**Estimate** คือค่าตัวเลขที่ได้เมื่อแทน observations จริงลงใน estimator
+> เรามีความเชื่อมั่น 95% ว่าค่าเฉลี่ยยอดใช้จ่ายมื้อกลางวันของ population ลูกค้าอยู่ระหว่าง 6.315 ถึง 7.872 ดอลลาร์
 
-| แนวคิด | ตัวอย่าง mean | ตัวอย่าง proportion |
-|---|---|---|
-| Estimand | $\mu$ | $p$ |
-| Estimator | $\bar X$ | $\hat p=X/n$ |
-| Estimate | เช่น $\bar x=52.4$ | เช่น $\hat p=0.63$ |
+ช่วงนี้ประมาณ population mean ไม่ใช่ช่วงที่บอกว่าลูกค้ารายบุคคล 95% ต้องจ่ายอยู่ระหว่างสองค่านี้
 
-> **Common language trap:** หลายแหล่งใช้ estimator/estimate สลับกันในภาษาพูด แต่ในการตอบเชิงทฤษฎีควรแยก random rule ออกจากค่าที่สังเกตได้
+## 4. ค่าเฉลี่ยหนึ่งประชากร
 
-## 6. Point Estimation versus Interval Estimation
+คำถามประเภทนี้มี sample เชิงปริมาณหนึ่งชุด เช่น ยอดใช้จ่ายหรือเวลารอ และต้องการประมาณ $\mu$
 
-### 6.1 Point Estimation
-
-รายงาน statistic หนึ่งค่า เช่น $\bar x=52.4$ ข้อดีคือกระชับ แต่ไม่บอก sampling uncertainty
-
-### 6.2 Interval Estimation
-
-สร้าง random limits:
+หากทราบ population standard deviation $\sigma$:
 
 $$
-L(X_1,\ldots,X_n)<\theta<U(X_1,\ldots,X_n)
+\bar x\mathbin{\pm}z_{\alpha/2}\frac{\sigma}{\sqrt n}
 $$
 
-ให้กระบวนการมี coverage probability:
+ในงานจริงมักไม่ทราบ $\sigma$ จึงใช้ sample standard deviation $s$ และ t distribution:
 
 $$
-P(L < \theta < U) = 1 - \alpha
-$$
-
-เมื่อเก็บ sample แล้ว L และ U กลายเป็นค่าคงที่ เกิดเป็น observed interval (Slides 2–3)
-
-## 7. Confidence Interval Terminology
-
-ช่วง:
-
-$$
-[L,U]
-$$
-
-เรียกว่า $(1-\alpha)100\%$ confidence interval สำหรับ $\theta$
-
-| Term | Meaning |
-|---|---|
-| Lower Confidence Limit (LCL) | ขอบเขตล่าง L |
-| Upper Confidence Limit (UCL) | ขอบเขตบน U |
-| Confidence coefficient | $1-\alpha$ |
-| Confidence level | $(1-\alpha)100\%$ |
-| Tail probability | two-sided CI แบ่งเป็น $\alpha/2$ ต่อด้าน |
-| Critical value | quantile ที่ตัด central probability $1-\alpha$ |
-| Margin of error | Critical value × Standard error |
-
-สำหรับ 95% CI:
-
-$$
-1-\alpha=0.95,\quad \alpha=0.05,\quad \alpha/2=0.025
-$$
-
-และ Standard Normal critical value คือ:
-
-$$
-z_{\alpha/2}=z_{0.025}=1.96
-$$
-
-## 8. Correct Interpretation of Confidence Intervals
-
-### 8.1 Frequentist Interpretation
-
-หากสุ่มตัวอย่างและสร้าง interval ด้วยวิธีเดียวกันซ้ำจำนวนมาก ประมาณ 95% ของ intervals ที่สร้างด้วย 95% procedure จะครอบคลุม parameter จริง (Slide 4)
-
-หลังคำนวณ interval หนึ่งช่วงแล้ว parameter แบบ frequentist เป็นค่าคงที่ ช่วงนั้นครอบคลุมหรือไม่ครอบคลุม parameter ไม่ควรกล่าวว่า “มีโอกาส 95% ที่ $\mu$ อยู่ในช่วงนี้”
-
-### 8.2 Recommended Reporting
-
-ควรเขียนว่า:
-
-> จากวิธีการและ assumptions ที่กำหนด เรามีความเชื่อมั่น 95% ว่าค่าเฉลี่ยประชากรอยู่ระหว่าง L ถึง U
-
-พร้อมระบุหน่วยและ population เช่น “ค่าเฉลี่ยจำนวนพนักงานธนาคารที่อยู่ในเหตุการณ์ปล้น” ไม่ใช่เขียนเพียง “ค่าเฉลี่ยอยู่ในช่วง...”
-
-### 8.3 What CI Does Not Guarantee
-
-- ไม่รับประกันว่า 95% ของ observations อยู่ในช่วง
-- ไม่ใช่ prediction interval สำหรับ observation ใหม่
-- ไม่รับประกัน causal effect
-- ไม่แก้ bias จาก non-random sampling, measurement error หรือ missing data
-- ช่วงแคบอาจแม่นยำเชิง sampling แต่ยังผิดจาก bias ได้
-
-## 9. Deriving the General Two-sided CI
-
-หากมี pivotal statistic Z ที่ distribution ไม่ขึ้นกับ parameter:
-
-$$
-P(-z_{\alpha/2}<Z<z_{\alpha/2})=1-\alpha
-$$
-
-แทน Z ด้วย standardized estimator แล้วจัดอสมการเพื่อ isolate parameter จะได้ confidence interval
-
-สำหรับ estimator ที่ approximately Normal:
-
-$$
-\frac{\hat\theta-\theta}{SE(\hat\theta)}\approx N(0,1)
-$$
-
-จึงได้:
-
-$$
-\hat\theta\pm z_{\alpha/2}SE(\hat\theta)
-$$
-
-## 10. CI for One Population Mean
-
-ต้องเลือกจากสองกรณีหลัก: ทราบ $\sigma$ หรือไม่ทราบ $\sigma$
-
-### 10.1 Known Population Variance: z Interval
-
-ถ้า $X_1,\ldots,X_n$ มาจาก Normal population หรือ n ใหญ่พอสำหรับ Normal approximation และทราบ $\sigma$:
-
-$$
-\bar X\sim N(\mu,\frac{\sigma^2}{n})
+SE(\bar X)=\frac{s}{\sqrt n}
 $$
 
 $$
-Z=\frac{\bar X-\mu}{\sigma/\sqrt n}\sim N(0,1)
+\bar x\mathbin{\pm}t_{\alpha/2,n-1}\frac{s}{\sqrt n}
 $$
 
-CI คือ:
+ข้อมูลควรมาจากกระบวนการสุ่มที่เป็นตัวแทน observations ต้องเป็นอิสระ และสำหรับ sample เล็ก population ควรใกล้ Normal โดยไม่มี outlier รุนแรง Sample ใหญ่ช่วยลด random uncertainty แต่ไม่แก้ selection bias หรือ measurement error
+
+### กรณี Bank Robberies จาก Lecture
+
+Lecture ยกข้อมูลเหตุปล้นธนาคารในสหราชอาณาจักร 364 ครั้ง เพื่อประมาณ population means ของจำนวนเงินที่ถูกขโมย จำนวนพนักงาน ลูกค้า ผู้ก่อเหตุ และเวลาเดินทางจากสถานีตำรวจที่ใกล้ที่สุด หลักคิดเหมือนกันทุกตัวแปร: sample mean เป็น point estimate และใช้ sample SD สร้าง t interval เพราะไม่ทราบ population SD
+
+ตัวอย่างเวลาเดินทางมี sample mean 4.557 นาที และ sample SD 4.028 นาที:
 
 $$
-\boxed{\bar x\pm z_{\alpha/2}\frac{\sigma}{\sqrt n}}
+SE=\frac{4.028}{\sqrt{364}}=0.2111
 $$
 
-สำหรับ 95%:
+เมื่อใช้ $t_{0.025,363}$ ประมาณ 1.966 จะได้:
 
 $$
-\bar x\pm1.96\frac{\sigma}{\sqrt n}
+4.557\mathbin{\pm}1.966(0.2111)
 $$
 
-ที่มา: Slide 8
+จึงได้ 95% CI ประมาณ 4.142 ถึง 4.972 นาที ช่วงนี้ประมาณ population mean travel time ไม่ได้บอกว่าเหตุปล้นแต่ละครั้งต้องมีเวลาเดินทางอยู่ในช่วงดังกล่าว
 
-### 10.2 Unknown Population Variance: t Interval
+จำนวนเงินที่ถูกขโมยมี sample mean 20,330.5 ปอนด์ แต่ sample SD สูงถึง 53,510.2 ปอนด์ ตัวเลขนี้เตือนให้ตรวจความเบ้และ extreme values เพราะ mean และ standard error อาจได้รับอิทธิพลจากเหตุการณ์ที่มีมูลค่าสูงมาก แม้ sample ขนาดใหญ่จะช่วยให้ใช้ CLT ได้ดีขึ้นก็ตาม
 
-ในงานจริงมักไม่ทราบ $\sigma$ จึงแทนด้วย sample standard deviation S การแทนนี้เพิ่ม uncertainty จึงใช้ Student's t:
+## 5. สัดส่วนหนึ่งประชากร
 
-$$
-T=\frac{\bar X-\mu}{S/\sqrt n}\sim t_{n-1}
-$$
-
-ภายใต้ Normal population:
+หาก outcome มีสองสถานะ และพบ success จำนวน $x$ จากทั้งหมด $n$ คน:
 
 $$
-\boxed{\bar x\pm t_{\alpha/2,n-1}\frac{s}{\sqrt n}}
-$$
-
-ที่มา: Slide 10
-
-### 10.3 z versus t
-
-| Condition | Critical distribution | Standard error |
-|---|---|---|
-| รู้ population SD $\sigma$ | z | $\sigma/\sqrt n$ |
-| ไม่รู้ $\sigma$ ใช้ sample SD s | $t_{n-1}$ | $s/\sqrt n$ |
-
-t มีหางหนากว่า Normal โดยเฉพาะ df ต่ำ ทำให้ CI กว้างกว่า เมื่อ df เพิ่มขึ้น t critical value เข้าใกล้ z critical value
-
-> การมี n ใหญ่ไม่ได้แปลว่าเรารู้ $\sigma$ เพียงแต่ t และ z ให้ผลใกล้กันมากขึ้น
-
-## 11. Worked Case: Bank Robberies
-
-Slides 5–6 ให้ข้อมูล bank raids ในสหราชอาณาจักรจำนวน $n=364$ ครั้ง
-
-| Variable | Sample mean | Sample SD |
-|---|---:|---:|
-| Amount stolen (£) | 20,330.5 | 53,510.2 |
-| Bank staff present | 5.417 | 4.336 |
-| Customers present | 2.000 | 3.684 |
-| Bank raiders | 1.637 | 0.971 |
-| Travel time to nearest police station (min.) | 4.557 | 4.028 |
-
-### 11.1 Point Estimates
-
-Point estimate ของ population mean แต่ละตัวคือ sample mean ในตาราง เช่น £20,330.5 ประมาณ mean amount stolen ต่อ bank raid ใน target population ที่วิธีเก็บข้อมูลรองรับ
-
-### 11.2 95% Confidence Intervals
-
-ไม่ทราบ population SD จึงใช้:
-
-$$
-\bar x\pm t_{0.025,363}\frac{s}{\sqrt{364}}
-$$
-
-เมื่อ df สูง $t_{0.025,363}\approx1.966$
-
-| Variable | SE | 95% CI โดยประมาณ |
-|---|---:|---:|
-| Amount stolen (£) | 2,804.70 | [14,816.47, 25,844.53] |
-| Bank staff present | 0.2273 | [4.970, 5.864] |
-| Customers present | 0.1931 | [1.620, 2.380] |
-| Bank raiders | 0.0509 | [1.537, 1.737] |
-| Travel time (min.) | 0.2111 | [4.142, 4.972] |
-
-ตัวอย่างการตีความ:
-
-> เรามีความเชื่อมั่น 95% ว่า mean travel time จากธนาคารถึงสถานีตำรวจที่ใกล้ที่สุดใน population ที่ศึกษาอยู่ประมาณ 4.14–4.97 นาที
-
-### 11.3 Important Limitations
-
-- Amount stolen มี SD สูงกว่า mean มาก อาจมี right skew/outliers จึงควรตรวจ distribution
-- n=364 ทำให้ CI for mean อาศัย CLT ได้ค่อนข้างดีหาก observations independent และไม่มีปัญหา extreme heavy tails รุนแรง
-- คำว่า “average robbery” ไม่ได้แปลว่า individual robbery ส่วนใหญ่มีจำนวนเงินใกล้ mean
-- ความแม่นยำจากสูตรไม่ชดเชย coverage bias หากข้อมูลไม่เป็นตัวแทน
-
-## 12. CI for One Population Proportion
-
-ให้ $X\sim B(n,p)$ และ:
-
-$$
-\hat p=\frac Xn
-$$
-
-เมื่อ Normal approximation เหมาะสม:
-
-$$
-\frac{\hat p-p}{\sqrt{p(1-p)/n}}\approx N(0,1)
-$$
-
-แทน p ใน SE ด้วย $\hat p$ ได้ Wald interval:
-
-$$
-\boxed{\hat p\pm z_{\alpha/2}\sqrt{\frac{\hat p(1-\hat p)}n}}
-$$
-
-สำหรับ 95%:
-
-$$
-\hat p\pm1.96\sqrt{\frac{\hat p(1-\hat p)}n}
-$$
-
-ที่มา: Slides 11–12
-
-### 12.1 Conditions
-
-- Binary outcome ตามนิยาม success/failure
-- Observations independent
-- Sample เป็นตัวแทน target population
-- จำนวน expected successes/failures มากพอสำหรับ Normal approximation
-
-### 12.2 Caution about Wald Interval
-
-Wald interval อาจทำงานไม่ดีเมื่อ n เล็กหรือ $\hat p$ ใกล้ 0/1 และอาจให้ limits นอก [0,1] ในงานจริงอาจพิจารณา Wilson score หรือ exact interval แต่ในการสอบควรใช้วิธีที่ผู้สอนกำหนดและสามารถอธิบาย limitation ได้
-
-### 12.3 Worked Example
-
-สำรวจ 200 คน พบ 130 คนพึงพอใจ:
-
-$$
-\hat p=130/200=0.65
+\hat p=\frac{x}{n}
 $$
 
 $$
-SE=\sqrt{\frac{0.65(0.35)}{200}}=0.03373
+SE(\hat p)=\sqrt{\frac{\hat p(1-\hat p)}{n}}
 $$
 
 $$
-95\%\ CI=0.65\pm1.96(0.03373)=[0.584,0.716]
+\hat p\mathbin{\pm}z_{\alpha/2}
+\sqrt{\frac{\hat p(1-\hat p)}{n}}
 $$
 
-ตีความว่า population satisfaction proportion ประมาณ 58.4%–71.6% ภายใต้ assumptions
+นี่คือ Wald interval ตามสูตรใน Lecture จำนวน successes และ failures ต้องมากพอให้ Normal approximation สมเหตุสมผล
 
-## 13. CI for Difference between Two Independent Means
+## 6. ผลต่างค่าเฉลี่ยของสองกลุ่ม
 
-Estimand คือ:
+หากสมาชิกในสองกลุ่มเป็นคนละคน จะเป็น **independent samples** กำหนดทิศทางก่อนคำนวณ:
 
 $$
 \mu_1-\mu_2
 $$
 
-Estimator คือ:
+Point estimator คือ $\bar X_1-\bar X_2$
+
+หากทราบ population variances $\sigma_1^2$ และ $\sigma_2^2$:
 
 $$
-\bar X_1-\bar X_2
+(\bar x_1-\bar x_2)
+\mathbin{\pm}
+z_{\alpha/2}
+\sqrt{\frac{\sigma_1^2}{n_1}+\frac{\sigma_2^2}{n_2}}
 $$
 
-ต้องระบุทิศทางล่วงหน้า เพราะ CI ของ $\mu_1-\mu_2$ มีเครื่องหมายตรงข้ามกับ CI ของ $\mu_2-\mu_1$
-
-### 13.1 Known Population Variances
-
-สำหรับ independent samples และทราบ $\sigma_1^2,\sigma_2^2$:
-
-$$
-SE=\sqrt{\frac{\sigma_1^2}{n_1}+\frac{\sigma_2^2}{n_2}}
-$$
-
-$$
-\boxed{(\bar x_1-\bar x_2)\pm z_{\alpha/2}
-\sqrt{\frac{\sigma_1^2}{n_1}+\frac{\sigma_2^2}{n_2}}}
-$$
-
-ที่มา: Slide 13
-
-### 13.2 Unknown and Unequal Variances: Welch t Interval
-
-เมื่อตัวอย่าง independent ไม่ทราบ variances และไม่ assume ว่าเท่ากัน:
+เมื่อไม่ทราบ variances และไม่สมมติว่าเท่ากัน ใช้ Welch interval:
 
 $$
 SE=\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}
 $$
 
 $$
-\boxed{(\bar x_1-\bar x_2)\pm t_{\alpha/2,\nu}
-\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}}
+(\bar x_1-\bar x_2)
+\mathbin{\pm}
+t_{\alpha/2,\nu}SE
 $$
 
-Welch–Satterthwaite degrees of freedom:
+หากโจทย์กำหนด equal population variances ใช้ pooled variance:
 
 $$
-\nu=\frac{(s_1^2/n_1+s_2^2/n_2)^2}
-{\frac{(s_1^2/n_1)^2}{n_1-1}+\frac{(s_2^2/n_2)^2}{n_2-1}}
-$$
-
-ที่มา: Slide 14
-
-Welch interval เป็นตัวเลือกทั่วไปที่ปลอดภัยกว่าเมื่อไม่มีเหตุผลหนักแน่นให้ assume equal variances
-
-### 13.3 Unknown but Equal Variances: Pooled t Interval
-
-ถ้า independent samples มาจาก Normal populations และ assume:
-
-$$
-\sigma_1^2=\sigma_2^2=\sigma^2
-$$
-
-Pooled variance:
-
-$$
-s_p^2=\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}{n_1+n_2-2}
+s_p^2=
+\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}
+{n_1+n_2-2}
 $$
 
 $$
-s_p=\sqrt{s_p^2}
+(\bar x_1-\bar x_2)
+\mathbin{\pm}
+t_{\alpha/2,n_1+n_2-2}
+s_p\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}
 $$
 
-CI:
+Welch เป็นค่าเริ่มต้นของ t.test() ใน R ส่วน pooled method ต้องระบุ var.equal = TRUE
+
+## 7. ค่าเฉลี่ยของข้อมูลที่จับคู่กัน
+
+ข้อมูลก่อนและหลังของผู้ป่วยคนเดิมไม่ใช่ independent samples วิธีที่ตรงกับ design คือสร้างผลต่างภายในแต่ละคู่:
 
 $$
-\boxed{(\bar x_1-\bar x_2)\pm t_{\alpha/2,n_1+n_2-2}
-s_p\sqrt{\frac1{n_1}+\frac1{n_2}}}
+d_i=X_{1i}-X_{2i}
 $$
 
-ที่มา: Slide 15
-
-### 13.4 Welch versus Pooled
-
-| Feature | Welch | Pooled |
-|---|---|---|
-| Equal-variance assumption | ไม่ต้อง | ต้องมี |
-| SE | $\sqrt{s_1^2/n_1+s_2^2/n_2}$ | $s_p\sqrt{1/n_1+1/n_2}$ |
-| df | Welch–Satterthwaite | $n_1+n_2-2$ |
-| Suitable default | มักใช่ | ใช้เมื่อสมมติ equal variance มีเหตุผล |
-
-อย่าเลือก pooled เพียงเพราะ sample SDs “ดูใกล้กัน” โดยไม่พิจารณาบริบท design, sample sizes และความสมเหตุสมผลของ common variance
-
-## 14. CI for Paired Means
-
-Paired samples เกิดเมื่อ observations เชื่อมโยงกัน เช่น:
-
-- วัดคนเดิมก่อน–หลัง
-- Matched subjects
-- วัดสองวิธีบนหน่วยเดียวกัน
-
-นิยาม within-pair difference:
+แล้ววิเคราะห์ differences เหมือน one-sample problem:
 
 $$
-d_k=X_{1k}-X_{2k},\quad k=1,\ldots,n
+\bar d\mathbin{\pm}
+t_{\alpha/2,n-1}\frac{s_d}{\sqrt n}
 $$
 
-จากนั้นลดโจทย์เป็น one-sample inference บน differences:
+ทิศทางขึ้นกับนิยาม $d_i$ หากกำหนด before minus after ค่าบวกหมายถึงค่าก่อนสูงกว่าหลัง สิ่งที่ควรใกล้ Normal สำหรับ small-sample paired interval คือ distribution ของ differences
+
+## 8. ผลต่างสัดส่วนของสองกลุ่ม
+
+สำหรับสองกลุ่มอิสระที่ outcome เป็น binary:
 
 $$
-\bar d=\frac1n\sum_{k=1}^nd_k
+\hat p_1=\frac{x_1}{n_1},
+\qquad
+\hat p_2=\frac{x_2}{n_2}
 $$
 
 $$
-s_d^2=\frac1{n-1}\sum_{k=1}^n(d_k-\bar d)^2
+SE=
+\sqrt{
+\frac{\hat p_1(1-\hat p_1)}{n_1}
++
+\frac{\hat p_2(1-\hat p_2)}{n_2}
+}
 $$
 
 $$
-\boxed{\bar d\pm t_{\alpha/2,n-1}\frac{s_d}{\sqrt n}}
+(\hat p_1-\hat p_2)
+\mathbin{\pm}
+z_{\alpha/2}SE
 $$
 
-โดย $\mu_d=\mu_1-\mu_2$ ตามทิศทางการนิยาม d (Slide 16)
+ต้องกำหนดกลุ่ม 1 และกลุ่ม 2 ให้ตรงกับคำถาม การกลับลำดับจะเปลี่ยนเครื่องหมายของ estimate และ interval แต่ไม่เปลี่ยนว่าช่วงครอบคลุม 0 หรือไม่
 
-### 14.1 Key Assumption
+## 9. เลือกวิธีจากโครงสร้างของโจทย์
 
-Pairs ต้อง independent ต่อกัน แต่ค่าภายใน pair ตั้งใจให้ dependent การตรวจ Normality จึงตรวจ distribution ของ differences ไม่ใช่ตรวจแต่ละกลุ่มแยกกัน
+ให้เริ่มจากคำถาม:
 
-### 14.2 Why Pairing Helps
+1. ค่าต่อเนื่องหนึ่ง sample → one-mean interval
+2. Binary outcome หนึ่ง sample → one-proportion interval
+3. ค่าต่อเนื่องจากคนละกลุ่ม → independent two-mean interval
+4. คนเดิมหรือ matched units สองครั้ง → paired interval บน differences
+5. Binary outcome จากสองกลุ่มอิสระ → difference in proportions
 
-หากค่าภายในคู่สัมพันธ์กันสูง การใช้ differences หัก variability ระหว่างบุคคลออก ทำให้ SE ต่ำลงและ CI แคบขึ้น แต่ pairing ที่ไม่เหมาะสมอาจไม่ให้ประโยชน์
+จากนั้นจึงตรวจว่าทราบ population variance หรือไม่ ต้องใช้ z หรือ t และ assumptions ของ design สอดคล้องหรือไม่
 
-## 15. CI for Difference between Two Proportions
-
-สำหรับ independent Binomial samples:
-
-$$
-\hat p_1=\frac{X_1}{n_1},\qquad
-\hat p_2=\frac{X_2}{n_2}
-$$
-
-Estimand คือ $p_1-p_2$ และ estimator คือ $\hat p_1-\hat p_2$
-
-$$
-SE=\sqrt{
-\frac{\hat p_1(1-\hat p_1)}{n_1}+
-\frac{\hat p_2(1-\hat p_2)}{n_2}}
-$$
-
-$$
-\boxed{(\hat p_1-\hat p_2)\pm z_{\alpha/2}SE}
-$$
-
-ที่มา: Slides 16–17
-
-### 15.1 Worked Example
-
-กลุ่ม 1 สำเร็จ 84 จาก 120 คน และกลุ่ม 2 สำเร็จ 60 จาก 110 คน:
-
-$$
-\hat p_1=0.70,\qquad \hat p_2=0.5455
-$$
-
-Point estimate:
-
-$$
-\hat p_1-\hat p_2=0.1545
-$$
-
-$$
-SE=\sqrt{\frac{0.7(0.3)}{120}+\frac{0.5455(0.4545)}{110}}
-\approx0.06327
-$$
-
-$$
-95\%\ CI=0.1545\pm1.96(0.06327)
-=[0.0305,0.2785]
-$$
-
-ตีความว่า proportion ของกลุ่ม 1 สูงกว่ากลุ่ม 2 ประมาณ 3.1–27.9 percentage points ภายใต้ assumptions
-
-> สำหรับ CI ใช้ **unpooled SE** ตามแต่ละ $\hat p_i$ ส่วน hypothesis test ภายใต้ $H_0:p_1=p_2$ อาจใช้ pooled proportion นี่เป็นจุดที่มักสับสน
-
-## 16. Decision Table: Which Confidence Interval?
-
-| Parameter | Samples/design | Variance information | Method |
-|---|---|---|---|
-| $\mu$ | One sample | รู้ $\sigma$ | One-mean z interval |
-| $\mu$ | One sample | ไม่รู้ $\sigma$ | One-mean t interval |
-| $p$ | One binary sample | Large-sample approximation | One-proportion interval |
-| $\mu_1-\mu_2$ | Independent | รู้ $\sigma_1,\sigma_2$ | Two-mean z interval |
-| $\mu_1-\mu_2$ | Independent | ไม่รู้และไม่ assume equal | Welch t interval |
-| $\mu_1-\mu_2$ | Independent | ไม่รู้แต่ assume equal | Pooled t interval |
-| $\mu_1-\mu_2$ | Paired | ไม่รู้ $\sigma_d$ | Paired t interval on d |
-| $p_1-p_2$ | Independent binary samples | Large-sample approximation | Two-proportion interval |
-
-## 17. What Controls CI Width?
-
-จากโครงสร้าง:
+## 10. สิ่งที่กำหนดความกว้างของช่วง
 
 $$
 \text{Width}=2\times\text{Critical value}\times SE
 $$
 
-### 17.1 Confidence Level
+Confidence level สูงขึ้นทำให้ critical value ใหญ่ขึ้นและช่วงกว้างขึ้น Sample size ใหญ่ขึ้นทำให้ SE ลดลงและช่วงแคบลง Variability สูงขึ้นทำให้ช่วงกว้างขึ้น
 
-Confidence level สูงขึ้น → critical value สูงขึ้น → CI กว้างขึ้น
+สำหรับ mean มี $SE=s/\sqrt n$ หากต้องการลด SE ลงครึ่งหนึ่ง ต้องเพิ่ม sample size เป็นสี่เท่า CI ที่แคบสะท้อน random uncertainty ต่ำลง แต่คุณภาพของข้อสรุปยังขึ้นกับ sampling design และคุณภาพข้อมูล
 
-### 17.2 Sample Size
+## 11. เตรียม Google Colab
 
-สำหรับ mean $SE\propto1/\sqrt n$ ดังนั้นเพิ่ม n สี่เท่าจึงลด SE และ margin of error ได้ครึ่งหนึ่ง
+รัน cell นี้หนึ่งครั้ง:
 
-### 17.3 Variability
+~~~python
+%load_ext rpy2.ipython
+~~~
 
-SD สูงขึ้น → SE สูงขึ้น → CI กว้างขึ้น การเพิ่ม sample size ลด sampling variability แต่ไม่ลดความแตกต่างโดยธรรมชาติของ observations
+Lab นี้ใช้ Base R ไม่ต้องติดตั้ง package เพิ่ม:
 
-### 17.4 Design
+~~~r
+%%R
+# ไม่แสดง scientific notation
+options(scipen = 999, digits = 4)
+~~~
 
-Paired design ที่มี positive within-pair correlation อาจลด variability ของ differences ส่วน cluster/dependent observations ที่ถูกวิเคราะห์เสมือน independent จะทำให้ SE ต่ำเกินจริง
+## 12. Exercise 1: Money Spent on Fast Food
 
-## 18. Sample Size Planning
+โจทย์ให้ยอดใช้จ่ายของลูกค้า 15 คน ต้องการ population mean และไม่ทราบ population SD จึงใช้ one-sample t interval
 
-### 18.1 Mean with Known/Planning SD
+### เตรียมข้อมูล
 
-ต้องการ margin of error ไม่เกิน E:
-
-$$
-n=(\frac{z_{\alpha/2}\sigma}{E})^2
-$$
-
-ปัดขึ้นเป็นจำนวนเต็มเสมอ
-
-### 18.2 Proportion
-
-$$
-n = \frac{z_{\alpha/2}^{2} p_0 (1-p_0)}{E^{2}}
-$$
-
-โดย $p_0$ คือ planning value ของ population proportion หากไม่มี prior estimate ให้ใช้ $p_0=0.5$ ซึ่งให้ variance สูงสุดและ sample size แบบ conservative
-
-## 19. Assumptions and Diagnostics
-
-### Means
-
-- Random/representative sampling ตามเป้าหมาย inference
-- Independence ระหว่าง sampling units
-- Normal population สำหรับ exact small-sample t procedure หรือ sample ใหญ่พอที่ CLT รองรับ
-- ไม่มี extreme outliers/heavy tails ที่ทำให้ mean และ SE ไม่เสถียร
-
-### Proportions
-
-- Binary outcome
-- Independence
-- Success/failure counts เพียงพอสำหรับ Normal approximation
-
-### Two Independent Samples
-
-- สอง samples independent ต่อกัน
-- Observations independent ภายในกลุ่ม
-- หาก pooled t ต้องมี equal population variances เพิ่มเติม
-
-### Paired Samples
-
-- Matching ถูกต้อง
-- Pairs independent ต่อกัน
-- Differences approximately Normal สำหรับ exact small-sample paired t
-
-## 20. Common Misconceptions
-
-1. **95% CI หมายถึง parameter มี probability 0.95 อยู่ใน observed interval** — ไม่ใช่ frequentist interpretation
-2. **95% ของข้อมูลอยู่ใน 95% CI** — CI สำหรับ parameter ไม่ใช่ช่วงของ observations
-3. **CI แคบแปลว่าถูกต้องเสมอ** — อาจแคบแต่ biased จาก sampling/design
-4. **ไม่รู้ $\sigma$ แต่ n ใหญ่จึงถือว่ารู้ $\sigma$** — ควรใช้ t; เพียงแต่ผลใกล้ z
-5. **Samples ก่อน–หลังเป็น independent** — เป็น paired เพราะมาจากหน่วยเดียวกัน
-6. **Paired CI ใช้ SD ของสองกลุ่มแยกกัน** — ต้องสร้าง differences แล้วใช้ $s_d$
-7. **Pooled t ใช้ได้ทุกครั้งที่ไม่รู้ variances** — ต้อง assume equal population variances
-8. **CI คร่อม 0 แปลว่าสอง groups เหมือนกันแน่นอน** — หมายถึงข้อมูลยังสอดคล้องกับ zero difference ภายใต้ระดับ/วิธีที่ใช้
-9. **CI ไม่คร่อม 0 แปลว่าผลสำคัญเชิงปฏิบัติ** — ต้องพิจารณาขนาด effect และบริบท
-10. **CI สัดส่วนใช้ pooled proportion เหมือน test เสมอ** — two-proportion CI ปกติใช้ unpooled SE
-11. **เพิ่ม sample size แก้ทุกอย่าง** — ไม่แก้ systematic bias หรือ dependence ที่ model ไม่รองรับ
-
-## 21. Likely Exam Focus
-
-ส่วนนี้อนุมานจากสูตร กรณีศึกษา และลำดับในสไลด์ ไม่ใช่ข้อสอบจริง
-
-### Definitions
-
-- Estimand, estimator, estimate
-- Point versus interval estimation
-- Confidence coefficient/level และ confidence limits
-- Standard error และ margin of error
-- Independent versus paired samples
-
-### Derivations and Calculations
-
-- จัดอสมการจาก pivotal quantity เพื่อสร้าง CI
-- One-mean z/t interval
-- One-proportion interval
-- Two independent means: known variance, Welch, pooled
-- Paired t interval
-- Two-proportion interval
-- ตีความว่า CI คร่อม 0 หรือไม่
-
-### Decisions
-
-- เลือก z หรือ t
-- เลือก independent หรือ paired procedure
-- เลือก Welch หรือ pooled
-- ตรวจ assumptions ก่อนรายงาน
-- แยก statistical significance จาก practical significance
-
-### Interpretation
-
-- อธิบาย 95% confidence อย่างถูกต้อง
-- ระบุ population, parameter, units และ direction ของ difference
-- อธิบายผลของ n, SD และ confidence level ต่อ CI width
-
-## 22. Practice Questions
-
-### Recall
-
-1. Estimand, estimator และ estimate ต่างกันอย่างไร
-2. Confidence coefficient ของ 99% CI เท่ากับเท่าใด และ $\alpha/2$ เท่ากับเท่าใด
-3. Margin of error ประกอบด้วยอะไร
-
-### Multiple Choice
-
-4. ไม่ทราบ population SD, sample ขนาด 20 จาก approximately Normal population ควรใช้ข้อใด
-   - A. z interval
-   - B. t interval with 19 df
-   - C. Chi-square interval for mean
-   - D. Binomial interval
-
-5. วัดความดันคนเดิมก่อนและหลัง intervention ควรใช้
-   - A. Independent pooled t interval
-   - B. Welch interval
-   - C. Paired t interval
-   - D. Two-proportion interval
-
-6. ข้อใดทำให้ CI แคบลงเมื่อปัจจัยอื่นคงที่
-   - A. เพิ่ม confidence level
-   - B. เพิ่ม standard deviation
-   - C. เพิ่ม sample size
-   - D. ใช้ t ที่ df ต่ำลง
-
-### Apply
-
-7. Sample มี $n=25,\bar x=80,s=10$ จงสร้าง 95% CI for $\mu$ โดยใช้ $t_{0.025,24}=2.064$
-8. สำรวจ 400 คน มี 240 คนตอบ “ใช่” จงสร้าง approximate 95% CI for p
-9. กลุ่ม 1: $n_1=30,\bar x_1=52,s_1=8$; กลุ่ม 2: $n_2=35,\bar x_2=47,s_2=10$ จงเขียนสูตร Welch CI และคำนวณ point estimate กับ SE
-10. Paired differences มี $n=16,\bar d=-2.5,s_d=4$ และ $t_{0.025,15}=2.131$ จงสร้าง CI และตีความทิศทาง
-
-### Analyze
-
-11. 95% CI ของ $\mu_1-\mu_2$ เท่ากับ [-1.2, 4.8] สรุปอะไรได้และไม่ได้
-12. นักวิจัยเลือก pooled t เพราะ sample variances เท่ากับ 25 และ 30 จงวิจารณ์
-13. รายงานเขียนว่า “มีโอกาส 95% ที่ยอดขายเฉลี่ยประชากรอยู่ระหว่าง 1.2–1.8 ล้านบาท” จงแก้การตีความ
-14. เหตุใด CI ที่คำนวณจากข้อมูล 100,000 records จึงยังไม่น่าเชื่อถือได้ หาก records มาจาก convenience sample
-
-## 23. Model Answers with Reasoning
-
-1. Estimand คือ parameter เป้าหมาย; estimator คือ random statistic ที่ใช้ประมาณ; estimate คือค่าที่คำนวณได้จาก observed sample
-2. Confidence coefficient = 0.99; $\alpha=0.01$ และ $\alpha/2=0.005$
-3. Critical value × Standard error
-4. **B** เพราะไม่ทราบ $\sigma$ และใช้ s จึงอ้างอิง $t_{n-1}$
-5. **C** เพราะค่าก่อน–หลังมาจากคนเดียวกัน ต้องวิเคราะห์ within-person differences
-6. **C** เพราะ SE ลดตาม $1/\sqrt n$
-7. $SE=10/\sqrt{25}=2$; MOE $=2.064(2)=4.128$; CI $=[75.872,84.128]$
-8. $\hat p=0.60$; $SE=\sqrt{0.6(0.4)/400}=0.024495$; CI $=0.60\pm1.96(0.024495)=[0.552,0.648]$
-9. Point estimate $=52-47=5$; $SE=\sqrt{8^2/30+10^2/35}\approx2.234$; CI ต้องใช้ $5\pm t_{\alpha/2,\nu}(2.234)$ โดยหา Welch df
-10. $SE=4/4=1$; CI $=-2.5\pm2.131=[-4.631,-0.369]$ หาก $d=$ ก่อน−หลัง ค่าติดลบแสดงว่าค่าเฉลี่ยหลังสูงกว่าก่อนประมาณ 0.369–4.631 หน่วย
-11. Zero อยู่ใน CI จึงยังไม่มีหลักฐานของ nonzero difference ที่สอดคล้องกับ two-sided 5% test แต่ไม่ได้พิสูจน์ว่ากลุ่มเท่ากัน และ interval ยังรองรับ effects ตั้งแต่ -1.2 ถึง 4.8
-12. Sample variances ใกล้กันไม่พิสูจน์ equal population variances ควรดู design, subject matter, sample sizes และ robustness; Welch เป็น default ที่ไม่ต้อง assume equality
-13. ควรเขียนว่า “ด้วยวิธีการนี้ เรามีความเชื่อมั่น 95% ว่า population mean อยู่ระหว่าง 1.2–1.8 ล้านบาท” พร้อมระบุ population/time period
-14. Sample size ใหญ่ลด random error แต่ไม่ลด selection bias หาก sample ไม่เป็นตัวแทน CI อาจแคบมากรอบค่าที่ผิดเป้าหมาย
-
-## 24. Quick Formula Sheet
-
-### One Mean
-
-Known $\sigma$:
-
-$$\bar x\pm z_{\alpha/2}\frac{\sigma}{\sqrt n}$$
-
-Unknown $\sigma$:
-
-$$\bar x\pm t_{\alpha/2,n-1}\frac{s}{\sqrt n}$$
-
-### One Proportion
-
-$$\hat p\pm z_{\alpha/2}\sqrt{\frac{\hat p(1-\hat p)}n}$$
-
-### Two Independent Means
-
-Known variances:
-
-$$
-(\bar x_1-\bar x_2)\pm z_{\alpha/2}
-\sqrt{\frac{\sigma_1^2}{n_1}+\frac{\sigma_2^2}{n_2}}
-$$
-
-Welch:
-
-$$
-(\bar x_1-\bar x_2)\pm t_{\alpha/2,\nu}
-\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}
-$$
-
-Pooled:
-
-$$
-(\bar x_1-\bar x_2)\pm t_{\alpha/2,n_1+n_2-2}
-s_p\sqrt{\frac1{n_1}+\frac1{n_2}}
-$$
-
-### Paired Means
-
-$$\bar d\pm t_{\alpha/2,n-1}\frac{s_d}{\sqrt n}$$
-
-### Two Proportions
-
-$$
-(\hat p_1-\hat p_2)\pm z_{\alpha/2}
-\sqrt{\frac{\hat p_1(1-\hat p_1)}{n_1}
-+\frac{\hat p_2(1-\hat p_2)}{n_2}}
-$$
-
-## 25. Key Takeaways
-
-- ระบุ estimand ก่อนเลือกสูตรทุกครั้ง
-- CI มีโครงสร้าง estimate ± critical value × SE
-- Confidence level เป็นคุณสมบัติระยะยาวของ procedure
-- รู้ $\sigma$ ใช้ z; ไม่รู้ $\sigma$ และใช้ s ให้ใช้ t
-- Two independent means ต้องแยก known, Welch และ pooled cases
-- Paired data ต้องสร้าง differences แล้ววิเคราะห์เป็น one-sample problem
-- Two-proportion CI ใช้ unpooled standard error
-- CI width ลดเมื่อ n เพิ่ม และเพิ่มเมื่อ confidence level หรือ variability สูงขึ้น
-- CI ที่คำนวณถูกสูตรอาจยังไม่น่าเชื่อถือหาก sampling/design ไม่ดี
-
-## 26. Glossary
-
-| Term | ความหมาย |
-|---|---|
-| Estimand | Population parameter เป้าหมาย |
-| Estimator | Random statistic ที่ใช้ประมาณ estimand |
-| Estimate | ค่าตัวเลขของ estimator จาก observed sample |
-| Point estimate | การประมาณด้วยค่าหนึ่งค่า |
-| Interval estimate | การประมาณด้วยช่วง |
-| Confidence coefficient | $1-\alpha$ |
-| Confidence level | $(1-\alpha)100\%$ |
-| Confidence limits | ขอบล่างและขอบบนของ CI |
-| Critical value | Quantile จาก reference distribution |
-| Standard error | SD ของ sampling distribution ของ estimator |
-| Margin of error | Critical value × SE |
-| Welch interval | Two-mean t interval ที่ไม่ assume equal variances |
-| Pooled variance | Weighted estimate ของ common variance |
-| Paired sample | Observations ที่เชื่อมโยงเป็นคู่ |
-| Coverage probability | สัดส่วนระยะยาวของ intervals ที่ครอบคลุม parameter |
-
-## Lab Supplement: Confidence Interval และการเขียนคำตอบด้วย R
-
-ส่วนนี้รวมโจทย์จาก `lab_02_interval_estimation.pdf` และ solution สองฉบับ โจทย์ทั้งหกข้อไม่ได้ทดสอบเพียงการแทนสูตร แต่ทดสอบการระบุ parameter, เลือก sampling design, คำนวณ standard error และตีความ interval ในบริบท
-
-### 1. แผนที่โจทย์ Lab
-
-| ข้อ | Estimand | Design | วิธี |
-|---|---|---|---|
-| Fast Food | (mu) ของยอดใช้จ่าย | One sample | One-mean t interval |
-| Complaints | (mu) ของวันแก้ complaint | One sample | One-mean t interval |
-| Flu shot | (p) ของผู้ฉีดแล้วเป็นไข้หวัด | One sample binary | One-proportion interval |
-| Basic life support | (p_{bio}-p_{nonbio}) | Two independent groups | Difference in proportions |
-| Study time | $\mu_{plan}-\mu_{no}$ | Two independent groups | Two-mean t interval |
-| Multiple myeloma | $\mu_d$, before minus after | Paired measurements | Paired-mean t interval |
-
-การเลือกวิธีจึงเริ่มจากคำถามว่า outcome เป็น quantitative หรือ binary และ observations เป็น independent หรือ paired ไม่ใช่เริ่มจากดูว่ามีข้อมูลกี่คอลัมน์
-
-### 2. Lab 1: Fast Food แบบครบขั้นตอน
-
-ข้อมูลลูกค้า 15 คนให้ $\bar{x}=7.0933$, $s\approx1.4061$, $SE=0.3630$ และ degrees of freedom 14
-
-$$
-E=t_{0.975,14}\frac{s}{\sqrt{15}}
-=2.1448(0.3630)
-=0.7786
-$$
-
-$$
-CI=7.0933\pm0.7786=(6.3147,7.8720)
-$$
-
-คำตอบข้อสอบควรระบุ population parameter และหน่วย:
-
-> เรามั่นใจ 95% ว่าช่วง 6.315 ถึง 7.872 USD ครอบคลุมค่าเฉลี่ยยอดใช้จ่ายมื้อกลางวันของประชากรลูกค้าร้าน fast-food ภายใต้ sampling method และ assumptions ที่กำหนด
-
-อย่าเขียนว่า “95% ของลูกค้าจ่ายอยู่ในช่วงนี้” เพราะ CI ประมาณ population mean ไม่ใช่ช่วงของ individual observations
-
-```r
+~~~r
+%%R
 food <- c(
   7.42, 6.29, 5.83, 6.50, 8.34,
   9.51, 7.10, 6.80, 5.90, 4.89,
   6.50, 5.52, 7.90, 8.30, 9.60
 )
+~~~
 
-n <- length(food)
-mean_food <- mean(food)
-sd_food <- sd(food)
-se_food <- sd_food / sqrt(n)
-margin_error <- qt(0.975, df = n - 1) * se_food
-c(lower = mean_food - margin_error,
-  upper = mean_food + margin_error)
+### รัน R ตามคำถาม
 
-food_test <- t.test(food, conf.level = 0.95)
-food_test[['conf.int']]
-```
+~~~r
+%%R
+# Point estimate
+mean(food)
+~~~
 
-`qt(0.975, df=14)` คืนค่า t critical ไม่ใช่ probability ส่วน `t.test()` คำนวณ one-sample t interval ให้อัตโนมัติ การตั้งชื่อ `sd_food` ดีกว่า `sd <- sd(food)` ในเอกสาร เพราะไม่บังฟังก์ชัน `sd()`
+~~~r
+%%R
+# Standard error
+sd(food) / sqrt(length(food))
+~~~
 
-### 3. Lab 2: Complaint Resolution Time
+~~~r
+%%R
+# Margin of error
+qt(0.975, df = length(food) - 1) *
+  sd(food) / sqrt(length(food))
+~~~
 
-จาก 50 complaints ได้ mean 43.04 วัน และ 95% CI ((31.125,54.955)) ข้อมูลมี right skew และค่ามากหลายค่า การใช้ t interval อาศัยความทนทานของ sample mean เมื่อ (n=50) แต่ควรรายงาน distribution และตรวจ sensitivity ด้วย median/Bootstrap เพิ่มเติม
+~~~r
+%%R
+# 95% confidence interval
+t.test(food, conf.level = 0.95)$conf.int
+~~~
 
-```r
+ผลสำคัญ:
+
+~~~text
+Mean = 7.0933
+SE = 0.3630
+Margin of error = 0.7786
+95% CI = 6.3147 to 7.8720
+~~~
+
+### เขียนตอบข้อสอบ
+
+> จากลูกค้าตัวอย่าง 15 คน ได้ point estimate เท่ากับ 7.0933 ดอลลาร์ มี standard error 0.3630 และ margin of error 0.7786 ดังนั้น 95% confidence interval ของค่าเฉลี่ยยอดใช้จ่ายมื้อกลางวันเท่ากับ 6.3147 ถึง 7.8720 ดอลลาร์ เรามีความเชื่อมั่น 95% ว่าช่วงนี้ครอบคลุม population mean ภายใต้ sampling method และ assumptions ที่กำหนด
+
+## 13. Exercise 2: Complaint Resolution Time
+
+โจทย์มีเวลาปิด complaint 50 รายการ ต้องการ population mean จึงใช้ one-sample t interval ข้อมูลมีค่ามากหลายค่าและเบ้ขวา จึงทำให้ variability และช่วงประมาณกว้าง
+
+### เตรียมข้อมูล
+
+~~~r
+%%R
 complaints <- c(
-  54,5,35,137,31,27,152,2,123,81,74,27,11,19,126,110,110,
-  29,61,35,94,31,26,5,12,4,165,32,29,28,29,26,25,1,14,13,
-  13,10,5,27,4,52,30,22,36,26,20,23,33,68
+  54, 5, 35, 137, 31, 27, 152, 2, 123, 81,
+  74, 27, 11, 19, 126, 110, 110, 29, 61, 35,
+  94, 31, 26, 5, 12, 4, 165, 32, 29, 28,
+  29, 26, 25, 1, 14, 13, 13, 10, 5, 27,
+  4, 52, 30, 22, 36, 26, 20, 23, 33, 68
 )
-t.test(complaints, conf.level = 0.95)
-```
+~~~
 
-คำตอบควรกล่าวว่า CI กว้างเพราะข้อมูลกระจายมาก ไม่ควรตีความ upper limit 54.955 เป็นเวลารอสูงสุดของ complaint รายหนึ่ง
+~~~r
+%%R
+# Point estimate
+mean(complaints)
+~~~
 
-### 4. Lab 3: Flu Shot Proportion
+~~~r
+%%R
+# 95% confidence interval
+t.test(complaints, conf.level = 0.95)$conf.int
+~~~
 
-พบไข้หวัด 24 คนจาก 3,900 คน จึงได้
+~~~text
+Mean = 43.0400 days
+95% CI = 31.1247 to 54.9553 days
+~~~
 
-$$
-\hat{p}=\frac{24}{3900}=0.00615
-$$
+### เขียนตอบข้อสอบ
 
-Solution ให้ (SE\approx0.00125), margin of error ประมาณ 0.0025 และ 95% CI ประมาณ ((0.0037,0.00861)) เพราะ upper limit ต่ำกว่า 0.01 ข้อมูลจึงสนับสนุนข้อสรุปว่า population proportion ต่ำกว่า 1% ภายใต้วิธีประมาณช่วงที่ใช้
+> ค่าเฉลี่ยเวลาปิด complaint จาก sample เท่ากับ 43.04 วัน และ 95% confidence interval ของ population mean เท่ากับ 31.12 ถึง 54.96 วัน เรามีความเชื่อมั่น 95% ว่าช่วงนี้ครอบคลุมค่าเฉลี่ยจำนวนวันตั้งแต่รับ complaint จนแก้ไขเสร็จของ population ที่ศึกษา ขอบบนของ CI เป็นขอบสำหรับ mean ไม่ใช่เวลาสูงสุดของ complaint รายหนึ่ง
 
-```r
-x <- 24
-n <- 3900
-p_hat <- x / n
-se_hat <- sqrt(p_hat * (1 - p_hat) / n)
+## 14. Exercise 3: Flu Shot
 
-prop.test(
-  x = x,
-  n = n,
-  conf.level = 0.95,
-  correct = FALSE
+พบผู้เป็นไข้หวัด 24 คนจากผู้ได้รับวัคซีน 3,900 คน Outcome เป็น binary จึงใช้ one-proportion interval
+
+~~~r
+%%R
+# Point estimate
+p_hat <- 24 / 3900
+print(p_hat)
+~~~
+
+~~~r
+%%R
+# Standard error
+se_hat <- sqrt(p_hat * (1 - p_hat) / 3900)
+print(se_hat)
+~~~
+
+~~~r
+%%R
+# Margin of error
+margin_error <- qnorm(0.975) * se_hat
+print(margin_error)
+~~~
+
+~~~r
+%%R
+# Wald confidence interval
+c(
+  lower = p_hat - margin_error,
+  upper = p_hat + margin_error
 )
-```
+~~~
 
-`prop.test()` อาจให้ช่วงต่างจาก Wald calculation เล็กน้อย เพราะใช้ score-type approximation จึงต้องระบุวิธีเมื่อเทียบคำตอบจาก software กับการคำนวณมือ
+~~~text
+p_hat = 0.0062
+SE = 0.0013
+Margin of error = 0.0025
+95% CI = 0.0037 to 0.0086
+~~~
 
-### 5. Lab 4: Basic Life Support
+### เขียนตอบข้อสอบ
 
-กำหนด estimand เป็น (p_{bio}-p_{nonbio}):
+> Point estimate ของสัดส่วนผู้ได้รับวัคซีนแล้วยังเป็นไข้หวัดเท่ากับ 0.0062 หรือประมาณ 0.62% และ 95% confidence interval เท่ากับ 0.0037 ถึง 0.0086 หรือประมาณ 0.37% ถึง 0.86% เนื่องจากขอบบนต่ำกว่า 1% ข้อมูลจึงสนับสนุนข้อสรุปว่า population proportion ต่ำกว่า 1% ภายใต้วิธีประมาณและ assumptions ที่ใช้
+
+## 15. Exercise 4: Basic Life Support Knowledge
+
+กลุ่ม biological sciences มีผู้รู้วิธีเรียก MEAS 391 จาก 637 คน ส่วนกลุ่ม non-biological มี 306 จาก 564 คน โจทย์ถาม biological minus non-biological:
 
 $$
-\hat{p}_{bio}=\frac{391}{637}=0.61381
+p_{bio}-p_{nonbio}
 $$
 
-$$
-\hat{p}_{nonbio}=\frac{306}{564}=0.54255
-$$
+~~~r
+%%R
+# Sample proportions และ point estimate
+p_bio <- 391 / 637
+p_nonbio <- 306 / 564
+diff_p <- p_bio - p_nonbio
 
-ดังนั้น estimated difference เท่ากับประมาณ 0.07126 หรือกลุ่ม biological sciences สูงกว่า 7.13 percentage points หากเรียงกลุ่มใน R เป็น non-biological ก่อน biological ผลต่างและ CI จะติดลบตาม output ใน solution คือประมาณ ((-0.12879,-0.01373)) เครื่องหมายต่างกันเพราะลำดับการลบ ไม่ใช่คำตอบขัดกัน
+print(c(
+  p_bio = p_bio,
+  p_nonbio = p_nonbio,
+  difference = diff_p
+))
+~~~
 
-```r
-prop.test(
-  x = c(nonbio = 306, bio = 391),
-  n = c(nonbio = 564, bio = 637),
-  conf.level = 0.95
+~~~r
+%%R
+# Standard error และ 95% CI
+se_diff <- sqrt(
+  p_bio * (1 - p_bio) / 637 +
+  p_nonbio * (1 - p_nonbio) / 564
 )
-```
 
-CI ไม่ครอบคลุมศูนย์ จึงสอดคล้องกับ two-sided test ที่ปฏิเสธ equality null ที่ระดับ 0.05 แต่ควรรายงาน magnitude ร่วมด้วย
+margin_error <- qnorm(0.975) * se_diff
 
-### 6. Lab 5: Study Time ของ Independent Groups
+c(
+  lower = diff_p - margin_error,
+  upper = diff_p + margin_error
+)
+~~~
 
-กลุ่มที่วางแผนเรียนต่อมี mean 11.667 ชั่วโมง ส่วนกลุ่มที่ไม่วางแผนมี mean 9.100 ชั่วโมง point estimate ของ $\mu_{plan}-\mu_{no}$ คือ 2.567 ชั่วโมง Solution ใช้ pooled t interval และได้ 95% CI $(-3.110,8.244)$
+~~~text
+p_bio = 0.6138
+p_nonbio = 0.5426
+Difference = 0.0713
+95% CI = 0.0154 to 0.1271
+~~~
 
-```r
-plan <- c(15,7,15,10,5,5,2,3,12,16,15,37,8,14,10,18,3,25,15,5,5)
-no_plan <- c(6,8,15,6,5,14,10,10,12,5)
+### อ่านเครื่องหมายให้ตรงลำดับ
 
+กลุ่ม biological sciences มี estimated proportion สูงกว่ากลุ่ม non-biological ประมาณ 7.13 percentage points และช่วงทั้งหมดเป็นบวก
+
+เอกสารเฉลยใส่ non-biological เป็นกลุ่มแรกใน prop.test() จึงรายงาน $p_{nonbio}-p_{bio}$ เป็นช่วงติดลบ นอกจากนี้ continuity correction ทำให้ขอบเขตต่างจากสูตรใน Lecture เล็กน้อย ผลทั้งสองไม่ขัดกันเมื่ออ่านลำดับกลุ่มและวิธีคำนวณให้ชัด
+
+### เขียนตอบข้อสอบ
+
+> Point estimate ของ $p_{bio}-p_{nonbio}$ เท่ากับ 0.0713 หมายความว่าสัดส่วนผู้รู้วิธีเรียก MEAS ในกลุ่ม biological sciences สูงกว่ากลุ่ม non-biological ประมาณ 7.13 percentage points โดย 95% confidence interval เท่ากับ 0.0154 ถึง 0.1271 ช่วงไม่ครอบคลุม 0 จึงมีหลักฐานว่าสัดส่วนของสอง population แตกต่างกัน และทิศทางชี้ว่ากลุ่ม biological sciences สูงกว่า
+
+## 16. Exercise 5: Study Time
+
+นักศึกษาที่วางแผนเรียนต่อกับผู้ที่ไม่วางแผนเป็นคนละกลุ่ม จึงใช้ independent two-sample interval เอกสารเฉลยกำหนด equal variances และใช้ pooled t interval
+
+### เตรียมข้อมูล
+
+~~~r
+%%R
+plan <- c(
+  15, 7, 15, 10, 5, 5, 2, 3, 12, 16, 15,
+  37, 8, 14, 10, 18, 3, 25, 15, 5, 5
+)
+
+no_plan <- c(6, 8, 15, 6, 5, 14, 10, 10, 12, 5)
+~~~
+
+~~~r
+%%R
+# Point estimate: plan minus no_plan
+mean(plan) - mean(no_plan)
+~~~
+
+~~~r
+%%R
+# Pooled t interval ตามเอกสารเฉลย
 t.test(
   plan,
   no_plan,
   conf.level = 0.95,
   var.equal = TRUE
 )
-```
+~~~
 
-`var.equal=TRUE` บังคับ pooled-variance method หากไม่มีเหตุผลรองรับ equal variances ให้ใช้ Welch default โดยตัด argument นี้ออก ช่วงใน solution ครอบคลุมศูนย์ จึงยังสรุปไม่ได้ว่า population means ต่างกันที่ระดับ 0.05 ไม่ควรเขียนว่า means “เท่ากัน”
+~~~text
+Mean of plan = 11.6667
+Mean of no_plan = 9.1000
+Difference = 2.5667 hours
+95% CI = -3.1103 to 8.2436 hours
+~~~
 
-### 7. Lab 6: Multiple Myeloma แบบ Paired
+### เขียนตอบข้อสอบ
 
-ข้อมูลก่อนและหลังมาจากผู้ป่วยคนเดิม 7 คน จึงต้องคำนวณ $d_i=before_i-after_i$ แล้วประมาณ $\mu_d$ Solution ได้ $\bar{d}=86.143$ และ 95% CI $(-28.261,200.547)$
+> นักศึกษาที่วางแผนเรียนต่อมี sample mean สูงกว่ากลุ่มที่ไม่วางแผน 2.5667 ชั่วโมงต่อสัปดาห์ เมื่อใช้ pooled t interval ได้ 95% confidence interval ของ $\mu_{plan}-\mu_{no\ plan}$ เท่ากับ -3.1103 ถึง 8.2436 ชั่วโมง ช่วงครอบคลุม 0 จึงยังไม่มีหลักฐานเพียงพอว่า population means แตกต่างกันที่ระดับ 0.05 ช่วงยังกว้างและรองรับได้ทั้งค่าลบและค่าบวก จึงไม่ควรสรุปว่าค่าเฉลี่ยเท่ากัน
 
-```r
+การใช้ var.equal = TRUE เป็น assumption เพิ่มเติม หากโจทย์ไม่กำหนด equal variances การใช้ Welch method ซึ่งเป็นค่าเริ่มต้นของ t.test() จะเหมาะกว่า
+
+## 17. Exercise 6: Multiple Myeloma
+
+ผู้ป่วย 7 คนถูกวัดก่อนและหลัง stem cell transplant ข้อมูลจึงจับคู่กัน กำหนด:
+
+$$
+d_i=before_i-after_i
+$$
+
+### เตรียมข้อมูล
+
+~~~r
+%%R
 before <- c(158, 189, 202, 353, 416, 426, 441)
 after <- c(284, 214, 101, 227, 290, 176, 290)
+~~~
 
-difference <- before - after
-mean(difference)
+~~~r
+%%R
+# Point estimate: before minus after
+mean(before - after)
+~~~
 
+~~~r
+%%R
+# Paired t interval
 t.test(
   before,
   after,
   paired = TRUE,
   conf.level = 0.95
 )
-```
+~~~
 
-`paired=TRUE` บอก R ให้สร้าง within-patient differences การใช้ independent two-sample test จะทิ้ง pairing information ช่วงครอบคลุมศูนย์ จึงไม่มีหลักฐานเพียงพอว่าค่าเฉลี่ยก่อนและหลังต่างกัน แต่ช่วงกว้างมากสะท้อน sample เพียง 7 คู่ จึงไม่ใช่หลักฐานว่าการเปลี่ยนแปลงมีขนาดศูนย์
+~~~text
+Mean difference = 86.1429
+95% CI = -28.2610 to 200.5467
+~~~
 
-### 8. Template สำหรับเขียนคำตอบ CI ในข้อสอบ
+### เขียนตอบข้อสอบ
 
-1. **Parameter:** นิยาม $\mu$, $p$, $\mu_1-\mu_2$, $p_1-p_2$ หรือ $\mu_d$ พร้อมหน่วย
-2. **Design:** ระบุ one sample, independent groups หรือ paired data
-3. **Conditions:** random/independent, distribution หรือ success-failure counts
-4. **Calculation:** แสดง point estimate, SE, critical value, margin of error และ interval
-5. **Interpretation:** ระบุ confidence level, population parameter, lower/upper limits และบริบท
-6. **Decision:** หากเปรียบเทียบ null value ให้บอกว่าช่วงครอบคลุม 0 หรือค่าที่กำหนดหรือไม่
-7. **Limitation:** กล่าวถึง sample representativeness, small sample, skewness หรือ assumption ที่สำคัญ
+> เมื่อกำหนด difference เป็น before minus after ได้ point estimate ของ population mean difference เท่ากับ 86.1429 และ 95% confidence interval เท่ากับ -28.2610 ถึง 200.5467 ช่วงครอบคลุม 0 จึงยังไม่มีหลักฐานเพียงพอว่าค่าเฉลี่ย bone marrow microvessel density ก่อนและหลังแตกต่างกันที่ระดับ 0.05 ช่วงกว้างมากเพราะมีเพียง 7 คู่ จึงยังรองรับได้ทั้งการลดลงและการเพิ่มขึ้นขนาดมาก
 
-ตัวอย่างประโยคปิดที่ปลอดภัย:
+paired = TRUE ทำให้ R วิเคราะห์ผลต่างภายในผู้ป่วยแต่ละคน การใช้ independent two-sample method จะละทิ้งโครงสร้างการจับคู่
 
-> ช่วงความเชื่อมั่น 95% สำหรับ population mean difference ครอบคลุมศูนย์ จึงยังไม่มีหลักฐานเพียงพอของความแตกต่างแบบสองด้านที่ระดับ 0.05 อย่างไรก็ตามช่วงค่อนข้างกว้าง จึงยังรองรับได้ทั้งผลลบและผลบวกขนาดที่อาจมีความสำคัญ
+## 18. รูปแบบการเขียนตอบในข้อสอบ
 
-## 27. Source Coverage Audit
+เมื่อเจอโจทย์ใหม่ ให้เรียงคำตอบดังนี้:
 
-| Source slides | Primary teaching home |
-|---|---|
-| 1–3 | Statistical inference, point/interval estimation และ CI terminology |
-| 4, 7–9 | Sampling distributions และ CI for one population mean |
-| 5–6 | Bank Robberies worked case |
-| 10–11 | Binomial review และ CI for one population proportion |
-| 12 | CI for two independent means when population variances are known |
-| 13 | Welch interval for unknown unequal variances |
-| 14 | Pooled interval under equal-variance assumption |
-| 15 | Paired-mean interval |
-| 16–17 | Binomial review และ CI for difference between two proportions |
-| `lab_02_interval_estimation.pdf`, pp. 1–4 | โจทย์ CI ทั้ง 6 สถานการณ์ |
-| `lab_02_confident_interval_solution.pdf`, pp. 1–4 และ `lab_02_interval_estimation_solution.pdf`, pp. 1–4 | ผลลัพธ์, R code, interpretation และ Lab Supplement |
+1. ระบุ population parameter และทิศทางของผลต่าง
+2. ระบุ one sample, independent groups หรือ paired data
+3. เลือก z, one-sample t, Welch, pooled หรือ paired t
+4. รายงาน point estimate, SE หรือ margin of errorตามที่โจทย์ถาม
+5. รายงาน lower และ upper limits พร้อมหน่วย
+6. ตีความถึง population parameter ในบริบท
+7. หากเป็นผลต่าง ให้ดูว่าช่วงครอบคลุม 0 หรือไม่
+8. ระบุ assumption หรือข้อจำกัดสำคัญ
 
-บทนี้ใช้ [01 Introduction](01_introduction.md) เป็น prerequisite โดยตรง และเป็นฐานสำหรับ Jackknife/Bootstrap ซึ่งใช้ resampling เพื่อประมาณ Standard Error และ Confidence Interval เมื่อ classical derivation ทำได้ยาก
+หาก CI ของผลต่างครอบคลุม 0 ข้อมูลยังไม่ให้หลักฐานเพียงพอของความแตกต่างแบบสองด้านที่ระดับ 0.05 แต่ไม่ได้พิสูจน์ว่าสอง population เท่ากัน หาก CI ไม่ครอบคลุม 0 จะมีหลักฐานของความแตกต่าง และทิศทางอ่านจากเครื่องหมายของช่วง
 
-## 28. References
+## 19. สูตรที่ควรหาให้เจอในห้องสอบ
 
-1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_02_interval_estimation.pptx`, Slides 1–17.
-2. Reilly et al. *Robbing Banks*. *Significance*, Vol. 9, Issue 3, pp. 17–21. อ้างถึงในสไลด์กรณีศึกษา Bank Robberies.
-3. ตัวเลข CI ใน Bank Robberies เป็นคำอธิบายเพิ่มเติมที่คำนวณจาก summary statistics ใน Slides 5–6 โดยใช้ $t_{0.025,363}\approx1.966$.
-4. เอกสาร Lab `dads6001-applied_statistics/lab/lab_02_interval_estimation.pdf`, pp. 1–4.
-5. เอกสารเฉลย `lab_02_confident_interval_solution.pdf` และ `lab_02_interval_estimation_solution.pdf`, pp. 1–4.
+One mean เมื่อไม่ทราบ $\sigma$:
+
+$$
+\bar x\mathbin{\pm}
+t_{\alpha/2,n-1}\frac{s}{\sqrt n}
+$$
+
+One proportion:
+
+$$
+\hat p\mathbin{\pm}
+z_{\alpha/2}\sqrt{\frac{\hat p(1-\hat p)}{n}}
+$$
+
+Independent means แบบ Welch:
+
+$$
+(\bar x_1-\bar x_2)
+\mathbin{\pm}
+t_{\alpha/2,\nu}
+\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}
+$$
+
+Paired means:
+
+$$
+\bar d\mathbin{\pm}
+t_{\alpha/2,n-1}\frac{s_d}{\sqrt n}
+$$
+
+Independent proportions:
+
+$$
+(\hat p_1-\hat p_2)
+\mathbin{\pm}
+z_{\alpha/2}
+\sqrt{
+\frac{\hat p_1(1-\hat p_1)}{n_1}
++
+\frac{\hat p_2(1-\hat p_2)}{n_2}
+}
+$$
+
+## 20. สรุปความคิดของบท
+
+Confidence interval เริ่มจาก estimate แล้วขยายออกตาม standard error และ critical value จึงรวมทั้งตำแหน่งของค่าประมาณและความไม่แน่นอนจากการสุ่มไว้ในคำตอบเดียว
+
+การเลือกสูตรต้องเริ่มจาก parameter และ study design One mean, one proportion, independent means, paired means และ two proportions มี standard error คนละแบบ เพราะข้อมูลเกิดขึ้นและสัมพันธ์กันคนละโครงสร้าง
+
+> ระบุ parameter → ดูชนิด outcome → ดูจำนวนและความสัมพันธ์ของ samples → เลือก sampling distribution → คำนวณ CI → ตีความในบริบท
+
+## 21. References
+
+1. เอกสารประกอบการสอน DADS6001 Lecture 02: Interval Estimation, Slides 1–24.
+2. DADS6001 Lab 02: Exercise - Interval Estimation, 4 pages.
+3. DADS6001 Lab 02: Solutions and R Programming Examples - Confidence Interval, 4 pages.
+4. Berenson, M. L., Levine, D. M., & Krehbiel, T. C. *Basic Business Statistics: Concepts and Applications*, 12th ed. Pearson.
+5. Agresti, A., Franklin, C., & Klingenberg, B. *Statistics: The Art and Science of Learning from Data*, 4th ed. Pearson.
