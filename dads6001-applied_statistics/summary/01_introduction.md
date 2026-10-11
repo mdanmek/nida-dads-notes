@@ -495,16 +495,34 @@ Lab นี้ให้ข้อมูล `ecost` จำนวน 50 ค่า �
 %load_ext rpy2.ipython
 ```
 
-จากนั้นติดตั้งและเรียกใช้ package ที่ต้องใช้ทั้งหมดไว้ตอนต้นเพียงครั้งเดียว ทุก cell ที่เป็นภาษา R ต้องเริ่มด้วย `%%R` ส่วน `options()` ช่วยไม่ให้ผลลัพธ์แสดงแบบ `e+` หรือ `e-` และกำหนดรูปแบบตัวเลขให้เหมือนกันตลอด notebook
+จากนั้นติดตั้งและเรียกใช้ package ที่ต้องใช้ทั้งหมดไว้ตอนต้นเพียงครั้งเดียว โค้ดใช้ `requireNamespace()` ตรวจสอบก่อนติดตั้ง เพื่อไม่ให้ Colab ติดตั้ง package ซ้ำทุกครั้ง หาก `qqconf` ติดตั้งไม่ได้ โปรแกรมจะยังทำงานส่วนอื่นต่อและใช้ Q-Q plot จาก Base R แทน ทุก cell ที่เป็นภาษา R ต้องเริ่มด้วย `%%R`
 
 ```r
 %%R
 # ติดตั้ง package ที่ใช้ใน Lab
-install.packages(c("psych", "qqconf"), repos = "https://cloud.r-project.org")
+if (!requireNamespace("psych", quietly = TRUE)) { install.packages("psych", repos = "https://cloud.r-project.org") }
+
+tryCatch({
+  if (!requireNamespace("qqconf", quietly = TRUE)) {
+    install.packages("qqconf", repos = "https://cloud.r-project.org", type = "source")
+  }
+}, error = function(e) {
+  message("Could not install qqconf, falling back to base Q-Q plotting.")
+})
 
 # เรียกใช้ package
 library(psych)
-library(qqconf)
+if (requireNamespace("qqconf", quietly = TRUE)) {
+  library(qqconf)
+} else {
+  message("qqconf is not available. Using base R graphics for Q-Q plots instead.")
+}
+```
+
+เตรียมรูปแบบการแสดงผลและข้อมูล `ecost` ใน cell ถัดไป:
+
+```r
+%%R
 
 # ไม่แสดง scientific notation และใช้ตัวเลขประมาณ 4 หลักสำคัญ
 options(scipen = 999, digits = 4)
@@ -526,12 +544,13 @@ ecost <- c(
 ```r
 %%R
 # ตรวจจำนวน observations
-n <- length(ecost)
+length(ecost)
+```
 
+```r
+%%R
 # describe() ให้สถิติเชิงพรรณนาหลายค่าในครั้งเดียว
-desc <- describe(ecost)
-
-print(desc)
+describe(ecost)
 ```
 
 ผลสำคัญจากเอกสาร Lab คือ:
@@ -564,8 +583,7 @@ $$
 ```r
 %%R
 # คำนวณ SD เป็นร้อยละของค่าเฉลี่ย
-cv <- sd(ecost) / mean(ecost) * 100
-cv
+sd(ecost) / mean(ecost) * 100
 ```
 
 ผลลัพธ์:
@@ -609,14 +627,14 @@ $$
 %%R
 # หา quartiles
 quant_ec <- quantile(ecost)
-quant_ec
+print(quant_ec)
 
 # คำนวณขอบเขตล่างและขอบเขตบนตามกฎ 1.5 IQR
 lowerfence <- quant_ec[2] - 1.5 * IQR(ecost)
-lowerfence
+print(lowerfence)
 
 upperfence <- quant_ec[4] + 1.5 * IQR(ecost)
-upperfence
+print(upperfence)
 
 # วาด Boxplot
 boxplot(ecost)
@@ -644,7 +662,10 @@ Histogram ช่วยมองรูปร่างโดยรวม ส่ว
 %%R
 # Histogram ใช้ดูรูปร่างโดยรวมของข้อมูล
 hist(ecost)
+```
 
+```r
+%%R
 # Q-Q plot ใช้เปรียบเทียบข้อมูลกับ Normal distribution
 qqnorm(ecost)
 qqline(ecost)
@@ -658,17 +679,23 @@ P-P plot เปรียบเทียบ cumulative probabilities ของข
 
 ```r
 %%R
-# วาด P-P plot พร้อม confidence band
-pp_conf_plot(
-  ecost,
-  pdist = pnorm,
-  main = "P-P Plot for Normal Distribution",
-  xlab = "Theoretical Probabilities (Normal)",
-  ylab = "Empirical Probabilities"
-)
+# วาด P-P plot เมื่อ qqconf พร้อมใช้งาน
+if (requireNamespace("qqconf", quietly = TRUE)) {
+  pp_conf_plot(
+    ecost,
+    pdist = pnorm,
+    main = "P-P Plot for Normal Distribution",
+    xlab = "Theoretical Probabilities (Normal)",
+    ylab = "Empirical Probabilities"
+  )
+} else {
+  # หากไม่มี qqconf ให้ใช้ Q-Q plot จาก Base R แทน
+  qqnorm(ecost)
+  qqline(ecost)
+}
 ```
 
-จากกราฟในเอกสาร จุดเรียงตามแนวทแยงและอยู่ภายในแถบความเชื่อมั่น จึงไม่เห็นความคลาดเคลื่อนจาก Normal model ที่เด่นชัด โดย Q-Q plot ช่วยดูความต่างบริเวณ tails ได้ชัดกว่า ขณะที่ P-P plot ให้ความสำคัญกับบริเวณกลาง distribution มากกว่า
+จาก P-P plot ในเอกสาร จุดเรียงตามแนวทแยงและอยู่ภายในแถบความเชื่อมั่น จึงไม่เห็นความคลาดเคลื่อนจาก Normal model ที่เด่นชัด โดย Q-Q plot ช่วยดูความต่างบริเวณ tails ได้ชัดกว่า ขณะที่ P-P plot ให้ความสำคัญกับบริเวณกลาง distribution มากกว่า หาก Colab ติดตั้ง `qqconf` ไม่สำเร็จ ให้ใช้ Q-Q plot ประกอบกับ Histogram และ Shapiro-Wilk test โดยไม่จำเป็นต้องหยุดทำข้อสอบเพราะ P-P plot เพียงกราฟเดียว
 
 ### 13.7 ใช้ Shapiro-Wilk test แล้วอ่านให้ถูกความหมาย
 
