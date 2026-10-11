@@ -318,7 +318,10 @@ $$
 ความแปรปรวนของ sample mean จะลดลงตาม finite population correction:
 
 $$
-V(\bar{X})=\frac{\sigma^2}{n}(\frac{N-n}{N-1})
+V(\bar{X})
+=
+\frac{\sigma^2}{n}
+(\frac{N-n}{N-1})
 $$
 
 $N$ คือขนาด population และ $n$ คือขนาด sample เมื่อ sample เป็นสัดส่วนมากของ population เรารู้ข้อมูลเกี่ยวกับ population มากขึ้น ความไม่แน่นอนจึงลดลง
@@ -453,30 +456,310 @@ $$
 
 > ระบุสิ่งที่ต้องการรู้ → เข้าใจว่าข้อมูลเกิดอย่างไร → ระบุ statistic → พิจารณาความผันผวนจากการสุ่ม → จึงเลือกวิธีอนุมาน
 
-## 12. ความเข้าใจผิดที่ควรแก้ตั้งแต่ต้น
+## 12. หลักที่ควรจำให้ถูกต้อง
 
-**“Random variable คือคอลัมน์ที่สุ่มตัวเลข”**  
-ไม่ใช่ Random variable เป็นแบบจำลองที่จับ outcome จากกระบวนการสุ่มไปเป็นตัวเลข
+**Random variable เชื่อม outcome กับค่าตัวเลข**  
+Random variable เป็นกฎที่นำ outcome จากกระบวนการสุ่มไปเป็นตัวเลข ก่อนสังเกตเรายังไม่ทราบว่าจะเกิด outcome ใดและตัวแปรจะมีค่าเท่าใด
 
-**“Sample mean เท่ากับ population mean”**  
-ไม่จำเป็น Sample mean เป็น estimate ที่มี sampling variability แม้จะเป็น unbiased estimator ภายใต้เงื่อนไขทั่วไป
+**Sample mean เป็นค่าประมาณของ population mean**  
+Sample mean ที่คำนวณจากข้อมูลหนึ่งชุดเป็น estimate ของ population mean และเปลี่ยนได้เมื่อสุ่ม sample ใหม่ ความผันผวนนี้คือ sampling variability
 
-**“SD กับ SE เป็นสิ่งเดียวกัน”**  
-SD วัดการกระจายของ observations ส่วน SE วัดการกระจายของ estimator ระหว่าง samples
+**SD และ SE วัดการกระจายคนละระดับ**  
+Standard deviation วัดการกระจายของ observations เช่น ความแตกต่างของเวลารอระหว่างผู้ป่วย ส่วน standard error วัดการกระจายของ estimator เช่น ความแตกต่างของ sample means ระหว่างการสุ่มหลายครั้ง
 
-**“CLT ทำให้ข้อมูลดิบเป็น Normal”**  
-ไม่ใช่ CLT กล่าวถึง sampling distribution ของผลรวมหรือค่าเฉลี่ยภายใต้เงื่อนไขที่เหมาะสม
+**CLT อธิบาย sampling distribution ของผลรวมหรือค่าเฉลี่ย**  
+Central Limit Theorem กล่าวว่า ภายใต้เงื่อนไขที่เหมาะสม sampling distribution ของผลรวมหรือค่าเฉลี่ยจะเข้าใกล้ Normal เมื่อ sample size ใหญ่ขึ้น ข้อมูลรายคนยังคงมี distribution เดิม
 
-**“p-value ของ Shapiro-Wilk มากกว่า 0.05 พิสูจน์ว่า Normal”**  
-ไม่ใช่ เป็นเพียงการไม่พบหลักฐานเพียงพอที่จะปฏิเสธ Normal model จากข้อมูลชุดนั้น
+**ผล Normality test ต้องอ่านร่วมกับกราฟและบริบท**  
+p-value ของ Shapiro-Wilk ที่มากกว่าระดับนัยสำคัญหมายถึงข้อมูลยังไม่ให้หลักฐานเพียงพอที่จะปฏิเสธ Normal model การพิจารณาควรรวม Q-Q plot, outliers, sample size และวิธีวิเคราะห์ที่จะใช้
 
-**“Continuous PDF ที่สูงหมายถึง probability ณ จุดนั้นสูง”**  
-Probability ของค่าจุดเดียวเป็นศูนย์ ต้องคำนวณจากพื้นที่ในช่วง
+**Probability ของ continuous variable มาจากพื้นที่ในช่วง**  
+สำหรับตัวแปรต่อเนื่อง probability ณ ค่าจุดเดียวเท่ากับศูนย์ ส่วน probability ที่สนใจคำนวณจากพื้นที่ใต้ density curve ระหว่างขอบเขตที่กำหนด
 
-**“Sample ใหญ่แก้ปัญหาทุกอย่าง”**  
-Sample ใหญ่ลด random error แต่ไม่แก้ selection bias, measurement error หรือ dependence ที่ถูกละเลย
+**Sample size ที่ใหญ่ขึ้นลด random error ภายใต้วิธีเก็บข้อมูลเดิม**  
+เมื่อ observations เป็นอิสระและกระบวนการสุ่มเหมาะสม sample size ที่ใหญ่ขึ้นทำให้ standard error ลดลง แต่คุณภาพของข้อสรุปยังขึ้นกับการเป็นตัวแทนของ sample ความถูกต้องของการวัด และโครงสร้าง dependence ในข้อมูล
 
-## 13. สรุปความคิดของบท
+## 13. Lab 01: อ่านข้อมูลหนึ่งชุดให้เป็นเรื่องเดียวกัน
+
+Lab นี้ให้ข้อมูล `ecost` จำนวน 50 ค่า แล้วใช้สถิติเชิงพรรณนา Boxplot, Histogram, Q-Q plot, P-P plot และ Shapiro-Wilk test เพื่อตรวจสอบข้อมูล สิ่งสำคัญไม่ใช่การจำคำสั่ง R แยกกัน แต่คือการนำหลักฐานหลายชิ้นมาตอบคำถามว่า:
+
+> ข้อมูลชุดนี้มีค่ากลางและการกระจายอย่างไร มีค่าผิดปกติหรือไม่ และการใช้ Normal model สมเหตุสมผลเพียงใด
+
+สมมติว่า `ecost` เป็นต้นทุนต่อหน่วยจากตัวอย่าง 50 หน่วย เรากำลังอธิบาย **sample distribution** ของต้นทุนรายหน่วย ยังไม่ได้สร้าง sampling distribution และยังไม่ได้อนุมานค่าเฉลี่ยของ population
+
+### 13.1 เตรียม Google Colab สำหรับภาษา R
+
+ใน Colab ให้รัน cell แรกเพียงครั้งเดียว:
+
+```python
+%load_ext rpy2.ipython
+```
+
+จากนั้นทุก cell ที่เป็นภาษา R ต้องเริ่มด้วย `%%R` บรรทัด `options()` ด้านล่างช่วยให้ผลลัพธ์ไม่แสดงแบบ `e+` หรือ `e-` และกำหนดให้การแสดงตัวเลขทั่วไปใช้ประมาณ 4 หลักสำคัญ ส่วนค่าที่ต้องการทศนิยม 4 ตำแหน่งแน่นอน เราจะใช้ `sprintf("%.4f", ค่า)` เพิ่มเติม
+
+```r
+%%R
+# ไม่แสดงตัวเลขด้วย scientific notation เช่น 1.47e+02
+options(scipen = 999, digits = 4)
+
+# บันทึกข้อมูลต้นทุนตัวอย่าง 50 ค่าไว้ในตัวแปร ecost
+ecost <- c(
+  96, 171, 202, 178, 147, 102, 153, 197, 127, 82,
+  157, 185, 90, 116, 172, 111, 148, 213, 130, 165,
+  141, 149, 206, 175, 123, 128, 144, 168, 109, 167,
+  95, 163, 150, 154, 130, 143, 187, 166, 139, 149,
+  108, 119, 183, 151, 114, 135, 191, 137, 129, 158
+)
+```
+
+### 13.2 เริ่มจากรู้จักข้อมูลก่อน
+
+เราเริ่มด้วยจำนวนข้อมูล ค่าเฉลี่ย SD มัธยฐาน ค่าต่ำสุด และค่าสูงสุด เพราะตัวเลขเหล่านี้บอกตำแหน่งและการกระจายของข้อมูลก่อนดูกราฟ
+
+```r
+%%R
+# ติดตั้ง package เฉพาะเมื่อ Colab ยังไม่มี แล้วจึงเรียกใช้งาน
+if (!requireNamespace("psych", quietly = TRUE)) {
+  install.packages("psych", repos = "https://cloud.r-project.org")
+}
+
+# ตรวจจำนวน observations
+n <- length(ecost)
+
+# describe() ให้สถิติเชิงพรรณนาหลายค่าในครั้งเดียว
+desc <- psych::describe(ecost)
+selected <- desc[c(
+  "n", "mean", "sd", "median", "trimmed", "mad",
+  "min", "max", "range", "skew", "kurtosis", "se"
+)]
+
+print(round(selected, 4))
+```
+
+ผลสำคัญจากเอกสาร Lab คือ:
+
+```text
+n       = 50.0000
+mean    = 147.0600
+sd      = 31.6900
+median  = 148.5000
+min     = 82.0000
+max     = 213.0000
+range   = 131.0000
+skew    = 0.0100
+kurtosis= -0.7000
+se      = 4.4800
+```
+
+ค่าเฉลี่ย 147.06 และ median 148.50 อยู่ใกล้กัน ประกอบกับ skewness 0.01 ซึ่งใกล้ศูนย์ จึงบ่งชี้เบื้องต้นว่าข้อมูลค่อนข้างสมมาตร ค่า kurtosis ที่ `psych::describe()` รายงานเป็น excess kurtosis; ค่า -0.70 หมายถึงรูปร่างแบนกว่า Normal เล็กน้อย แต่ยังไม่ใช่หลักฐานเพียงชิ้นเดียวสำหรับตัดสิน Normality
+
+ค่า SD 31.69 อธิบายการกระจายของต้นทุน **รายหน่วย** รอบค่าเฉลี่ย ส่วน SE 4.48 อธิบายความผันผวนโดยประมาณของ **sample mean** หากสุ่มตัวอย่างขนาด 50 ซ้ำภายใต้เงื่อนไขเดียวกัน ทั้งสองค่าจึงตอบคนละคำถาม
+
+### 13.3 เปรียบเทียบการกระจายกับขนาดของค่าเฉลี่ย
+
+Coefficient of Variation หรือ CV เปลี่ยน SD ให้เป็นร้อยละของ mean จึงช่วยบอกขนาดการกระจายแบบสัมพัทธ์:
+
+$$
+CV=\frac{s}{\bar{x}}\times 100
+$$
+
+```r
+%%R
+# คำนวณ SD เป็นร้อยละของค่าเฉลี่ย
+cv <- sd(ecost) / mean(ecost) * 100
+
+# แสดงทศนิยม 4 ตำแหน่งแน่นอน
+cat("CV =", sprintf("%.4f", cv), "%\n")
+```
+
+ผลลัพธ์:
+
+```text
+CV = 21.5500 %
+```
+
+แปลว่า SD มีขนาดประมาณ 21.55% ของ mean ค่านี้ใช้บรรยายความแปรปรวนสัมพัทธ์ของข้อมูลชุดนี้ การตัดสินว่าสูงหรือต่ำต้องเทียบกับบริบทหรือข้อมูลชุดอื่นที่วัดสิ่งเดียวกัน ไม่ควรใช้เกณฑ์สากลตายตัว
+
+ดูค่าหลักหกค่าของ sample ได้ด้วย:
+
+```r
+%%R
+# แสดงค่าต่ำสุด Q1 median mean Q3 และค่าสูงสุด
+print(round(summary(ecost), 4))
+```
+
+```text
+Min.    1st Qu. Median  Mean    3rd Qu. Max.
+82.0000 127.2500 148.5000 147.0600 167.7500 213.0000
+```
+
+### 13.4 ตรวจ outlier ด้วย IQR และ Boxplot
+
+Boxplot ใช้ Q1, median และ Q3 สรุปตำแหน่งของข้อมูล ส่วนเกณฑ์ 1.5 IQR ใช้ระบุค่าที่ควรตรวจสอบเพิ่มเติม:
+
+$$
+IQR=Q_3-Q_1
+$$
+
+$$
+\text{Lower fence}=Q_1-1.5(IQR)
+$$
+
+$$
+\text{Upper fence}=Q_3+1.5(IQR)
+$$
+
+```r
+%%R
+# หา quartiles และ IQR
+q <- quantile(ecost, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(ecost)
+
+# สร้างขอบเขตสำหรับตรวจ potential outliers
+lower_fence <- q[1] - 1.5 * iqr_value
+upper_fence <- q[3] + 1.5 * iqr_value
+
+# ค่าที่อยู่นอกขอบเขตจะถูกนำมาตรวจสอบเพิ่มเติม
+potential_outliers <- ecost[
+  ecost < lower_fence | ecost > upper_fence
+]
+
+cat("Q1 =", sprintf("%.4f", q[1]), "\n")
+cat("Median =", sprintf("%.4f", q[2]), "\n")
+cat("Q3 =", sprintf("%.4f", q[3]), "\n")
+cat("IQR =", sprintf("%.4f", iqr_value), "\n")
+cat("Lower fence =", sprintf("%.4f", lower_fence), "\n")
+cat("Upper fence =", sprintf("%.4f", upper_fence), "\n")
+cat("Potential outliers:", potential_outliers, "\n")
+
+# วาด Boxplot เพื่อดูตำแหน่งค่ากลาง การกระจาย และ outliers
+boxplot(
+  ecost,
+  horizontal = TRUE,
+  main = "Boxplot of ecost",
+  xlab = "ecost"
+)
+```
+
+ผลลัพธ์สำคัญ:
+
+```text
+Q1 = 127.2500
+Median = 148.5000
+Q3 = 167.7500
+IQR = 40.5000
+Lower fence = 66.5000
+Upper fence = 228.5000
+Potential outliers:
+```
+
+ข้อมูลมีค่าต่ำสุด 82 และสูงสุด 213 ซึ่งยังอยู่ระหว่าง 66.50 กับ 228.50 จึงไม่มี observation ที่ถูกระบุเป็น potential outlier ด้วยกฎ 1.5 IQR คำว่า “ไม่มี potential outlier ตามเกณฑ์นี้” แม่นยำกว่าการกล่าวว่า “ข้อมูลไม่มีค่าผิดปกติแน่นอน” เพราะ outlier ต้องพิจารณาความถูกต้องของข้อมูลและบริบทด้วย
+
+### 13.5 ดูรูปร่างด้วย Histogram และ Q-Q plot
+
+Histogram ช่วยมองรูปร่างโดยรวม ส่วน Q-Q plot เปรียบเทียบ quantiles ของข้อมูลกับ quantiles ที่ควรเกิดภายใต้ Normal model
+
+```r
+%%R
+# Histogram ใช้ดูความสมมาตร จำนวนยอด และช่องว่างของข้อมูล
+hist(
+  ecost,
+  breaks = "Sturges",
+  main = "Histogram of ecost",
+  xlab = "ecost",
+  col = "lightgray",
+  border = "white"
+)
+
+# Q-Q plot: จุดใกล้เส้นตรงหมายถึงข้อมูลสอดคล้องกับ Normal model
+qqnorm(ecost, main = "Normal Q-Q Plot of ecost")
+qqline(ecost, col = "red", lwd = 2)
+```
+
+Histogram ในเอกสารมีรูปยอดเดียวและค่อนข้างสมมาตรรอบช่วง 140–160 ส่วนจุดใน Q-Q plot เรียงใกล้เส้นตรงโดยไม่มีจุดใดหลุดออกอย่างรุนแรง หลักฐานจากกราฟจึงสอดคล้องกับการใช้ Normal model ในระดับที่สมเหตุสมผล
+
+### 13.6 P-P plot ให้หลักฐานอีกมุมหนึ่ง
+
+P-P plot เปรียบเทียบ cumulative probabilities ของข้อมูลกับ Normal model จุดที่อยู่ใกล้แนวทแยงและอยู่ภายใน confidence band สนับสนุนความสอดคล้องกับแบบจำลอง
+
+```r
+%%R
+# ติดตั้ง qqconf เฉพาะเมื่อยังไม่มีใน Colab
+if (!requireNamespace("qqconf", quietly = TRUE)) {
+  install.packages("qqconf", repos = "https://cloud.r-project.org")
+}
+
+# วาด P-P plot พร้อม confidence band
+qqconf::pp_conf_plot(
+  ecost,
+  pdist = pnorm,
+  main = "P-P Plot for Normal Distribution",
+  xlab = "Theoretical Probabilities (Normal)",
+  ylab = "Empirical Probabilities"
+)
+```
+
+จากกราฟในเอกสาร จุดเรียงตามแนวทแยงและอยู่ภายในแถบความเชื่อมั่น จึงไม่เห็นความคลาดเคลื่อนจาก Normal model ที่เด่นชัด โดย Q-Q plot ช่วยดูความต่างบริเวณ tails ได้ชัดกว่า ขณะที่ P-P plot ให้ความสำคัญกับบริเวณกลาง distribution มากกว่า
+
+### 13.7 ใช้ Shapiro-Wilk test แล้วอ่านให้ถูกความหมาย
+
+Shapiro-Wilk test ตั้งสมมติฐานว่า:
+
+$$
+H_0:\text{ข้อมูลมาจากประชากรที่มี Normal distribution}
+$$
+
+$$
+H_1:\text{ข้อมูลไม่ได้มาจากประชากรที่มี Normal distribution}
+$$
+
+```r
+%%R
+# ทดสอบความสอดคล้องกับ Normal distribution
+sw <- shapiro.test(ecost)
+
+# แสดงค่า W และ p-value เป็นทศนิยม 4 ตำแหน่ง
+cat("W =", sprintf("%.4f", unname(sw$statistic)), "\n")
+cat("p-value =", sprintf("%.4f", sw$p.value), "\n")
+```
+
+ผลลัพธ์:
+
+```text
+W = 0.9898
+p-value = 0.9408
+```
+
+ที่ระดับนัยสำคัญ 0.05 เราได้ $p=0.9408>0.05$ จึง **ไม่ปฏิเสธ $H_0$** ข้อมูลยังไม่ให้หลักฐานว่าการแจกแจงแตกต่างจาก Normal distribution เมื่ออ่านร่วมกับ Histogram, Q-Q plot, P-P plot และการไม่มี potential outlier หลักฐานทั้งหมดให้ข้อสรุปไปในทิศทางเดียวกัน
+
+เราไม่เขียนว่า “ข้อมูลเป็น Normal แน่นอน” เพราะการไม่ปฏิเสธ $H_0$ หมายถึงข้อมูลที่เห็นยังเข้ากันได้กับ Normal model ไม่ใช่การพิสูจน์ว่าโมเดลนั้นจริงโดยสมบูรณ์
+
+### 13.8 ค่า Z ในท้าย Lab กำลังตอบอะไร
+
+คำสั่งต่อไปนี้หาพื้นที่ทางซ้ายของ $z=-1.645$ ใต้ Standard Normal curve:
+
+```r
+%%R
+# pnorm(z) ให้ cumulative probability P(Z <= z)
+left_area <- pnorm(-1.645)
+cat("P(Z <= -1.645) =", sprintf("%.4f", left_area), "\n")
+```
+
+```text
+P(Z <= -1.645) = 0.0500
+```
+
+ดังนั้น $-1.645$ คือค่า Z ที่มีพื้นที่ด้านซ้ายประมาณ 5% และด้วยความสมมาตร $1.645$ มีพื้นที่ด้านขวาประมาณ 5% ค่านี้จะกลับมาใน Confidence Interval และ Hypothesis Testing แบบ one-sided ที่ระดับ 0.05
+
+### 13.9 วิธีเขียนตอบข้อสอบจากผลทั้งหมด
+
+หากโจทย์ถามว่า “ข้อมูล `ecost` สอดคล้องกับ Normal distribution หรือไม่ จงอธิบาย” สามารถเขียนตอบได้ว่า:
+
+> ตัวอย่างมี 50 observations ค่าเฉลี่ยเท่ากับ 147.06 และมัธยฐานเท่ากับ 148.50 ซึ่งอยู่ใกล้กัน โดยมี skewness เท่ากับ 0.01 แสดงว่าการแจกแจงค่อนข้างสมมาตร จากเกณฑ์ 1.5 IQR ได้ lower fence เท่ากับ 66.50 และ upper fence เท่ากับ 228.50 ขณะที่ข้อมูลอยู่ระหว่าง 82 และ 213 จึงไม่พบ potential outlier ตามเกณฑ์นี้ Histogram มีรูปยอดเดียวและค่อนข้างสมมาตร จุดใน Q-Q plot อยู่ใกล้เส้นตรง และจุดใน P-P plot อยู่ใกล้แนวทแยงภายใน confidence band นอกจากนี้ Shapiro-Wilk test ให้ $W=0.9898$ และ $p=0.9408$ ซึ่งมากกว่า 0.05 จึงไม่ปฏิเสธสมมติฐานว่า population มี Normal distribution เมื่อพิจารณาหลักฐานทั้งหมด ข้อมูลชุดนี้จึงสอดคล้องกับ Normal model ในระดับที่สมเหตุสมผลสำหรับการวิเคราะห์ต่อไป
+
+ลำดับการตอบนี้ใช้ได้กับโจทย์ใหม่: เริ่มจากค่ากลางและการกระจาย ตรวจ potential outliers ดูกราฟ แล้วใช้ formal test เป็นหลักฐานประกอบ ไม่ตัดสินจากค่าใดค่าหนึ่งเพียงอย่างเดียว
+
+## 14. สรุปความคิดของบท
 
 บทนี้เริ่มจากคำถามเกี่ยวกับ population ที่เราไม่สามารถสังเกตทั้งหมด จึงสุ่ม sample และใช้ statistic ประมาณ parameter ปัญหาคือ statistic เปลี่ยนไปตาม sample ที่สุ่มได้ Sampling distribution ทำให้ความผันผวนนี้กลายเป็นสิ่งที่ศึกษาได้ และ standard error สรุปขนาดของความผันผวนเป็นตัวเลข
 
@@ -486,9 +769,11 @@ Probability distribution อธิบายพฤติกรรมของ ran
 
 > Statistical Inference คือการใช้ statistic จาก sample เรียนรู้ parameter ของ population โดยยอมรับและวัดความไม่แน่นอนที่เกิดจากการสุ่ม
 
-## 14. References
+## 15. References
 
 1. เอกสารประกอบการสอน DADS6001 Lecture 01: Introduction to Probability and Sampling Distribution, Slides 1–41.
 2. Berenson, M. L., Levine, D. M., & Krehbiel, T. C. *Basic Business Statistics: Concepts and Applications*. Pearson.
 3. Weiss, N. A. *Introductory Statistics*. Pearson.
+4. DADS6001 Lab 01: Introduction Solution in R, 5 pages.
+5. Hair, J. F., Hult, G. T. M., Ringle, C. M., & Sarstedt, M. *A Primer on Partial Least Squares Structural Equation Modeling (PLS-SEM)*, 3rd ed. Sage, 2022.
 
