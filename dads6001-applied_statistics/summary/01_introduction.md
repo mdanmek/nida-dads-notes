@@ -495,11 +495,18 @@ Lab นี้ให้ข้อมูล `ecost` จำนวน 50 ค่า �
 %load_ext rpy2.ipython
 ```
 
-จากนั้นทุก cell ที่เป็นภาษา R ต้องเริ่มด้วย `%%R` บรรทัด `options()` ด้านล่างช่วยให้ผลลัพธ์ไม่แสดงแบบ `e+` หรือ `e-` และกำหนดให้การแสดงตัวเลขทั่วไปใช้ประมาณ 4 หลักสำคัญ ส่วนค่าที่ต้องการทศนิยม 4 ตำแหน่งแน่นอน เราจะใช้ `sprintf("%.4f", ค่า)` เพิ่มเติม
+จากนั้นติดตั้งและเรียกใช้ package ที่ต้องใช้ทั้งหมดไว้ตอนต้นเพียงครั้งเดียว ทุก cell ที่เป็นภาษา R ต้องเริ่มด้วย `%%R` ส่วน `options()` ช่วยไม่ให้ผลลัพธ์แสดงแบบ `e+` หรือ `e-` และกำหนดรูปแบบตัวเลขให้เหมือนกันตลอด notebook
 
 ```r
 %%R
-# ไม่แสดงตัวเลขด้วย scientific notation เช่น 1.47e+02
+# ติดตั้ง package ที่ใช้ใน Lab
+install.packages(c("psych", "qqconf"), repos = "https://cloud.r-project.org")
+
+# เรียกใช้ package
+library(psych)
+library(qqconf)
+
+# ไม่แสดง scientific notation และใช้ตัวเลขประมาณ 4 หลักสำคัญ
 options(scipen = 999, digits = 4)
 
 # บันทึกข้อมูลต้นทุนตัวอย่าง 50 ค่าไว้ในตัวแปร ecost
@@ -518,22 +525,13 @@ ecost <- c(
 
 ```r
 %%R
-# ติดตั้ง package เฉพาะเมื่อ Colab ยังไม่มี แล้วจึงเรียกใช้งาน
-if (!requireNamespace("psych", quietly = TRUE)) {
-  install.packages("psych", repos = "https://cloud.r-project.org")
-}
-
 # ตรวจจำนวน observations
 n <- length(ecost)
 
 # describe() ให้สถิติเชิงพรรณนาหลายค่าในครั้งเดียว
-desc <- psych::describe(ecost)
-selected <- desc[c(
-  "n", "mean", "sd", "median", "trimmed", "mad",
-  "min", "max", "range", "skew", "kurtosis", "se"
-)]
+desc <- describe(ecost)
 
-print(round(selected, 4))
+print(desc)
 ```
 
 ผลสำคัญจากเอกสาร Lab คือ:
@@ -567,9 +565,7 @@ $$
 %%R
 # คำนวณ SD เป็นร้อยละของค่าเฉลี่ย
 cv <- sd(ecost) / mean(ecost) * 100
-
-# แสดงทศนิยม 4 ตำแหน่งแน่นอน
-cat("CV =", sprintf("%.4f", cv), "%\n")
+cv
 ```
 
 ผลลัพธ์:
@@ -585,7 +581,7 @@ CV = 21.5500 %
 ```r
 %%R
 # แสดงค่าต่ำสุด Q1 median mean Q3 และค่าสูงสุด
-print(round(summary(ecost), 4))
+summary(ecost)
 ```
 
 ```text
@@ -611,34 +607,19 @@ $$
 
 ```r
 %%R
-# หา quartiles และ IQR
-q <- quantile(ecost, probs = c(0.25, 0.50, 0.75))
-iqr_value <- IQR(ecost)
+# หา quartiles
+quant_ec <- quantile(ecost)
+quant_ec
 
-# สร้างขอบเขตสำหรับตรวจ potential outliers
-lower_fence <- q[1] - 1.5 * iqr_value
-upper_fence <- q[3] + 1.5 * iqr_value
+# คำนวณขอบเขตล่างและขอบเขตบนตามกฎ 1.5 IQR
+lowerfence <- quant_ec[2] - 1.5 * IQR(ecost)
+lowerfence
 
-# ค่าที่อยู่นอกขอบเขตจะถูกนำมาตรวจสอบเพิ่มเติม
-potential_outliers <- ecost[
-  ecost < lower_fence | ecost > upper_fence
-]
+upperfence <- quant_ec[4] + 1.5 * IQR(ecost)
+upperfence
 
-cat("Q1 =", sprintf("%.4f", q[1]), "\n")
-cat("Median =", sprintf("%.4f", q[2]), "\n")
-cat("Q3 =", sprintf("%.4f", q[3]), "\n")
-cat("IQR =", sprintf("%.4f", iqr_value), "\n")
-cat("Lower fence =", sprintf("%.4f", lower_fence), "\n")
-cat("Upper fence =", sprintf("%.4f", upper_fence), "\n")
-cat("Potential outliers:", potential_outliers, "\n")
-
-# วาด Boxplot เพื่อดูตำแหน่งค่ากลาง การกระจาย และ outliers
-boxplot(
-  ecost,
-  horizontal = TRUE,
-  main = "Boxplot of ecost",
-  xlab = "ecost"
-)
+# วาด Boxplot
+boxplot(ecost)
 ```
 
 ผลลัพธ์สำคัญ:
@@ -661,19 +642,12 @@ Histogram ช่วยมองรูปร่างโดยรวม ส่ว
 
 ```r
 %%R
-# Histogram ใช้ดูความสมมาตร จำนวนยอด และช่องว่างของข้อมูล
-hist(
-  ecost,
-  breaks = "Sturges",
-  main = "Histogram of ecost",
-  xlab = "ecost",
-  col = "lightgray",
-  border = "white"
-)
+# Histogram ใช้ดูรูปร่างโดยรวมของข้อมูล
+hist(ecost)
 
-# Q-Q plot: จุดใกล้เส้นตรงหมายถึงข้อมูลสอดคล้องกับ Normal model
-qqnorm(ecost, main = "Normal Q-Q Plot of ecost")
-qqline(ecost, col = "red", lwd = 2)
+# Q-Q plot ใช้เปรียบเทียบข้อมูลกับ Normal distribution
+qqnorm(ecost)
+qqline(ecost)
 ```
 
 Histogram ในเอกสารมีรูปยอดเดียวและค่อนข้างสมมาตรรอบช่วง 140–160 ส่วนจุดใน Q-Q plot เรียงใกล้เส้นตรงโดยไม่มีจุดใดหลุดออกอย่างรุนแรง หลักฐานจากกราฟจึงสอดคล้องกับการใช้ Normal model ในระดับที่สมเหตุสมผล
@@ -684,13 +658,8 @@ P-P plot เปรียบเทียบ cumulative probabilities ของข
 
 ```r
 %%R
-# ติดตั้ง qqconf เฉพาะเมื่อยังไม่มีใน Colab
-if (!requireNamespace("qqconf", quietly = TRUE)) {
-  install.packages("qqconf", repos = "https://cloud.r-project.org")
-}
-
 # วาด P-P plot พร้อม confidence band
-qqconf::pp_conf_plot(
+pp_conf_plot(
   ecost,
   pdist = pnorm,
   main = "P-P Plot for Normal Distribution",
@@ -716,11 +685,7 @@ $$
 ```r
 %%R
 # ทดสอบความสอดคล้องกับ Normal distribution
-sw <- shapiro.test(ecost)
-
-# แสดงค่า W และ p-value เป็นทศนิยม 4 ตำแหน่ง
-cat("W =", sprintf("%.4f", unname(sw$statistic)), "\n")
-cat("p-value =", sprintf("%.4f", sw$p.value), "\n")
+shapiro.test(ecost)
 ```
 
 ผลลัพธ์:
@@ -741,8 +706,7 @@ p-value = 0.9408
 ```r
 %%R
 # pnorm(z) ให้ cumulative probability P(Z <= z)
-left_area <- pnorm(-1.645)
-cat("P(Z <= -1.645) =", sprintf("%.4f", left_area), "\n")
+pnorm(-1.645)
 ```
 
 ```text
