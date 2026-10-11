@@ -318,10 +318,7 @@ $$
 ความแปรปรวนของ sample mean จะลดลงตาม finite population correction:
 
 $$
-V(\bar{X})
-=
-\frac{\sigma^2}{n}
-(\frac{N-n}{N-1})
+V(\bar{X})=\frac{\sigma^2}{n}(\frac{N-n}{N-1})
 $$
 
 $N$ คือขนาด population และ $n$ คือขนาด sample เมื่อ sample เป็นสัดส่วนมากของ population เรารู้ข้อมูลเกี่ยวกับ population มากขึ้น ความไม่แน่นอนจึงลดลง
