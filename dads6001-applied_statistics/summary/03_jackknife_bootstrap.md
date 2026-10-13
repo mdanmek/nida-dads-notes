@@ -1,145 +1,110 @@
-# Jackknife และ Bootstrap: เรียนรู้ความไม่แน่นอนจากข้อมูลที่มีอยู่
+# จาก Sample เดียวไปสู่ความไม่แน่นอนด้วย Jackknife และ Bootstrap
 
 > **Course:** DADS6001 Applied Modern Statistical Analysis  
 > **Lecture:** 03 Jackknife and Bootstrap Method for Estimation  
-> **บทก่อนหน้า:** [02 Interval Estimation](02_interval_estimation.md)
+> **Sources:** Lecture 03 และ Lab 03 Solution in R  
+> **Course navigation:** [Course Overview](00_readme.md) · บทก่อนหน้า [02 Interval Estimation](02_interval_estimation.md) · บทถัดไป [04 Hypothesis Testing](04_hypothesis_testing.md)
 
-ในบท Interval Estimation เราสร้าง confidence interval จากโครงสร้าง
+ในบทที่ 02 เราสร้าง confidence interval จากโครงสร้าง
 
 $$
 \text{Estimate} \pm \text{Critical value}\times SE
 $$
 
-ส่วนที่สำคัญที่สุดส่วนหนึ่งคือ standard error เพราะมันบอกว่า estimate จะเปลี่ยนมากเพียงใดหากสุ่ม sample ใหม่จาก population แต่ในงานจริงเราเห็น sample เพียงชุดเดียว และสำหรับ statistic บางชนิด เช่น median, percentile, correlation หรือ regression coefficient สูตรของ standard error อาจซับซ้อนหรือไม่มีสูตรที่สะดวกใช้
+ตัวอย่างเช่น หากต้องการช่วงประมาณของ population mean และไม่ทราบ population standard deviation เราใช้ `t.test()` เพราะทฤษฎีบอก sampling distribution ของ sample mean และบอกวิธีหา standard error ไว้แล้ว
 
-Jackknife และ Bootstrap จึงใช้ sample ที่สังเกตได้สร้างชุดข้อมูลใหม่หลายชุด แล้วดูว่า statistic เปลี่ยนไปอย่างไร ทั้งสองวิธีไม่ได้สร้างข้อมูลใหม่หรือเพิ่มขนาดตัวอย่างจริง แต่ช่วยประมาณ sampling variability จากข้อมูลที่มีอยู่
+แต่สถานการณ์จริงไม่ได้สะดวกเช่นนั้นเสมอไป สมมติว่าเราต้องการ confidence interval ของ median รายได้ ค่า correlation หรือ coefficient จากแบบจำลองที่ซับซ้อน เราอาจไม่รู้สูตรของ standard error หรือ sampling distribution อาจไม่เข้ารูปแบบที่วิธี classical ต้องการ
 
-## 1. จาก Sampling Distribution สู่ Resampling Distribution
+Jackknife และ Bootstrap แก้ปัญหานี้ด้วยแนวคิดเดียวกันคือ **ใช้ข้อมูลที่มีอยู่สร้างภาพจำลองว่า estimate จะเปลี่ยนอย่างไรหากเราได้ sample อื่น** วิธีเหล่านี้เรียกว่า **resampling methods**
 
-สมมติว่าโรงพยาบาลเก็บเวลารอรับยาของผู้ป่วยมา 10 คน แล้วคำนวณ mean ได้หนึ่งค่า หากสุ่มผู้ป่วยจาก population ใหม่อีกหลายครั้ง ค่า mean ย่อมเปลี่ยนไป การแจกแจงของ sample means จากการสุ่มซ้ำเรียกว่า **sampling distribution**
+บทนี้จึงไม่ควรเริ่มด้วยการจำสูตรจำนวนมาก สิ่งสำคัญกว่าคือเข้าใจว่า resampling กำลังเลียนแบบอะไร อ่าน output ของ R ให้เป็น และรู้ว่าข้อสรุปใดกล่าวได้จากผลที่ได้
 
-ปัญหาคือเราไม่สามารถย้อนกลับไปสุ่มจาก population ซ้ำได้หลายพันครั้ง Resampling จึงให้ sample เดิมทำหน้าที่เป็น population จำลองชั่วคราว แล้วสร้างชุดข้อมูลใหม่จาก sample นั้น
+## 1. ปัญหาที่ Resampling เข้ามาแก้
+
+สมมติว่าเราสุ่มครอบครัว 29 ครอบครัวจากผู้พักอาศัยใน public housing แล้วได้ sample mean ของรายได้เท่ากับ 90.24 หน่วย ตัวเลขนี้คำนวณจาก sample ชุดปัจจุบัน หากสุ่มอีก 29 ครอบครัว เราน่าจะได้ mean ที่ต่างออกไป
+
+ถ้าเราสามารถกลับไปสุ่มจาก population จริงซ้ำ 2,000 ครั้ง เราจะได้ sample means 2,000 ค่า การกระจายของค่าเหล่านี้คือ **sampling distribution** และความกว้างของการกระจายนี้บอก standard error ของ sample mean
+
+ปัญหาคือเราไม่มีสิทธิ์ย้อนกลับไปเก็บ sample ใหม่ 2,000 ชุด เรามีเพียง sample 29 ครอบครัวชุดเดียว Resampling จึงใช้ sample นี้แทน population ชั่วคราว แล้วสร้าง sample จำลองหลายชุดจากข้อมูลเดิม
 
 ```mermaid
-flowchart TD
-    A[Sample เดิม] --> B[สร้าง Resamples]
-    B --> C[คำนวณ Statistic ทุกชุด]
+flowchart LR
+    A[Sample ที่สังเกตได้] --> B[สร้าง Resamples]
+    B --> C[คำนวณ Estimate ทุกชุด]
     C --> D[Resampling Distribution]
-    D --> E[ประมาณ Bias และ SE]
-    D --> F[สร้าง Confidence Interval]
+    D --> E[ประมาณ Bias, SE และ CI]
 ```
 
-Resampling distribution เป็นค่าประมาณของ sampling distribution ไม่ใช่ population distribution จริง หาก sample เดิมไม่เป็นตัวแทนของ population หรือ observations มีโครงสร้างพึ่งพากันที่วิธีสุ่มไม่ได้รักษาไว้ ผลจาก resampling ก็จะสืบทอดปัญหานั้น
+เริ่มอ่านภาพจากซ้ายไปขวา ลูกศรหมายถึงขั้นตอนการคำนวณ เราไม่ได้เพิ่มข้อมูลใหม่เข้าไป แต่เปลี่ยนวิธีจัดชุดข้อมูลเดิม แล้วดูว่า estimate แปรผันมากเพียงใด
 
-## 2. Bias และ Standard Error ที่ Resampling ต้องการประมาณ
+### การแจกแจงสามอย่างที่ต้องแยกให้ออก
 
-ให้ $\theta$ เป็น population parameter และ $\hat{\theta}$ เป็น estimator ที่คำนวณจาก sample
+**Population distribution** อธิบายค่าของหน่วยทั้งหมดในประชากร เช่น การกระจายรายได้ของทุกครอบครัวใน public housing
 
-Bias วัดแนวโน้มที่ estimator จะสูงหรือต่ำกว่า parameter โดยนิยามเป็น
+**Sampling distribution** อธิบายค่าของ statistic จากการสุ่ม sample จริงซ้ำ เช่น การกระจายของ sample mean หากสุ่มครอบครัว 29 ครอบครัวใหม่หลายครั้ง
 
-$$
-Bias(\hat{\theta})=E(\hat{\theta})-\theta
-$$
+**Resampling distribution** อธิบายค่าของ statistic จาก sample จำลองที่สร้างขึ้นจาก sample เดิม เราใช้สิ่งนี้ประมาณ sampling distribution ที่มองไม่เห็น
 
-ถ้าประมาณ bias ได้ ค่า bias-corrected estimate คือ
+ความเชื่อมโยงนี้คือหัวใจของทั้งบท หาก sample เดิมเป็นตัวแทนของ population ได้ดี resampling distribution ก็มีโอกาสเลียนแบบ sampling distribution ได้ดี แต่หาก sample เดิมลำเอียง Resampling จะสุ่มซ้ำอยู่ภายในข้อมูลที่ลำเอียงนั้น จึงไม่สามารถสร้างข้อมูลส่วนที่ไม่เคยถูกเก็บขึ้นมาได้
 
-$$
-\hat{\theta}_{BC} = \hat{\theta} - Bias_{est}
-$$
+## 2. Bias และ Standard Error หมายถึงอะไร
 
-ส่วน standard error คือ standard deviation ของ sampling distribution ของ estimator
+ก่อนเรียนวิธีทำ ต้องรู้ก่อนว่า output สองคำนี้กำลังตอบคนละคำถาม
 
-$$
-SE(\hat{\theta}) = \sqrt{Var(\hat{\theta})}
-$$
+**Bias** ถามว่า หากทำกระบวนการสุ่มและประมาณค่าซ้ำเป็นจำนวนมาก estimate มีแนวโน้มสูงหรือต่ำกว่า parameter จริงอย่างเป็นระบบหรือไม่ Bias ที่ใกล้ศูนย์หมายความว่า estimate ไม่มีแนวโน้มเบ้ไปด้านใดด้านหนึ่งมากนัก
 
-Standard deviation และ standard error จึงตอบคนละคำถาม Standard deviation อธิบายการกระจายของ observations ส่วน standard error อธิบายการกระจายของ estimator ระหว่างการสุ่ม sample ซ้ำ
+**Standard error หรือ SE** ถามว่า estimate เปลี่ยนมากเพียงใดระหว่าง sample ต่าง ๆ SE สูงหมายความว่า estimate ไม่ค่อยเสถียรต่อการเปลี่ยน sample ส่วน SE ต่ำหมายความว่า sample อื่นที่มีลักษณะคล้ายกันน่าจะให้ estimate ใกล้เคียงกัน
 
-## 3. Jackknife: ตัดข้อมูลออกทีละหนึ่งค่า
+ตัวอย่าง Jackknife ของ fuel efficiency ในบทนี้ให้ estimated bias เท่ากับ 0 แต่ SE เท่ากับ 1.3421 ผลนี้มีความหมายว่า sample mean ไม่แสดงแนวโน้มคลาดเคลื่อนอย่างเป็นระบบจากการประเมินแบบ Jackknife แต่ยังมีความไม่แน่นอนจากการสุ่มอยู่ประมาณ 1.3421 mpg Bias เท่ากับศูนย์จึงไม่ได้แปลว่า estimate แม่นยำสมบูรณ์
 
-Jackknife ถามว่า ถ้าตัด observation แต่ละตัวออกทีละหนึ่ง ค่า estimate จะเปลี่ยนไปมากเพียงใด
+คำว่า standard deviation กับ standard error ต้องแยกกันเช่นกัน Standard deviation อธิบายว่ารถแต่ละคันหรือครอบครัวแต่ละครอบครัวมีค่าต่างกันเพียงใด ส่วน standard error อธิบายว่า estimate เช่น sample mean จะต่างกันเพียงใดหากเปลี่ยน sample
 
-ถ้า sample เดิมมีขนาด $n$ Jackknife จะสร้าง leave-one-out samples จำนวน $n$ ชุด แต่ละชุดมีขนาด $n-1$
+## 3. Jackknife มองข้อมูลอย่างไร
 
-ตัวอย่าง sample ขนาด 4:
+Jackknife ใช้คำถามง่าย ๆ ว่า
 
-$$
-(x_1,x_2,x_3,x_4)
-$$
+> หากตัด observation แต่ละตัวออกทีละหนึ่ง ค่า estimate จะเปลี่ยนมากเพียงใด
 
-Jackknife samples คือ
+สมมติ sample มี 4 ค่า ได้แก่ 10, 20, 30 และ 40 Jackknife จะสร้างข้อมูล 4 ชุด:
 
-$$
-(x_2,x_3,x_4), (x_1,x_3,x_4), (x_1,x_2,x_4), (x_1,x_2,x_3)
-$$
+1. ตัด 10 ออก เหลือ 20, 30, 40
+2. ตัด 20 ออก เหลือ 10, 30, 40
+3. ตัด 30 ออก เหลือ 10, 20, 40
+4. ตัด 40 ออก เหลือ 10, 20, 30
 
-ให้ $\hat{\theta}_{(i)}$ เป็น estimate จาก sample ที่ตัด observation ลำดับที่ $i$ ออก และให้ค่าเฉลี่ยของ leave-one-out estimates เป็น
+จากนั้นคำนวณ statistic ที่สนใจในทุกชุด หาก mean หรือ coefficient เปลี่ยนเพียงเล็กน้อยทุกครั้ง แสดงว่า estimate ค่อนข้างเสถียร หากตัด observation ตัวหนึ่งแล้ว estimate เปลี่ยนมาก Observation ตัวนั้นมีอิทธิพลต่อผลลัพธ์สูง
 
-$$
-\bar{\theta}_{jack} = \frac{1}{n}\sum_{i=1}^{n}\hat{\theta}_{(i)}
-$$
+Jackknife จึงทำสองหน้าที่พร้อมกัน หน้าที่แรกคือประมาณ bias และ standard error หน้าที่ที่สองคือช่วยให้เห็นว่า estimate ไวต่อ observation บางตัวหรือไม่
 
-Jackknife estimate of bias คือ
+### Jackknife เหมาะกับกรณีใด
 
-$$
-Bias_{jack} = (n-1)(\bar{\theta}_{jack}-\hat{\theta})
-$$
+Jackknife ทำงานได้ดีกับ statistic ที่เปลี่ยนอย่างค่อยเป็นค่อยไปเมื่อข้อมูลเปลี่ยนเล็กน้อย เช่น mean หรือ regression coefficient เพราะการตัดข้อมูลทีละตัวทำให้เห็นการเปลี่ยนแปลงของ estimate อย่างต่อเนื่อง
 
-Bias-corrected Jackknife estimate คือ
+สำหรับ median, percentile หรือ maximum ค่า statistic อาจไม่เปลี่ยนเลยเมื่อตัดหลาย observation แล้วกระโดดทันทีเมื่อตัดบางตัว การเปลี่ยนแบบเป็นขั้นทำให้ Jackknife ประมาณ uncertainty ได้ไม่ดีเท่าวิธีที่ยืดหยุ่นกว่าอย่าง Bootstrap
 
-$$
-\hat{\theta}_{BC,jack} = \hat{\theta}-Bias_{jack}
-$$
-
-หรือเขียนได้เป็น
-
-$$
-\hat{\theta}_{BC,jack} = n\hat{\theta}-(n-1)\bar{\theta}_{jack}
-$$
-
-Jackknife estimate of standard error คือ
-
-$$
-SE_{jack} = \sqrt{\frac{n-1}{n}\sum_{i=1}^{n}(\hat{\theta}_{(i)}-\bar{\theta}_{jack})^2}
-$$
-
-ถ้าตัด observation เพียงหนึ่งตัวแล้ว estimate เปลี่ยนมาก ค่า Jackknife SE จะสูง และยังบอกเป็นนัยว่า observation นั้นมีอิทธิพลต่อ estimate มาก
-
-Jackknife เหมาะกับ statistic ที่เปลี่ยนอย่างค่อยเป็นค่อยไปเมื่อข้อมูลเปลี่ยนเล็กน้อย เช่น mean และ regression coefficient แต่สำหรับ statistic ที่เปลี่ยนเป็นขั้น เช่น median, quantile หรือ maximum การตัดข้อมูลหนึ่งตัวอาจทำให้ estimate ไม่เปลี่ยนเลยหรือกระโดดมาก จึงอาจประมาณ uncertainty ได้ไม่ดี
+สิ่งที่ควรจำจึงไม่ใช่สูตร Jackknife variance แต่คือกระบวนการ **ตัดทีละหนึ่ง คำนวณซ้ำ แล้วดูความเปลี่ยนแปลงของ estimate** ในห้องสอบเราสามารถให้ R ทำการคำนวณ และใช้ความเข้าใจนี้อธิบายผล
 
 ## 4. Exercise 1: Fuel Efficiency ด้วย Jackknife
 
-ข้อมูล fuel efficiency ของรถ SUV จำนวน 10 คันมีหน่วยเป็น miles per gallon หรือ mpg:
+Lecture ให้ fuel efficiency ของรถ SUV 10 คัน หน่วยเป็น miles per gallon หรือ mpg:
 
-$$
-26,23,21,23,19,29,15,26,19,26
-$$
+`26, 23, 21, 23, 19, 29, 15, 26, 19, 26`
 
-โจทย์ต้องการ Jackknife point estimate ของ population mean และ standard error
+โจทย์ต้องการ Jackknife point estimate ของ population mean และ standard error เราจึงกำหนด statistic ที่สนใจเป็น mean แล้วให้ R ตัดข้อมูลออกทีละหนึ่งค่า
 
-### 4.1 วิเคราะห์โจทย์ก่อนรัน R
+### เตรียม Google Colab
 
-Estimator ที่สนใจคือ sample mean
+รัน cell นี้ใน Python หนึ่งครั้ง:
 
-$$
-\hat{\theta}=\bar{x}
-$$
-
-เพราะมีข้อมูล $n=10$ ค่า Jackknife จะสร้าง leave-one-out samples จำนวน 10 ชุด แต่ละชุดมี 9 ค่า จากนั้นคำนวณ mean ของแต่ละชุด
-
-### 4.2 เตรียม Google Colab
-
-รันคำสั่งนี้ใน Python cell หนึ่งครั้ง:
-
-```python
+~~~python
 %load_ext rpy2.ipython
-```
+~~~
 
-ติดตั้งและเรียกใช้ package ที่ใช้ในบทนี้:
+ติดตั้ง package และกำหนดรูปแบบตัวเลขไว้ต้นไฟล์:
 
-```r
+~~~r
 %%R
-# ติดตั้ง package ที่ใช้ใน Lab
+# ติดตั้ง package ที่ใช้ในบท
 if (!requireNamespace("bootstrap", quietly = TRUE)) {
   install.packages("bootstrap", repos = "https://cloud.r-project.org")
 }
@@ -148,182 +113,135 @@ if (!requireNamespace("boot", quietly = TRUE)) {
   install.packages("boot", repos = "https://cloud.r-project.org")
 }
 
-# เรียกใช้ package และกำหนดรูปแบบตัวเลข
+# เรียกใช้ package และไม่แสดง scientific notation
 library(bootstrap)
 library(boot)
 options(scipen = 999, digits = 4)
-```
+~~~
 
-### 4.3 รัน R เพื่อหาคำตอบ
+### รัน R เพื่อหาคำตอบ
 
-```r
+~~~r
 %%R
 # ข้อมูล fuel efficiency หน่วย mpg
 fuel <- c(26, 23, 21, 23, 19, 29, 15, 26, 19, 26)
 
-# Sample mean
+# Sample mean จากข้อมูลเดิม
 mean(fuel)
-```
+~~~
 
-ผลจากเอกสารเฉลย:
+ผลลัพธ์คือ 22.7 mpg ค่านี้เป็น estimate จาก sample เดิม
 
-```text
-[1] 22.7
-```
-
-จากนั้นใช้ `jackknife()` ตัดข้อมูลออกทีละหนึ่งค่าและคำนวณ mean ใหม่
-
-```r
+~~~r
 %%R
-# Jackknife sample mean
+# ตัดข้อมูลออกทีละหนึ่งค่า แล้วคำนวณ mean ใหม่
 jack_mean <- jackknife(fuel, mean)
 print(jack_mean)
-```
+~~~
 
-ผลสำคัญ:
+ส่วนสำคัญของ output คือ:
 
-```text
+~~~text
 $jack.se
-[1] 1.342055
+[1] 1.3421
 
 $jack.bias
 [1] 0
 
 $jack.values
-[1] 22.33333 22.66667 22.88889 22.66667 23.11111
-[6] 22.00000 23.55556 22.33333 23.11111 22.33333
-```
+[1] 22.3333 22.6667 22.8889 22.6667 23.1111
+[6] 22.0000 23.5556 22.3333 23.1111 22.3333
+~~~
 
-ค่า `jack.values` คือ leave-one-out means ทั้ง 10 ค่า ส่วน `jack.bias` และ `jack.se` คือ estimated bias และ standard error
+อ่าน output ตามลำดับดังนี้
 
-Bias-corrected estimate คำนวณได้จาก
+`jack.values` คือ means จากข้อมูล 10 ชุดที่ตัดรถออกทีละคัน ค่าเหล่านี้เปลี่ยนจากประมาณ 22.00 ถึง 23.56 จึงแสดงผลกระทบของการตัดรถแต่ละคัน
 
-```r
+`jack.bias = 0` หมายความว่า Jackknife ไม่พบ estimated bias ของ sample mean ในตัวอย่างนี้
+
+`jack.se = 1.3421` หมายความว่า estimated standard error ของ sample mean เท่ากับประมาณ 1.3421 mpg ค่านี้อธิบายความไม่แน่นอนของ mean ไม่ใช่ความแตกต่างระหว่างรถรายคัน
+
+หา bias-corrected estimate ได้ด้วย:
+
+~~~r
 %%R
-# Bias-corrected Jackknife estimate
+# ค่าประมาณหลังหัก estimated bias
 mean(fuel) - jack_mean$jack.bias
-```
+~~~
 
-ผลลัพธ์คือ 22.7 mpg เพราะ estimated bias เท่ากับศูนย์
+ผลยังเป็น 22.7 mpg เพราะ estimated bias เท่ากับศูนย์
 
-### 4.4 ตรวจคำตอบด้วยสูตร
+### เขียนตอบข้อสอบ
 
-Sample mean คือ
+> ใช้ Jackknife โดยตัดข้อมูลรถออกทีละหนึ่งคันจาก sample ขนาด 10 แล้วคำนวณ mean ใหม่ทุกครั้ง ผลได้ sample mean เท่ากับ 22.7 mpg, estimated bias เท่ากับ 0 และ Jackknife standard error เท่ากับ 1.3421 mpg ดังนั้น bias-corrected estimate ยังคงเท่ากับ 22.7 mpg ส่วนค่า SE แสดงว่า estimate ยังมีความไม่แน่นอนจากการสุ่ม แม้ estimated bias จะเป็นศูนย์
 
-$$
-\bar{x}=22.7
-$$
+### หากโจทย์เปลี่ยนไป
 
-ค่าเฉลี่ยของ leave-one-out means เท่ากับ 22.7 เช่นกัน ดังนั้น
+ถ้าโจทย์ถาม median แทน mean เราเปลี่ยนเพียง statistic ที่ส่งให้ `jackknife()`:
 
-$$
-Bias_{jack} = (10-1)(22.7-22.7) = 0
-$$
+~~~r
+%%R
+# Jackknife median
+jackknife(fuel, median)
+~~~
 
-สำหรับ sample mean ค่า Jackknife SE จะเท่ากับ classical standard error
+อย่างไรก็ตาม median เปลี่ยนเป็นขั้นเมื่อ observation บางตัวถูกตัด จึงควรระวังว่าค่า Jackknife SE อาจไม่เสถียร และ Bootstrap มักเหมาะกว่าสำหรับ statistic ลักษณะนี้
 
-$$
-SE_{jack} = \frac{s}{\sqrt{n}} = 1.3421
-$$
+## 5. Bootstrap มองข้อมูลอย่างไร
 
-### 4.5 เขียนตอบข้อสอบ
+Bootstrap ใช้แนวคิดต่างจาก Jackknife เล็กน้อย แทนที่จะตัดข้อมูลออกทีละหนึ่งค่า Bootstrap จะสุ่ม observation จาก sample เดิม **แบบคืนที่** จนครบขนาด sample เดิม แล้วทำซ้ำหลายรอบ
 
-> ใช้ Jackknife โดยตัดข้อมูลออกทีละหนึ่งค่าจาก sample ขนาด 10 จึงได้ leave-one-out samples จำนวน 10 ชุด แล้วคำนวณ mean ของแต่ละชุด ผลได้ sample mean 22.7 mpg, Jackknife estimated bias เท่ากับ 0 และ Jackknife standard error เท่ากับ 1.3421 mpg ดังนั้น bias-corrected Jackknife estimate ของ population mean ยังคงเท่ากับ 22.7 mpg
+สมมติ sample เดิมยังเป็น 10, 20, 30 และ 40 Bootstrap sample ขนาด 4 อาจเป็น:
 
-## 5. Bootstrap: สุ่มจาก Sample เดิมแบบคืนที่
+- 10, 10, 30, 40
+- 20, 20, 20, 40
+- 10, 30, 40, 40
 
-Bootstrap ใช้ sample เดิมแทน population ชั่วคราว แล้วสุ่มข้อมูลขนาด $n$ **แบบคืนที่** ทำซ้ำจำนวน $B$ รอบ
+ค่าเดิมปรากฏซ้ำได้ และบางค่าอาจไม่ปรากฏในรอบหนึ่ง เพราะทุกครั้งที่หยิบค่าออกมา เราคืนค่านั้นกลับก่อนสุ่มครั้งถัดไป คุณสมบัตินี้ทำให้แต่ละ Bootstrap sample แตกต่างกันและทำให้ statistic เปลี่ยนไป
 
-คำว่าแบบคืนที่หมายความว่า หลังจากเลือก observation หนึ่งค่าแล้ว ค่านั้นยังสามารถถูกเลือกซ้ำได้ในรอบเดียวกัน Bootstrap sample จึงอาจมีบางค่าซ้ำหลายครั้ง และบางค่าจาก sample เดิมอาจไม่ปรากฏเลย
+หากสุ่มครบ 4 ค่าแบบไม่คืนที่ ทุกชุดจะมี 10, 20, 30 และ 40 เหมือนเดิม เพียงสลับลำดับ Mean จึงไม่เปลี่ยนและเราไม่สามารถเรียนรู้ความไม่แน่นอนของ mean ได้
 
-หากสุ่มข้อมูลครบ $n$ ค่าโดยไม่คืนที่ ทุกชุดจะมีข้อมูลเดิมครบ เพียงสลับลำดับ Statistic เช่น mean จะไม่เปลี่ยน และไม่เกิด distribution ที่ใช้ประมาณ uncertainty ได้
+เมื่อทำซ้ำ 2,000 รอบ เราจะได้ Bootstrap estimates 2,000 ค่า การกระจายของค่าเหล่านี้ใช้ประมาณ bias, standard error และ confidence interval
 
-ให้ $\hat{\theta}^{(b)}$ เป็น estimate จาก Bootstrap sample รอบที่ $b$ ค่าเฉลี่ยของ Bootstrap estimates คือ
+จำนวน 2,000 รอบหมายถึงจำนวนครั้งที่คอมพิวเตอร์สุ่มจาก sample เดิม ไม่ได้หมายความว่าเรามี observations 2,000 ราย และไม่ได้ทำให้ sample เดิมเป็นตัวแทนของ population มากขึ้น
 
-$$
-\bar{\theta}_{boot} = \frac{1}{B}\sum_{b=1}^{B}\hat{\theta}^{(b)}
-$$
+## 6. Confidence Interval จาก Bootstrap
 
-Bootstrap estimate of bias คือ
+R ใน Lecture รายงาน confidence interval สามแบบ เราไม่จำเป็นต้องจำสูตรของทุกแบบ แต่ควรรู้ว่าขอบเขตแต่ละแบบมาจากไหนและควรอธิบายอย่างไร
 
-$$
-Bias_{boot} = \bar{\theta}_{boot}-\hat{\theta}
-$$
+**Normal interval** ใช้ Bootstrap standard error แล้วสร้างช่วงแบบสมมาตรรอบ estimate หลักคิดใกล้กับ classical interval จึงเหมาะเมื่อ Bootstrap distribution ใกล้สมมาตร
 
-Bootstrap estimate of standard error คือ
+**Percentile interval** เรียง Bootstrap estimates แล้วใช้ percentile ที่ 2.5 และ 97.5 เป็นขอบเขตของ 95% CI วิธีนี้อ่านตรงไปตรงมาว่า estimates ส่วนกลาง 95% อยู่ระหว่างค่าใด และช่วงไม่จำเป็นต้องสมมาตร
 
-$$
-SE_{boot} = \sqrt{\frac{1}{B-1}\sum_{b=1}^{B}(\hat{\theta}^{(b)}-\bar{\theta}_{boot})^2}
-$$
+**BCa interval** ย่อมาจาก Bias-Corrected and Accelerated interval วิธีนี้ปรับทั้ง bias และความไม่สมมาตรของ resampling distribution จึงมักใช้เมื่อ distribution ไม่สมมาตร แต่การคำนวณภายในซับซ้อนและให้ R จัดการได้
 
-สูตรนี้คือ sample standard deviation ของ Bootstrap estimates จำนวน $B$ ค่า ถ้าเพิ่ม $B$ ผลจะเสถียรขึ้นเพราะความผันผวนจากการจำลองลดลง แต่ไม่ได้เพิ่มจำนวน observations อิสระหรือแก้ selection bias ใน sample เดิม
+เมื่อเขียนตอบข้อสอบต้องระบุชื่อวิธี เช่น “95% Bootstrap percentile confidence interval” เพราะ Normal, Percentile และ BCa สามารถให้ขอบเขตต่างกันเล็กน้อย
 
-## 6. Bootstrap Confidence Interval
+### R ต้องรู้อะไรจึงจะ Bootstrap ได้
 
-### 6.1 Normal approximation interval
+ฟังก์ชัน `boot()` ต้องได้รับข้อมูล statistic function และจำนวนรอบ
 
-ถ้า Bootstrap distribution ใกล้สมมาตรและ approximately normal สามารถใช้
-
-$$
-\hat{\theta} \pm z_{\alpha/2}SE_{boot}
-$$
-
-สำหรับ 95% confidence interval ใช้ critical value ประมาณ 1.96
-
-$$
-\hat{\theta} \pm 1.96SE_{boot}
-$$
-
-ช่วงนี้สมมาตรรอบ point estimate จึงอาจไม่เหมาะเมื่อ Bootstrap distribution เบ้มาก
-
-### 6.2 Percentile interval
-
-Percentile method เรียง Bootstrap estimates จากน้อยไปมาก แล้วใช้ quantiles ที่ต้องการเป็นขอบเขตโดยตรง
-
-สำหรับ 95% confidence interval:
-
-$$
-CI_{percentile} = [q_{0.025},q_{0.975}]
-$$
-
-ดังนั้นขอบล่างคือ percentile ที่ 2.5 และขอบบนคือ percentile ที่ 97.5 ของ Bootstrap estimates
-
-### 6.3 BCa interval
-
-`boot.ci()` ใน Lab คำนวณ BCa interval เพิ่มเติม BCa ย่อมาจาก Bias-Corrected and Accelerated ซึ่งปรับตำแหน่ง percentile จากทั้ง estimated bias และความไม่สมมาตรของ standard error วิธีนี้ซับซ้อนกว่า percentile interval และใช้ Jackknife estimates ส่วนหนึ่งในการคำนวณ acceleration
-
-ในการตอบข้อสอบควรระบุชื่อวิธีของ confidence interval เสมอ เพราะ Normal, Percentile และ BCa สามารถให้ขอบเขตต่างกันได้
-
-## 7. `boot()` ทำงานอย่างไร
-
-Lab ใช้ฟังก์ชัน `boot()` จาก package `boot` โดยต้องสร้าง statistic function ที่รับข้อมูลและ index
-
-```r
+~~~r
 mean_stat <- function(data, index) {
   mean(data[index])
 }
-```
+~~~
 
-ในแต่ละรอบ `boot()` จะสร้าง index ที่สุ่มแบบคืนที่ แล้วส่ง index เข้า `mean_stat()` คำสั่ง `data[index]` จึงเป็น Bootstrap sample และ `mean(data[index])` คือ Bootstrap estimate หนึ่งค่า
+`data` คือข้อมูลเดิม ส่วน `index` คือตำแหน่งที่ R สุ่มขึ้นมาในแต่ละรอบ คำสั่ง `data[index]` จึงสร้าง Bootstrap sample ของรอบนั้น แล้ว `mean()` คำนวณ statistic ที่ต้องการ
 
-ตัวอย่างข้อมูลขนาดเล็ก:
+หากเขียน `mean(data)` โดยไม่ใช้ `index` ทุก replicate จะคำนวณจากข้อมูลเดิม Mean จะเหมือนกันทุกครั้งและ Bootstrap SE จะเป็นศูนย์ นี่เป็นจุดที่ต้องตรวจทันทีเมื่อเห็น output ผิดปกติ
 
-- ข้อมูลเดิม: `c(10, 20, 30)`
-- index ที่สุ่มได้: `c(2, 2, 1)`
-- Bootstrap sample: `c(20, 20, 10)`
-- Bootstrap mean: 16.6667
+## 7. Exercise 2: Family Income
 
-ถ้าเขียน `mean(data)` แทน `mean(data[index])` ทุก replicate จะใช้ข้อมูลเดิมและได้ค่าเท่ากัน ทำให้ Bootstrap SE เท่ากับศูนย์
+โจทย์สำรวจ annual family income ของ 29 ครอบครัวใน public housing ที่ Chicago หน่วยเป็นร้อยดอลลาร์ ต้องการเปรียบเทียบ classical t interval กับ Bootstrap interval ของ population mean
 
-## 8. Exercise 2: Annual Family Income
+ขั้นแรกต้องมองให้ออกว่าโจทย์ถาม **mean ของข้อมูลเชิงปริมาณหนึ่ง sample** ดังนั้น classical method ใช้ one-sample t interval ส่วน Bootstrap จะจำลอง sampling distribution ของ sample mean จากข้อมูลเดิม
 
-ข้อมูล annual income ของครอบครัว 29 ครอบครัวมีหน่วยเป็นร้อยดอลลาร์ โจทย์ให้ตรวจ distribution หาค่า mean และ standard deviation สร้าง classical 95% confidence interval แล้วเปรียบเทียบกับ Bootstrap confidence interval
+### เตรียมข้อมูลและดูรูปร่าง
 
-### 8.1 ใส่ข้อมูลและดูรูปร่าง
-
-```r
+~~~r
 %%R
-# Annual family income หน่วยร้อยดอลลาร์
+# รายได้ต่อปี หน่วยเป็นร้อยดอลลาร์
 family_income <- c(
   90, 77, 100, 83, 64, 78, 92, 73, 122, 96,
   60, 85, 86, 108, 70, 139, 56, 94, 84, 111,
@@ -333,56 +251,53 @@ family_income <- c(
 boxplot(
   family_income,
   main = "Annual Family Income",
-  ylab = "Income in Hundreds of Dollars"
+  ylab = "Hundreds of Dollars"
 )
-```
+~~~
 
-จาก boxplot ในเฉลย ข้อมูลมีค่าด้านบนค่อนข้างสูง แต่ไม่เห็นความเบ้รุนแรงมากพอที่จะทำให้การประมาณ mean ด้วย classical t interval และ Bootstrap ให้ข้อสรุปต่างกันชัดเจน
+Boxplot ช่วยให้เห็นตำแหน่งกึ่งกลาง การกระจาย และค่าด้านบนที่ค่อนข้างสูง เราใช้กราฟประเมินว่าข้อมูลมีความเบ้หรือ outlier รุนแรงหรือไม่ แต่กราฟจาก sample ไม่ได้พิสูจน์รูปร่างของ population อย่างแน่นอน
 
-### 8.2 หาค่า point estimates
+### Classical t interval
 
-```r
+~~~r
 %%R
-# Sample mean และ sample standard deviation
+# Point estimates
 print(mean(family_income))
 print(sd(family_income))
-```
+~~~
 
-ค่าที่ได้คือ
+~~~text
+Mean = 90.2414
+SD = 20.9926
+~~~
 
-$$
-n=29, \bar{x}=90.2414, s=20.9926
-$$
+Mean เท่ากับ 90.2414 ร้อยดอลลาร์ หรือประมาณ 9,024.14 ดอลลาร์ ส่วน SD อธิบายความแตกต่างของรายได้ระหว่างครอบครัวใน sample
 
-เนื่องจากข้อมูลมีหน่วยเป็นร้อยดอลลาร์ ค่าเฉลี่ยประมาณ 90.2414 หมายถึง 9,024.14 ดอลลาร์
-
-### 8.3 Classical 95% t interval
-
-```r
+~~~r
 %%R
-# Classical confidence interval ของ population mean
+# Classical 95% confidence interval ของ population mean
 t.test(family_income, conf.level = 0.95)
-```
+~~~
 
-ผลจากเอกสารเฉลย:
+ส่วนที่ใช้ตอบคำถามคือ:
 
-```text
-mean of x = 90.24138
+~~~text
+mean of x = 90.2414
 df = 28
 95 percent confidence interval:
-82.25622 98.22654
-```
+82.2562 98.2265
+~~~
 
-### 8.4 Bootstrap ด้วย R
+### Bootstrap interval
 
-```r
+~~~r
 %%R
-# ฟังก์ชันคำนวณ mean ของ Bootstrap sample
+# ฟังก์ชันสำหรับคำนวณ mean จาก Bootstrap sample
 mean_stat <- function(data, index) {
   mean(data[index])
 }
 
-# สุ่มซ้ำได้ผลเดิมและสร้าง Bootstrap replicates 2,000 รอบ
+# สุ่มแบบคืนที่ 2,000 รอบ
 set.seed(11)
 boot_family <- boot(
   data = family_income,
@@ -391,71 +306,67 @@ boot_family <- boot(
 )
 
 print(boot_family)
-```
+~~~
 
-ผลจากเอกสารเฉลย:
+ผลสำคัญจาก `boot_family` คือ:
 
-```text
-original = 90.24138
-bias = -0.08084483
-std. error = 3.935964
-```
+~~~text
+original = 90.2414
+bias = -0.0808
+std. error = 3.9360
+~~~
 
-`original` คือ sample mean จากข้อมูลเดิม `bias` คือค่าเฉลี่ยของ Bootstrap means ลบด้วย original mean และ `std. error` คือ standard deviation ของ Bootstrap means
+`original` คือ sample mean จากข้อมูลเดิม ไม่ใช่ค่าเฉลี่ยของ Bootstrap samples
 
-ตรวจ Bootstrap distribution ได้จาก
+`bias = -0.0808` มีขนาดเล็กเมื่อเทียบกับ mean 90.2414 จึงไม่พบ estimated bias ที่มีขนาดสำคัญในตัวอย่างนี้
 
-```r
+`std. error = 3.9360` คือ standard deviation ของ Bootstrap means 2,000 ค่า จึงบอกความไม่แน่นอนของ sample mean
+
+หา confidence intervals ด้วย:
+
+~~~r
 %%R
-# Diagnostic plots ของ Bootstrap estimates
-plot(boot_family)
-```
-
-สร้าง confidence intervals:
-
-```r
-%%R
-# Normal, Percentile และ BCa confidence intervals
+# แสดง Bootstrap confidence intervals สามวิธี
 boot.ci(
   boot.out = boot_family,
   conf = 0.95,
   type = c("norm", "perc", "bca")
 )
-```
+~~~
 
 ผลจากเอกสารเฉลย:
 
-```text
+~~~text
 Normal      (82.61, 98.04)
 Percentile  (82.52, 97.90)
-BCa        (82.90, 98.33)
-```
+BCa         (82.90, 98.33)
+~~~
 
-### 8.5 เปรียบเทียบผล
+ผลอาจต่างเล็กน้อยหากใช้ seed จำนวน replicates หรือ R version ต่างกัน แต่ข้อสรุปควรใกล้เคียงกัน
 
-Classical t interval เท่ากับ
+### เปรียบเทียบผลอย่างมีเหตุผล
 
-$$
-[82.2562,98.2265]
-$$
+Classical t interval เท่ากับ 82.2562 ถึง 98.2265 ส่วน Bootstrap percentile interval เท่ากับ 82.52 ถึง 97.90 ช่วงทั้งสองใกล้เคียงกันมาก แสดงว่าสำหรับข้อมูลชุดนี้ วิธี classical และ Bootstrap ประเมินความไม่แน่นอนของ population mean สอดคล้องกัน
 
-ส่วน Bootstrap intervals ทั้งสามวิธีอยู่ใกล้เคียงกันและใกล้กับ classical interval จึงให้ข้อสรุปเหมือนกันเกี่ยวกับช่วงที่เป็นไปได้ของ population mean
+การที่ช่วงใกล้กันไม่ได้พิสูจน์ว่าประชากรเป็น Normal สิ่งที่กล่าวได้คือ ภายใต้ sample นี้และ parameter ที่สนใจคือ mean การเปลี่ยนวิธีประมาณไม่ได้ทำให้ข้อสรุปต่างกันอย่างมีสาระ
 
-### 8.6 เขียนตอบข้อสอบ
+### เขียนตอบข้อสอบ
 
-> จากครอบครัวตัวอย่าง 29 ครอบครัว ได้ mean annual income เท่ากับ 90.2414 ร้อยดอลลาร์ Classical 95% t interval เท่ากับ 82.2562 ถึง 98.2265 ร้อยดอลลาร์ เมื่อสุ่ม Bootstrap samples ขนาด 29 แบบคืนที่จำนวน 2,000 รอบ ได้ Bootstrap SE เท่ากับ 3.9360 และ 95% percentile interval เท่ากับ 82.52 ถึง 97.90 ร้อยดอลลาร์ ช่วงจากสองวิธีใกล้เคียงกัน จึงให้ข้อสรุปสอดคล้องกันเกี่ยวกับ population mean ภายใต้เงื่อนไขว่า sample เป็นตัวแทนและ observations เป็นอิสระ
+> จากครอบครัวตัวอย่าง 29 ครอบครัว ได้ sample mean ของ annual income เท่ากับ 90.2414 ร้อยดอลลาร์ Classical 95% t interval เท่ากับ 82.2562 ถึง 98.2265 ร้อยดอลลาร์ เมื่อใช้ Bootstrap แบบคืนที่จำนวน 2,000 รอบ ได้ Bootstrap SE เท่ากับ 3.9360 และ 95% percentile interval เท่ากับ 82.52 ถึง 97.90 ร้อยดอลลาร์ ช่วงจากสองวิธีใกล้เคียงกัน จึงให้ข้อสรุปสอดคล้องกันเกี่ยวกับ population mean ทั้งนี้ข้อสรุปยังขึ้นกับการเป็นตัวแทนของ sample และความเป็นอิสระของ observations
 
-## 9. Exercise 3: ข้อมูลเบ้ขวา
+## 8. Exercise 3: ข้อมูลเบ้ขวา
 
-ข้อมูลชุดนี้มีค่าขนาดใหญ่หลายค่า เช่น 110, 123, 126, 137, 152 และ 165 จึงมีลักษณะเบ้ขวา โจทย์ให้เปรียบเทียบ classical t interval กับ Bootstrap confidence intervals ของ population mean
+Exercise 3 มีค่าขนาดใหญ่หลายค่า เช่น 110, 123, 126, 137, 152 และ 165 ขณะที่ค่าจำนวนมากอยู่ต่ำกว่าช่วงดังกล่าว Sample จึงมีลักษณะเบ้ขวาและมี upper tail ยาว
 
-### 9.1 จุดที่ต่างกันระหว่าง Lecture กับเฉลย
+โจทย์นี้สำคัญเพราะทดสอบว่าเราเลือกวิธีจากความเข้าใจได้หรือไม่ ข้อมูลดิบไม่ Normal อย่างชัดเจน แต่ parameter ที่สนใจคือ **population mean** และ sample size เท่ากับ 50 เราจึงเปรียบเทียบ classical t interval กับ Bootstrap interval แล้วดูว่าข้อสรุปต่างกันหรือไม่ แทนที่จะตัดสินจากคำว่า “เบ้” เพียงคำเดียว
 
-สไลด์ Exercise 3 แสดงข้อมูลเพียง 49 ค่าและเริ่มต้นด้วย 5 แต่โจทย์ระบุว่า sample size เท่ากับ 50 ส่วนเฉลย R เพิ่มค่า 54 เป็น observation แรก ทำให้ครบ 50 ค่าและได้ mean 43.04 ตาม output
+### ความไม่สอดคล้องในเอกสารต้นฉบับ
 
-วิธีทำต่อไปนี้จึงใช้ชุดข้อมูล 50 ค่าจากเฉลย R:
+Lecture ระบุ sample size เท่ากับ 50 แต่รายการบนสไลด์มี 49 ค่าและเริ่มด้วย 5 ส่วนไฟล์เฉลย R เพิ่มค่า 54 ไว้หน้าสุด ทำให้ครบ 50 ค่าและได้ mean เท่ากับ 43.04 ตาม output
 
-```r
+ตัวอย่างต่อไปนี้ใช้ข้อมูล 50 ค่าจากไฟล์เฉลย R เพื่อให้ผลคำนวณตรงกับเอกสารเฉลย
+
+~~~r
 %%R
 # ข้อมูล 50 ค่าตามไฟล์เฉลย R
 x <- c(
@@ -466,52 +377,33 @@ x <- c(
   4, 52, 30, 22, 36, 26, 20, 23, 33, 68
 )
 
-boxplot(
-  x,
-  main = "Exercise 3 Data",
-  ylab = "Observed Value"
-)
-```
+boxplot(x, main = "Exercise 3 Data", ylab = "Observed Value")
+~~~
 
-### 9.2 Point estimates และ Classical interval
+### Classical t interval
 
-```r
+~~~r
 %%R
-# Sample mean และ sample standard deviation
+# Sample mean และ Classical 95% CI
 print(mean(x))
-print(sd(x))
-```
+t.test(x, conf.level = 0.95)
+~~~
 
 ผลสำคัญ:
 
-$$
-n=50, \bar{x}=43.04
-$$
-
-ใช้ `t.test()` สร้าง classical confidence interval:
-
-```r
-%%R
-# Classical confidence interval ของ population mean
-t.test(x, conf.level = 0.95)
-```
-
-ผลจากเอกสารเฉลย:
-
-```text
-mean of x = 43.04
+~~~text
+Mean = 43.0400
 df = 49
-95 percent confidence interval:
-31.12475 54.95525
-```
+95% CI = 31.1248 to 54.9553
+~~~
 
-แม้ข้อมูลรายหน่วยจะเบ้ขวา Sampling distribution ของ mean มีแนวโน้มเข้าใกล้ normal มากขึ้นเมื่อ sample size เพิ่มขึ้นตาม Central Limit Theorem แต่ยังควรตรวจ outliers และเปรียบเทียบกับ Bootstrap distribution
+### Bootstrap interval
 
-### 9.3 Bootstrap ด้วย R
+ใช้ `mean_stat` เดิมได้ เพราะ statistic ที่ต้องการยังเป็น mean
 
-```r
+~~~r
 %%R
-# Bootstrap population mean
+# Bootstrap sample mean จำนวน 2,000 รอบ
 set.seed(11)
 boot_x <- boot(
   data = x,
@@ -520,222 +412,185 @@ boot_x <- boot(
 )
 
 print(boot_x)
-```
+~~~
 
-ผลจากเอกสารเฉลย:
+~~~text
+original = 43.0400
+bias = 0.0405
+std. error = 5.6983
+~~~
 
-```text
-original = 43.04
-bias = 0.04051
-std. error = 5.698286
-```
-
-ดู Bootstrap distribution:
-
-```r
+~~~r
 %%R
-# Diagnostic plots ของ Bootstrap estimates
-plot(boot_x)
-```
-
-สร้าง confidence intervals:
-
-```r
-%%R
-# Normal, Percentile และ BCa confidence intervals
+# Bootstrap confidence intervals ของข้อมูล x
 boot.ci(
   boot.out = boot_x,
   conf = 0.95,
   type = c("norm", "perc", "bca")
 )
-```
+~~~
 
 ผลจากเอกสารเฉลย:
 
-```text
+~~~text
 Normal      (31.83, 54.17)
 Percentile  (32.32, 54.68)
-BCa        (32.81, 55.12)
-```
+BCa         (32.81, 55.12)
+~~~
 
-ไฟล์เฉลยบางบรรทัดแสดง `boot.out = b` ซึ่งเป็น object ของ Family Income แต่ Exercise 3 ต้องส่ง object ของข้อมูลชุดนี้ เช่น `boot_x` มิฉะนั้น R อาจรันได้แต่คืน confidence interval ของข้อมูลผิดชุด
+Classical interval เท่ากับ 31.1248 ถึง 54.9553 ส่วน Bootstrap percentile interval เท่ากับ 32.32 ถึง 54.68 แม้ข้อมูลดิบจะเบ้ขวา แต่ช่วงทั้งสองยังใกล้กัน เหตุผลหนึ่งคือเรากำลังประมาณ mean จาก sample ขนาด 50 ซึ่ง sampling distribution ของ mean มักสมมาตรกว่าการกระจายของข้อมูลรายตัว
 
-### 9.4 เปรียบเทียบผล
+ผลนี้ไม่ได้หมายความว่าความเบ้และ extreme values ไม่มีผล ค่าเหล่านี้ยังดึง mean และเพิ่ม SE จึงทำให้ interval กว้าง เราเพียงพบว่าในข้อมูลชุดนี้ Classical และ Bootstrap ไม่ได้ให้ข้อสรุปต่างกันมาก
 
-Classical t interval คือ
+### เขียนตอบข้อสอบ
 
-$$
-[31.1248,54.9553]
-$$
+> ข้อมูล 50 ค่ามีลักษณะเบ้ขวาและมีค่าด้านบนสูงหลายค่า Sample mean เท่ากับ 43.04 Classical 95% t interval เท่ากับ 31.1248 ถึง 54.9553 เมื่อใช้ Bootstrap แบบคืนที่ 2,000 รอบ ได้ Bootstrap SE เท่ากับ 5.6983 และ 95% percentile interval เท่ากับ 32.32 ถึง 54.68 ช่วงจากสองวิธีใกล้เคียงกัน จึงให้ข้อสรุปสอดคล้องกันเกี่ยวกับ population mean อย่างไรก็ตาม ค่าด้านบนสูงทำให้ variability และความกว้างของช่วงเพิ่มขึ้น
 
-Bootstrap percentile interval คือ
+## 9. เลือก Jackknife, Bootstrap หรือ Classical Method
 
-$$
-[32.32,54.68]
-$$
+อย่าเริ่มจากถามว่า “จำสูตรไหนได้” ให้เริ่มจากถามว่า **โจทย์ต้องการประมาณอะไร และสูตร classical สำหรับสิ่งนั้นใช้ง่ายและสมเหตุสมผลหรือไม่**
 
-ช่วงทั้งสองใกล้เคียงกัน แม้ observations จะเบ้ขวา เหตุผลสำคัญคือ parameter ที่สนใจเป็น mean และ sample size เท่ากับ 50 อย่างไรก็ตาม Bootstrap ไม่ได้ทำให้ปัญหา outlier หรือ sample bias หายไป แต่ใช้ empirical distribution ของ sample เพื่อประมาณความผันผวนของ estimator
+ถ้าโจทย์ถาม population mean ของหนึ่ง sample และ assumptions ใช้ได้ `t.test()` เป็นคำตอบที่ตรงและง่ายที่สุด การใช้ Bootstrap เพิ่มอาจมีประโยชน์เมื่อโจทย์สั่งให้เปรียบเทียบ หรือเมื่ออยากตรวจว่าข้อสรุปไวต่อวิธีประมาณหรือไม่
 
-### 9.5 เขียนตอบข้อสอบ
+ถ้าโจทย์ต้องการประเมินว่า observation ใดมีอิทธิพลต่อ estimate หรือถาม bias และ SE ด้วยวิธีตัดข้อมูลทีละหนึ่ง ให้คิดถึง Jackknife
 
-> ข้อมูล 50 ค่ามีลักษณะเบ้ขวาและมีค่าด้านบนสูงหลายค่า Sample mean เท่ากับ 43.04 Classical 95% t interval เท่ากับ 31.1248 ถึง 54.9553 เมื่อสุ่ม Bootstrap samples ขนาด 50 แบบคืนที่จำนวน 2,000 รอบ ได้ Bootstrap SE เท่ากับ 5.6983 และ 95% percentile interval เท่ากับ 32.32 ถึง 54.68 ช่วงจากสองวิธีใกล้เคียงกัน จึงให้ข้อสรุปสอดคล้องกันเกี่ยวกับ population mean แต่การตีความยังขึ้นกับการเป็นตัวแทนของ sample และความเป็นอิสระของ observations
+ถ้าโจทย์ถาม median, percentile, correlation หรือ statistic ที่สูตร SE ซับซ้อน ให้คิดถึง Bootstrap เพราะเปลี่ยน statistic function ได้โดยไม่ต้องหา sampling formula ใหม่ทั้งหมด
 
-## 10. Jackknife กับ Bootstrap ใช้ต่างกันอย่างไร
+ตัวอย่างเช่น หากต้องการ 95% CI ของ median รายได้ ให้เปลี่ยน statistic function เท่านั้น:
 
-### 10.1 ใช้ Jackknife เมื่อใด
+~~~r
+%%R
+# Bootstrap median
+median_stat <- function(data, index) {
+  median(data[index])
+}
 
-Jackknife เหมาะเมื่อ estimator เปลี่ยนอย่างราบรื่น และต้องการประมาณ bias, standard error หรือดูว่า observation ใดมีอิทธิพล การสร้างเพียง $n$ ชุดทำให้คำนวณเร็วและให้ผลเดิมทุกครั้งเพราะไม่มีการสุ่ม
+set.seed(11)
+boot_median <- boot(
+  data = family_income,
+  statistic = median_stat,
+  R = 2000
+)
 
-### 10.2 ใช้ Bootstrap เมื่อใด
+boot.ci(boot_median, conf = 0.95, type = c("perc", "bca"))
+~~~
 
-Bootstrap เหมาะเมื่อสูตร standard error ซับซ้อน ต้องการประมาณ resampling distribution หรือสร้าง confidence interval ของ statistic ที่หลากหลาย Bootstrap ยืดหยุ่นกว่า Jackknife แต่ต้องกำหนดจำนวน replicates และ seed เพื่อให้ทำซ้ำได้
+ในกรณีนี้ `t.test()` ไม่ใช่เครื่องมือสำหรับ confidence interval ของ median การมอง parameter ก่อนจึงช่วยเลือกวิธีได้ถูกแม้โจทย์เปลี่ยนบริบท
 
-### 10.3 เลือกหน่วย Resampling ให้ตรงกับโครงสร้างข้อมูล
+## 10. สิ่งที่ Resampling ทำไม่ได้
 
-Ordinary Jackknife และ Bootstrap ในบทนี้ตั้งอยู่บนแนวคิดว่า observations เป็น iid หากข้อมูลเป็น repeated measures, clustered data หรือ time series ห้ามสุ่มแต่ละ row แยกจากกัน เพราะจะทำลาย dependence structure ต้องเลือกหน่วย resampling เช่น ผู้ป่วยทั้งคน cluster ทั้งกลุ่ม หรือช่วงเวลาทั้ง block
+Resampling ประมาณความไม่แน่นอนจากข้อมูลที่มีอยู่ จึงรับข้อจำกัดของ sample เดิมมาด้วย
 
-สรุปการเลือกวิธี:
+หากเก็บข้อมูลเฉพาะครอบครัวที่ตอบแบบสอบถามง่าย Bootstrap จะสุ่มซ้ำจากครอบครัวเหล่านั้นและไม่สามารถสร้างกลุ่มที่ขาดหายขึ้นมาได้
 
-| สถานการณ์ | วิธีที่ควรพิจารณา |
-|---|---|
-| Mean และสูตร classical ใช้ได้ | Classical method เป็นจุดเริ่มต้น |
-| ต้องการ Bias หรือ SE ของ smooth estimator | Jackknife หรือ Bootstrap |
-| ต้องการดูอิทธิพลจากการตัด observation | Jackknife |
-| Median, percentile หรือ statistic ซับซ้อน | Bootstrap มักเหมาะกว่า Jackknife |
-| ต้องการ confidence interval จาก resampling distribution | Bootstrap |
-| ข้อมูลมี dependence | ใช้ resampling scheme ที่รักษา dependence |
+หาก observations ไม่เป็นอิสระ เช่น วัดผู้ป่วยคนเดิมหลายครั้ง การสุ่มแต่ละ row แยกกันจะทำลายความสัมพันธ์ภายในคน ต้อง resample เป็นหน่วยผู้ป่วยหรือใช้วิธีที่รักษาโครงสร้างการพึ่งพา
 
-## 11. จุดที่ควรตรวจเมื่อรัน R
+หาก sample เล็กมาก empirical distribution มีข้อมูลให้เลียนแบบน้อย Bootstrap distribution อาจไม่สะท้อน population tail หรือเหตุการณ์หายากได้ดี
+
+หาก statistic ไวต่อ outlier มาก Bootstrap samples ที่สุ่ม outlier ซ้ำหลายครั้งอาจให้ estimates ที่กระจายกว้าง นี่ไม่ใช่ข้อผิดพลาดของโปรแกรม แต่เป็นสัญญาณว่า estimate ไวต่อข้อมูลบางค่า
+
+ดังนั้นการได้ R output ไม่ได้ยืนยันว่าข้อสรุปถูกต้อง เราต้องตรวจ sampling design ความเป็นอิสระ รูปร่างข้อมูล outliers และความหมายของ statistic ร่วมด้วย
+
+## 11. วิธีอ่านโจทย์ใหม่ในห้องสอบ
+
+เมื่อเจอโจทย์ที่ไม่เหมือนตัวอย่าง ให้ทำตามลำดับนี้
+
+1. ระบุ population และ parameter ที่โจทย์ถาม เช่น population mean, median หรือ correlation
+2. ระบุ estimate จาก sample เช่น sample mean หรือ sample median
+3. ตรวจว่า observations เป็นอิสระหรือมีโครงสร้างจับคู่ กลุ่ม หรือเวลา
+4. เลือกวิธี Classical, Jackknife หรือ Bootstrap จาก parameter และ assumptions
+5. รัน R เพื่อหา estimate, bias, SE หรือ CI ตามคำถาม
+6. อ่านหน่วยและทิศทางของผลก่อนเขียนตอบ
+7. เขียนข้อสรุปกลับไปยัง population พร้อมชื่อวิธีและข้อจำกัดที่สำคัญ
+
+โครงสร้างคำตอบที่ใช้ได้บ่อยคือ:
+
+> จาก sample จำนวน ... ได้ estimate เท่ากับ ... เมื่อใช้ [ชื่อวิธี] ได้ standard error เท่ากับ ... และ 95% confidence interval เท่ากับ ... ถึง ... ดังนั้นเรามีความเชื่อมั่น 95% ว่าช่วงดังกล่าวครอบคลุม [parameter ของ population] ภายใต้ assumptions เรื่อง sampling และความเป็นอิสระของ observations
+
+หากโจทย์ให้เปรียบเทียบสองวิธี ให้เพิ่มว่าช่วงใกล้กันหรือแตกต่างกันตรงไหน แล้วอธิบายผลต่อข้อสรุป อย่าหยุดเพียงรายงานตัวเลขสองช่วง
+
+## 12. อ่าน Output ของ R ให้เป็น
+
+เมื่อใช้ `boot()` ให้หา 3 ค่าก่อน:
+
+- `original` คือ estimate จาก sample เดิม
+- `bias` คือ estimated difference ระหว่างค่าเฉลี่ยของ Bootstrap estimates กับ original estimate
+- `std. error` คือการกระจายของ Bootstrap estimates
+
+เมื่อใช้ `boot.ci()` ให้ดู:
+
+- ระดับ confidence เช่น 95%
+- ชื่อ interval เช่น Normal, Percentile หรือ BCa
+- lower และ upper bounds
+
+เมื่อใช้ `jackknife()` ให้ดู:
+
+- `jack.values` เพื่อเห็น estimates หลังตัดข้อมูลทีละหนึ่ง
+- `jack.bias` เพื่อประเมิน systematic bias
+- `jack.se` เพื่อประเมินความไม่แน่นอนของ estimate
+
+ตรวจความสมเหตุสมผลทุกครั้ง เช่น CI ของรายได้ไม่ควรสลับขอบล่างกับขอบบน SE ต้องไม่ติดลบ และ `original` ควรเท่ากับ statistic ที่คำนวณจากข้อมูลเดิม
+
+## 13. จุดผิดพลาดที่พบได้บ่อยใน R
 
 ### Bootstrap SE เท่ากับศูนย์
 
-ตรวจว่า statistic function ใช้ `data[index]` จริง หากใช้ `data` โดยไม่ใช้ index ทุก replicate จะคำนวณจากข้อมูลเดิม
+ตรวจว่า statistic function ใช้ `data[index]` หากใช้ข้อมูลเดิมโดยไม่ใช้ index ทุก replicate จะเหมือนกัน
 
-### ผลเปลี่ยนทุกครั้งที่รัน
+### ผลเปลี่ยนเมื่อรันใหม่
 
-Bootstrap มี randomness จึงควรกำหนด `set.seed()` ก่อนเรียก `boot()` และรายงานจำนวน replicates `R`
+Bootstrap มีการสุ่ม ให้ใช้ `set.seed()` ก่อน `boot()` เพื่อทำซ้ำผลเดิม และรายงานจำนวน replicates
 
-### Confidence interval มาจากข้อมูลผิดชุด
+### ได้ CI ของข้อมูลผิดชุด
 
-ตรวจ object ที่ส่งให้ `boot.ci()` เช่น Exercise 2 ต้องใช้ `boot_family` ส่วน Exercise 3 ต้องใช้ `boot_x`
+ส่ง object ให้ `boot.ci()` ให้ตรงกับ exercise เช่น `boot_family` สำหรับ Family Income และ `boot_x` สำหรับ Exercise 3 การใช้ object เก่าจะให้ output ที่ดูถูกต้องแต่ตอบข้อมูลผิดชุด
 
 ### R หา `boot()` หรือ `jackknife()` ไม่พบ
 
-ตรวจว่าเรียก `library(boot)` และ `library(bootstrap)` แล้ว หรือใช้ชื่อแบบระบุ package เช่น `boot::boot()` และ `bootstrap::jackknife()`
+ตรวจว่าเรียก `library(boot)` และ `library(bootstrap)` แล้ว หรือใช้ `boot::boot()` และ `bootstrap::jackknife()`
 
-### ข้อมูลมี Missing Values
+### ตัวเลขออกมาเป็น e notation
 
-ต้องตัดสินใจวิธีจัดการก่อน resampling และอธิบายเหตุผล ไม่ควรเติม `na.rm = TRUE` โดยไม่พิจารณาว่าการหายของข้อมูลมีผลต่อการเป็นตัวแทนของ sample อย่างไร
+ตั้งค่าต้นไฟล์ด้วย:
 
-## 12. สูตรที่ควรหาให้เจอในห้องสอบ
+~~~r
+options(scipen = 999, digits = 4)
+~~~
 
-### Jackknife average
+`scipen` ลดการใช้ scientific notation ส่วน `digits` กำหนดจำนวน significant digits ที่ R ใช้แสดงผล ไม่ใช่จำนวนตำแหน่งทศนิยมตายตัว หากต้องการแสดงทศนิยม 4 ตำแหน่งเฉพาะผลหนึ่งชุด ใช้ `round(x, 4)`
 
-$$
-\bar{\theta}_{jack} = \frac{1}{n}\sum_{i=1}^{n}\hat{\theta}_{(i)}
-$$
+## 14. Likely Exam Focus
 
-### Jackknife bias
+จาก Lecture และ Exercises ประเด็นที่ควรตอบได้มีดังนี้
 
-$$
-Bias_{jack} = (n-1)(\bar{\theta}_{jack}-\hat{\theta})
-$$
+### อธิบายความต่างระหว่าง Jackknife กับ Bootstrap
 
-### Bias-corrected Jackknife estimate
+> Jackknife สร้าง resamples โดยตัด observation ออกทีละหนึ่งค่า จึงได้จำนวน resamples เท่ากับ sample size และไม่มี randomness ส่วน Bootstrap สุ่ม observations จาก sample เดิมแบบคืนที่ให้ได้ขนาดเท่าเดิม แล้วทำซ้ำจำนวนมาก Jackknife เหมาะกับการประเมิน bias, SE และอิทธิพลของ observation สำหรับ statistic ที่เปลี่ยนอย่างราบรื่น ส่วน Bootstrap ยืดหยุ่นกว่าในการประมาณ sampling distribution, SE และ confidence interval ของ statistic ที่หลากหลาย
 
-$$
-\hat{\theta}_{BC,jack} = \hat{\theta}-Bias_{jack}
-$$
+### อธิบายเหตุผลที่ Bootstrap ต้องสุ่มแบบคืนที่
 
-### Jackknife standard error
+> การสุ่มแบบคืนที่ทำให้ observation เดิมปรากฏซ้ำได้และบาง observation ไม่ปรากฏในแต่ละ Bootstrap sample จึงทำให้ statistic เปลี่ยนระหว่าง replicates หากสุ่มครบขนาดเดิมแบบไม่คืนที่ จะได้ข้อมูลชุดเดิมเพียงสลับลำดับและ statistic เช่น mean จะไม่เปลี่ยน จึงไม่สามารถประมาณ sampling variability ได้
 
-$$
-SE_{jack} = \sqrt{\frac{n-1}{n}\sum_{i=1}^{n}(\hat{\theta}_{(i)}-\bar{\theta}_{jack})^2}
-$$
+### อ่านผล Bootstrap แล้วเขียนข้อสรุป
 
-### Bootstrap average
+หาก output ให้ `original = 90.2414`, `bias = -0.0808`, `SE = 3.9360` และ percentile CI เท่ากับ 82.52 ถึง 97.90 คำตอบควรเชื่อมตัวเลขกับบริบท:
 
-$$
-\bar{\theta}_{boot} = \frac{1}{B}\sum_{b=1}^{B}\hat{\theta}^{(b)}
-$$
+> Sample mean เท่ากับ 90.2414 ร้อยดอลลาร์ Estimated bias มีขนาดเล็กเท่ากับ -0.0808 และ Bootstrap SE เท่ากับ 3.9360 ร้อยดอลลาร์ โดย 95% Bootstrap percentile CI ของ population mean เท่ากับ 82.52 ถึง 97.90 ร้อยดอลลาร์
 
-### Bootstrap bias
+### เลือกวิธีเมื่อโจทย์เปลี่ยน
 
-$$
-Bias_{boot} = \bar{\theta}_{boot}-\hat{\theta}
-$$
+หากโจทย์ถาม mean ของหนึ่ง sample และ assumptions ใช้ได้ ให้เริ่มจาก one-sample t interval หากถาม SE หรืออิทธิพลจากการตัด observation ให้ใช้ Jackknife หากถาม median หรือ statistic ที่สูตร classical ซับซ้อน ให้ใช้ Bootstrap และกำหนด statistic function ให้ตรงกับ parameter
 
-### Bootstrap standard error
+## 15. สรุปความคิดของบท
 
-$$
-SE_{boot} = \sqrt{\frac{1}{B-1}\sum_{b=1}^{B}(\hat{\theta}^{(b)}-\bar{\theta}_{boot})^2}
-$$
+บทที่ 01 สอนว่า statistic เปลี่ยนไปตาม sample และบทที่ 02 ใช้ standard error สร้าง confidence interval บทนี้ตอบคำถามต่อว่า หากสูตรของ standard error หรือ sampling distribution ไม่สะดวกใช้ เราจะเรียนรู้ความไม่แน่นอนจาก sample ที่มีอยู่ได้อย่างไร
 
-### Bootstrap percentile confidence interval
+Jackknife ตัดข้อมูลออกทีละหนึ่งค่าแล้วดูว่า estimate เปลี่ยนเพียงใด Bootstrap สุ่มจาก sample เดิมแบบคืนที่หลายครั้งแล้วสร้าง distribution ของ estimates ทั้งสองวิธีพยายามเลียนแบบพฤติกรรมของ estimate เมื่อ sample เปลี่ยน
 
-$$
-CI_{percentile} = [q_{\alpha/2},q_{1-\alpha/2}]
-$$
+สิ่งที่ต้องนำไปใช้ในห้องสอบคือ มองให้ออกว่าโจทย์ถาม parameter ใด เลือก statistic ให้ตรง ใช้ R สร้าง resampling results อ่าน bias, SE และ CI ในบริบท แล้วตรวจ assumptions ก่อนสรุป การเข้าใจลำดับนี้สำคัญกว่าการจำสูตร resampling ทุกสูตร
 
-สำหรับ 95% confidence interval:
+## 16. References
 
-$$
-CI_{95} = [q_{0.025},q_{0.975}]
-$$
-
-## 13. แนวคำถามที่ควรทำได้ก่อนสอบ
-
-### คำถาม 1
-
-Jackknife และ Bootstrap ต่างกันอย่างไร
-
-**แนวเขียนตอบ:**
-
-> Jackknife สร้าง resamples จำนวน $n$ ชุดโดยตัด observation ออกทีละหนึ่งค่า แต่ Bootstrap สร้าง resamples ขนาด $n$ ด้วยการสุ่มแบบคืนที่จำนวน $B$ รอบ Jackknife ไม่มี randomness และเหมาะกับการประมาณ bias, SE หรือ influence ของ smooth estimator ส่วน Bootstrap ยืดหยุ่นกว่าในการประมาณ SE, resampling distribution และ confidence interval แต่ต้องกำหนด seed และจำนวน replicates
-
-### คำถาม 2
-
-เหตุใด Bootstrap จึงต้องสุ่มแบบคืนที่
-
-**แนวเขียนตอบ:**
-
-> หากสุ่มข้อมูลครบ $n$ ค่าโดยไม่คืนที่ แต่ละ resample จะมี observations เดิมครบ เพียงเปลี่ยนลำดับ ทำให้ statistic ที่ไม่ขึ้นกับลำดับ เช่น mean ไม่เปลี่ยน การสุ่มแบบคืนที่ทำให้บาง observation ซ้ำและบาง observationไม่ถูกเลือก จึงเกิดความแปรผันที่ใช้ประมาณ sampling distribution ของ estimator ได้
-
-### คำถาม 3
-
-การเพิ่มจำนวน Bootstrap replicates จาก 2,000 เป็น 20,000 ช่วยอะไร
-
-**แนวเขียนตอบ:**
-
-> การเพิ่ม $B$ ช่วยลด Monte Carlo error ทำให้ค่า Bootstrap SE และ confidence interval เสถียรขึ้น แต่ไม่เพิ่มจำนวนข้อมูลอิสระ ไม่แก้ selection bias และไม่สร้างข้อมูลในส่วนของ population ที่ sample เดิมไม่เคยสังเกต
-
-### คำถาม 4
-
-หากข้อมูลเป็นการวัดผู้ป่วยคนเดิมหลายเวลา ควร Bootstrap แต่ละ row หรือไม่
-
-**แนวเขียนตอบ:**
-
-> ไม่ควรสุ่มแต่ละ row แยกจากกัน เพราะการวัดภายในผู้ป่วยคนเดียวกันสัมพันธ์กัน การสุ่ม row จะทำลาย dependence structure และอาจประเมิน standard error ต่ำเกินจริง ควร resample ผู้ป่วยทั้งคนหรือใช้วิธีที่รักษาโครงสร้าง longitudinal data
-
-## 14. สรุปความคิดของบท
-
-Jackknife และ Bootstrap พยายามประมาณพฤติกรรมของ estimator เมื่อไม่สามารถเห็น sampling distribution จริง Jackknife ทำโดยตัด observation ออกทีละหนึ่งค่า ส่วน Bootstrap ทำโดยสุ่มข้อมูลขนาดเท่าเดิมแบบคืนที่หลายรอบ
-
-ทั้งสองวิธีช่วยประมาณ bias และ standard error ส่วน Bootstrap ยังใช้สร้าง confidence interval จาก resampling distribution ได้ อย่างไรก็ตาม Resampling ไม่ได้สร้างข้อมูลใหม่และไม่สามารถแก้ sample ที่ไม่เป็นตัวแทน การเลือกหน่วย resampling ให้ตรงกับโครงสร้างข้อมูลจึงสำคัญพอ ๆ กับการเลือกสูตรหรือคำสั่ง R
-
-## 15. References
-
-### เอกสารประกอบรายวิชา
-
-1. `lecture03_jackknife_bootstrap(1).pptx`, 14 slides.
-2. `lab03_jackknife_bootstrap_solution_r.pdf`, 9 pages.
-3. `lab03_confident_interval_solution.pdf`, classical confidence interval results used for comparison.
-
-### References ที่ระบุใน Lecture
-
-1. Efron, B. (1979). *Bootstrap Methods: Another Look at the Jackknife*. The Annals of Statistics, 7, 1-26.
-2. Efron, B. (1982). *The Jackknife, the Bootstrap, and Other Resampling Plans*. SIAM.
-3. Efron, B., and Tibshirani, R. J. (1993). *An Introduction to the Bootstrap*. Chapman & Hall.
-4. Quenouille, M. H. (1949). Approximate Tests of Correlation in Time Series. *Journal of the Royal Statistical Society, Series B*, 11, 18-44.
-5. Quenouille, M. H. (1956). Notes on Bias in Estimation. *Biometrika*, 43, 353-360.
-6. Tukey, J. W. (1958). Bias and Confidence in Not Quite Large Samples. *The Annals of Mathematical Statistics*, 29, 614.
+- Lecture 03: *Jackknife and Bootstrap Method for Estimation*
+- Lab 03: *Solutions and R Programming Examples: Jackknife and Bootstrap Methods*
+- Efron, B. and Tibshirani, R. J. (1993). *An Introduction to the Bootstrap*.
