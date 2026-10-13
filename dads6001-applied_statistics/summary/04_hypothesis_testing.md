@@ -1,1013 +1,720 @@
-# Hypothesis Testing
+# Hypothesis Testing: จากข้อมูลตัวอย่างสู่การตัดสินใจเกี่ยวกับประชากร
 
-> **Course:** DADS6001 Applied Modern Statistical Analysis  
-> **Week:** 04  
-> **Source:** `dads6001-applied_statistics/lecture/dads6001_04_hypothesis_testing.pptx` จำนวน 21 สไลด์  
-> **Main topics:** Null and alternative hypotheses, test statistics, critical regions, p-values, Type I/II errors, power, tests for means and proportions
+บทก่อนหน้าใช้ **Confidence Interval** เพื่อถามว่า “ค่าพารามิเตอร์ของประชากรน่าจะอยู่ในช่วงใด” ส่วนบทนี้เปลี่ยนคำถามเป็น “ข้อมูลที่เก็บมาให้หลักฐานเพียงพอต่อข้ออ้างที่สนใจหรือไม่”
 
-> **Course navigation:** [Course Overview](00_readme.md) · บทก่อนหน้า [03 Jackknife and Bootstrap](03_jackknife_bootstrap.md)
+สมมติผู้จัดการร้านอ้างว่า ลูกค้ารอคิวเฉลี่ยน้อยกว่า 5 นาที เราเก็บข้อมูลลูกค้า 15 คนแล้วได้ค่าเฉลี่ย 4.29 นาที แม้ 4.29 จะน้อยกว่า 5 แต่ยังสรุปทันทีไม่ได้ว่าเวลารอเฉลี่ยของลูกค้าทั้งหมดน้อยกว่า 5 นาที เพราะถ้าสุ่มลูกค้าชุดใหม่ ค่าเฉลี่ยย่อมเปลี่ยนไป
 
-## 1. ข้อมูลต้นฉบับและขอบเขตบทเรียน
+Hypothesis testing จึงไม่ได้ดูเฉพาะว่า sample mean อยู่ด้านใดของค่าที่อ้าง แต่ดูด้วยว่า **ความแตกต่างนั้นใหญ่เพียงใดเมื่อเทียบกับ sampling variability** หรือความผันผวนที่เกิดจากการสุ่มตัวอย่าง
 
-บทนี้เปลี่ยนจากคำถามว่า “parameter น่าจะอยู่ในช่วงใด” ไปเป็น “ข้อมูลให้หลักฐานขัดแย้งกับค่าหรือข้ออ้างที่กำหนดไว้มากเพียงใด” ทั้ง Interval Estimation และ Hypothesis Testing เริ่มจาก estimate และ sampling distribution เดียวกัน Confidence Interval แสดงกลุ่มค่าของ parameter ที่ยังสอดคล้องกับข้อมูล ส่วน Hypothesis Test เริ่มจาก null value แล้ววัดว่าผลที่สังเกตอยู่ห่างจากค่านั้นมากเพียงใดเมื่อเทียบกับ standard error
+---
 
-เนื้อหาต้นฉบับเริ่มจากตัวอย่างคำถามวิจัย อธิบาย $H_0$, $H_1$, ตรรกะของการทดสอบ ตัวสถิติทดสอบ เขตวิกฤต ความผิดพลาดสองประเภท power และ p-value ก่อนสรุปสูตรทดสอบค่าเฉลี่ยและสัดส่วนหนึ่งหรือสองประชากร รวมถึงการชี้ทางไปยัง ANOVA สำหรับหลายประชากร
+## 1. Hypothesis คือข้ออ้างเกี่ยวกับประชากร
 
-สมการบางหน้าเป็นวัตถุ Equation รุ่นเก่าที่ซ้อนทับกันเมื่อ render อันอันจึงถอดความหมายและเขียนใหม่ด้วย notation มาตรฐาน โดยยึดหัวข้อและทิศทางการทดสอบจากสไลด์ แต่ตรวจสูตรกับหลักสถิติอีกครั้ง จุดที่ถ้อยคำในสไลด์อาจทำให้เข้าใจผิดจะระบุไว้โดยตรงในหัวข้อ “ข้อแก้ความเข้าใจ”
+Hypothesis ในวิชาสถิติคือข้อความเกี่ยวกับ **population parameter** ไม่ใช่ข้อความเกี่ยวกับ sample statistic
 
-## 2. Learning Objectives
+- “เวลารอเฉลี่ยของลูกค้าทั้งหมดน้อยกว่า 5 นาที” เป็นข้ออ้างเกี่ยวกับ population mean หรือ $\mu$
+- “ลูกค้า 15 คนที่เก็บข้อมูลมีเวลารอเฉลี่ย 4.29 นาที” เป็นผลจาก sample mean หรือ $\bar{x}$
 
-เมื่อเรียนจบบทนี้ ผู้เรียนควรสามารถ:
+เราใช้ค่าที่สังเกตได้จาก sample เป็นหลักฐานเพื่อเรียนรู้ค่าที่มองไม่เห็นของ population
 
-1. อธิบายความเชื่อมโยงระหว่าง estimate, standard error, confidence interval และ hypothesis test
-2. แปลงคำถามวิจัยเป็น parameter และตั้ง $H_0/H_1$ พร้อมเลือกทิศทางการทดสอบ
-3. อธิบายตรรกะของ hypothesis testing โดยไม่ตีความว่า “ไม่ปฏิเสธ $H_0$” เท่ากับพิสูจน์ว่า $H_0$ จริง
-4. คำนวณ test statistic, critical region และ p-value แล้วตัดสินใจที่ระดับนัยสำคัญที่กำหนด
-5. แยก Type I error, Type II error, significance level และ power พร้อมวิเคราะห์ trade-off
-6. เลือกและดำเนินการทดสอบค่าเฉลี่ยหนึ่งประชากร สองกลุ่มอิสระ และข้อมูลจับคู่
-7. เลือกและดำเนินการทดสอบสัดส่วนหนึ่งและสองประชากร
-8. ตรวจ assumptions ตีความผลในบริบท และแยก statistical significance ออกจาก practical significance
+ตัวอย่างอื่นจาก lecture ได้แก่ คะแนนเฉลี่ยของนักเรียนชายสูงกว่านักเรียนหญิงหรือไม่ คะแนนหลังเรียนของนักเรียนกลุ่มเดิมสูงกว่าก่อนเรียนหรือไม่ และสัดส่วนประชาชนที่สนับสนุนนโยบายสูงกว่า 80% หรือไม่ คำถามเหล่านี้ต่างกันตรง parameter และโครงสร้างข้อมูล จึงอาจใช้วิธีทดสอบต่างกัน แต่ตรรกะพื้นฐานเหมือนกัน
 
-## 3. พื้นฐานที่ต้องรู้ก่อน
+---
 
-บทนี้ต่อจาก [01 Introduction](01_introduction.md) และ [02 Interval Estimation](02_interval_estimation.md) โดยตรง ผู้เรียนควรรู้จัก population, sample, parameter, statistic, sampling distribution, standard error, Normal distribution, Student's t distribution และ confidence interval ก่อน
+## 2. Null และ Alternative Hypotheses
 
-ให้ $\theta$ แทน parameter ที่ต้องการศึกษา เช่น population mean $\mu$, difference in means $\mu_1-\mu_2$ หรือ population proportion $p$ ส่วน $\hat{\theta}$ คือ estimator ที่คำนวณจาก sample ความผันผวนของ $\hat{\theta}$ ระหว่างการสุ่มซ้ำวัดด้วย standard error
+การทดสอบเริ่มจากตั้งข้อความสองข้อความที่แข่งขันกัน
 
-Confidence interval และ hypothesis test ใช้กลไกเดียวกัน คือเปรียบเทียบค่าประมาณกับความผันผวนตาม sampling distribution ความต่างคือ CI แสดงช่วงค่าที่เข้ากันได้กับข้อมูล ส่วน test เริ่มจากค่าที่กำหนดภายใต้ $H_0$ แล้วถามว่าข้อมูลที่พบสุดโต่งเกินกว่าจะอธิบายด้วยค่านั้นหรือไม่
+**Null hypothesis** เขียนเป็น $H_0$ เป็นจุดตั้งต้นที่ใช้คำนวณว่า “ถ้าข้ออ้างนี้จริง ผลที่เห็นจาก sample แปลกเพียงใด” โดยทั่วไป $H_0$ มีเครื่องหมายเท่ากับอยู่ด้วย
 
-## สะพานจาก Confidence Interval สู่ Hypothesis Test
+**Alternative hypothesis** เขียนเป็น $H_1$ หรือ $H_a$ เป็นข้อสรุปที่ต้องมีหลักฐานจากข้อมูลมาสนับสนุน
 
-สมมติเวลารอผู้ป่วยมี sample mean 4.8 นาที และผู้บริหารตั้งเป้าว่า population mean ต้องต่ำกว่า 5 นาที ในมุม estimation เราสร้าง Confidence Interval เพื่อดูว่าค่าเฉลี่ยประชากรที่สอดคล้องกับข้อมูลครอบคลุมบริเวณใด ในมุม testing เรากำหนด null boundary ที่ 5 นาที แล้วถามว่า 4.8 ต่ำกว่า 5 มากพอหรือไม่เมื่อเทียบกับ sampling uncertainty
-
-ความต่าง 0.2 นาทีเพียงอย่างเดียวยังตอบไม่ได้ หาก standard error เท่ากับ 0.05 ความต่างนี้เท่ากับ 4 standard errors และค่อนข้างสุดโต่ง แต่หาก standard error เท่ากับ 1.0 ความต่างนี้มีเพียง 0.2 standard errors และเกิดจาก sampling variation ได้ง่าย Test statistic จึงมีรูปพื้นฐานว่า
+ตัวอย่าง ผู้จัดการอ้างว่าเวลารอเฉลี่ยน้อยกว่า 5 นาที:
 
 $$
-\text{Test statistic}
-=
-\frac{\text{Estimate}-\text{Null value}}
-{\text{Standard error under }H_0}
-$$
-
-สูตร t หรือ z แต่ละกรณีเป็นรูปเฉพาะของโครงสร้างนี้ สิ่งที่เปลี่ยนคือ estimand, estimator และ standard error ตาม study design ไม่ใช่ตรรกะพื้นฐานของการทดสอบ
-
-ก่อนเลือก test ให้แปลโจทย์ตามลำดับ:
-
-1. Population และ variable คืออะไร
-2. Parameter หรือ contrast ที่ถามคืออะไร
-3. Claim อยู่ในทิศทางใด และลำดับการลบกำหนดเครื่องหมายอย่างไร
-4. ข้อมูลเป็น one sample, independent samples หรือ paired samples
-5. Assumptions ใดทำให้ sampling distribution ที่เลือกสมเหตุสมผล
-6. Test statistic และ p-value บอกอะไรเกี่ยวกับข้อมูลภายใต้ $H_0$
-7. ข้อสรุปใดตอบบริบทได้โดยไม่อ้างเกินกว่าการออกแบบข้อมูล
-
-## 4. Concept Foundation: Hypothesis Testing คืออะไร
-
-Statistical hypothesis คือข้อความเกี่ยวกับ population หรือกลไกที่สร้างข้อมูล เช่น “ค่าเฉลี่ยเวลารอเท่ากับ 30 นาที” หรือ “สัดส่วนผู้ป่วยที่พึงพอใจมากกว่า 80%” เราไม่สามารถตรวจ population ทั้งหมดได้ จึงใช้ sample เป็นหลักฐานเพื่อประเมินว่าข้อความหนึ่งยังสมเหตุสมผลหรือขัดกับข้อมูลมากเพียงใด
-
-Hypothesis testing เป็นกระบวนการตัดสินใจภายใต้ความไม่แน่นอน ไม่ใช่เครื่องพิสูจน์ความจริงแบบเด็ดขาด เราสมมุติ $H_0$ ชั่วคราว สร้าง sampling distribution ที่ควรเกิดเมื่อ $H_0$ จริง แล้วดูว่า statistic จาก sample อยู่ในบริเวณปกติหรือบริเวณสุดโต่ง หากสุดโต่งมากพอตามเกณฑ์ที่กำหนด เราปฏิเสธ $H_0$; หากไม่สุดโต่งพอ เราเพียง “ไม่ปฏิเสธ $H_0$” เพราะหลักฐานยังไม่พอ
-
-### ตัวอย่างเล็กที่สุด
-
-สมมุติโรงพยาบาลอ้างว่าเวลารอเฉลี่ยคือ 30 นาที เราสุ่มผู้ป่วยและได้ค่าเฉลี่ย 31 นาที ความต่าง 1 นาทีอาจเกิดจาก sampling variation ได้ง่าย แต่ถ้าได้ 45 นาทีและ standard error เล็ก ผลนั้นจะอยู่ไกลจากสิ่งที่ $H_0$ คาดไว้มากกว่า Hypothesis test จึงไม่ได้ดูเฉพาะ “ต่างกี่หน่วย” แต่เทียบความต่างกับ uncertainty
-
-## 5. First-pass Mental Model: การพิจารณาคดีเชิงสถิติ
-
-ให้นึกว่า $H_0$ เป็นสถานะตั้งต้น คล้ายหลัก “ยังไม่ลงโทษจนกว่าหลักฐานเพียงพอ” ข้อมูล sample คือหลักฐาน และ test statistic คือวิธีแปลงหลักฐานให้เป็นคะแนนมาตรฐาน เขตวิกฤตคือระดับความสุดโต่งที่ตกลงล่วงหน้าว่าจะถือว่าหลักฐานแรงพอ
-
-อุปมานี้ช่วยจำตรรกะ แต่มีขอบเขต: $H_0$ ไม่จำเป็นต้องเป็นความบริสุทธิ์หรือสิ่งที่เราเชื่อจริง และ p-value ไม่ใช่ probability ที่ $H_0$ จริง การทดสอบแบบ frequentist คำนวณ probability ของข้อมูลภายใต้สมมุติฐาน ไม่ได้คำนวณ probability ของสมมุติฐานหลังเห็นข้อมูล
-
-```mermaid
-flowchart TD
-    A["กำหนดคำถามและ parameter"] --> B["ตั้ง H0 และ H1"]
-    B --> C["คำนวณ test statistic ภายใต้ H0"]
-    C --> D["หา p-value หรือเทียบ critical value"]
-    D --> E["ตัดสินใจและแปลผลในบริบท"]
-```
-
-## 6. การตั้ง Null และ Alternative Hypotheses
-
-### 6.1 Null hypothesis
-
-$H_0$ คือโมเดลฐานที่ใช้สร้าง reference distribution ของ test statistic โดยทั่วไปเขียนให้มี equality ที่ boundary เช่น
-
-$$
-H_0: \mu = \mu_0
-$$
-
-สำหรับคำกล่าวเชิงทิศทาง เช่น “ค่าเฉลี่ยไม่เกิน 30” สามารถเขียน composite null เป็น $H_0:\mu\le30$ แต่เวลาคำนวณ critical value มักใช้ boundary $\mu=30$ เพราะเป็นจุดที่ควบคุม Type I error สำหรับการทดสอบด้านขวา
-
-### 6.2 Alternative hypothesis
-
-$H_1$ คือทิศทางหรือชุดค่าที่เป็นคู่แข่งกับ $H_0$ และเป็นตัวกำหนดตำแหน่งของ rejection region
-
-| คำถามวิจัย | $H_0$ | $H_1$ | ชนิดการทดสอบ |
-|---|---|---|---|
-| ค่าเฉลี่ยแตกต่างจาก 30 หรือไม่ | $\mu=30$ | $\mu\ne30$ | Two-sided |
-| ค่าเฉลี่ยสูงกว่า 30 หรือไม่ | $\mu\le30$ | $\mu>30$ | Right-tailed |
-| ค่าเฉลี่ยต่ำกว่า 30 หรือไม่ | $\mu\ge30$ | $\mu<30$ | Left-tailed |
-
-ทิศทางต้องกำหนดจาก research question ก่อนเห็นข้อมูล ห้ามเห็นค่าเฉลี่ยตัวอย่างแล้วค่อยเลือก one-tailed test เพราะจะเพิ่มโอกาส false positive โดยไม่ประกาศไว้ล่วงหน้า
-
-### 6.3 ตัวอย่างจากสไลด์: ความถนัดคณิตศาสตร์
-
-ให้ $\mu_M$ และ $\mu_F$ แทนคะแนนเฉลี่ยของประชากรชายและหญิง หากคำถามคือ “ผู้ชายมีคะแนนเฉลี่ยสูงกว่าหรือไม่” hypotheses ที่เหมาะสมคือ
-
-$$
-H_0: \mu_M-\mu_F \le 0
+H_0: \mu = 5
 $$
 
 $$
-H_1: \mu_M-\mu_F > 0
+H_1: \mu < 5
 $$
 
-ตอนคำนวณ test statistic ใช้ค่าขอบเขตศูนย์ ไม่ใช่ใช้ sample means 14 และ 10 เป็น hypotheses เพราะ hypotheses กล่าวถึง population parameters
+เครื่องหมายใน $H_1$ เป็นตัวกำหนดทิศทางของการทดสอบ
 
-### 6.4 ข้อแก้ความเข้าใจจากสไลด์
-
-สไลด์บางตัวอย่างเขียน $H_0$ และ $H_1$ ด้วยอสมการที่ไม่ครอบคลุม parameter space ครบ เช่น $H_0:\mu_A-\mu_B<0$ เทียบกับ $H_1:\mu_A-\mu_B>0$ ทำให้กรณีเท่ากับศูนย์หายไป วิธีมาตรฐานต้องให้สองชุดไม่ทับกันและรวมกันครอบคลุมค่าที่เป็นไปได้ เช่น $H_0:\mu_A-\mu_B\le0$ กับ $H_1:\mu_A-\mu_B>0$
-
-## 7. ตรรกะของการทดสอบ
-
-สไลด์ใช้แนวคิดว่า ถ้า $H_0$ จริง เราคาดว่าข้อมูลจะมีลักษณะที่เข้ากับ $H_0$ หากข้อมูลกลับอยู่ในบริเวณที่แทบไม่เกิดภายใต้ $H_0$ นั่นเป็นหลักฐานคัดค้าน $H_0$ ตรรกะนี้คล้าย proof by contradiction แต่ไม่เด็ดขาด เพราะเหตุการณ์ที่ probability ต่ำยังเกิดขึ้นได้
-
-ตัวอย่าง หาก $H_0:\mu=100$ จริง sample mean มักอยู่ใกล้ 100 แต่การพบ $\bar{x}\approx100$ ไม่ได้พิสูจน์ว่า $\mu=100$ เพราะ population mean อื่นอาจสร้าง sample แบบนี้ได้เช่นกัน ในทางกลับกัน หาก $\bar{x}$ อยู่ไกลมากเมื่อเทียบกับ SE เรามีหลักฐานว่ารูปแบบที่ $H_0$ ทำนายไม่สอดคล้องกับข้อมูล
-
-ดังนั้นคำตัดสินมีเพียง:
-
-- **Reject $H_0$:** หลักฐานขัดกับ $H_0$ มากพอตามเกณฑ์ $\alpha$
-- **Fail to reject $H_0$:** หลักฐานยังไม่พอปฏิเสธ ไม่ได้แปลว่า $H_0$ ถูกพิสูจน์แล้ว
-
-## 8. Test Statistic, Critical Value และ Rejection Region
-
-Test statistic คือฟังก์ชันของข้อมูลที่วัดว่าค่าประมาณห่างจากค่าภายใต้ $H_0$ กี่ standard errors โครงสร้างทั่วไปคือ
-
-$$
-\mathrm{Test\ statistic} =
-\frac{\mathrm{Estimate}-\mathrm{Null\ value}}
-{\mathrm{SE\ under\ }H_0}
-$$
-
-ค่าบวกมากสนับสนุน alternative ด้านขวา ค่าลบมากสนับสนุนด้านซ้าย และค่าสัมบูรณ์มากสนับสนุน two-sided alternative
-
-Critical value คือเส้นแบ่งระหว่างบริเวณที่ยังเข้ากับ $H_0$ กับ rejection region โดยเลือกให้ probability ของการตกใน rejection region เมื่อ $H_0$ จริงเท่ากับ $\alpha$ ตัวอย่าง two-sided z test ที่ $\alpha=0.05$ ใช้ critical values ประมาณ $-1.96$ และ $1.96$
-
-## 9. Significance Level, Type I/II Errors และ Power
-
-เพราะการตัดสินใจใช้ sample จึงผิดได้สองแบบ
-
-| ความจริง | Reject $H_0$ | Fail to reject $H_0$ |
+| คำถามในโจทย์ | Alternative hypothesis | ชนิดการทดสอบ |
 |---|---|---|
-| $H_0$ จริง | Type I error | ตัดสินใจถูก |
-| $H_0$ ไม่จริง | ตัดสินใจถูก | Type II error |
+| แตกต่างจาก | $\mu \ne \mu_0$ | Two-sided |
+| มากกว่า | $\mu > \mu_0$ | Right-sided |
+| น้อยกว่า | $\mu < \mu_0$ | Left-sided |
 
-### 9.1 Type I error และ significance level
+ควรกำหนดทิศทางจากคำถามวิจัย **ก่อนเห็นผลข้อมูล** ไม่ควรเห็น sample mean แล้วค่อยเลือกหางที่ทำให้ p-value เล็กลง
 
-$$
-\alpha = \mathrm{P}(\mathrm{Reject\ }H_0 \mid H_0\mathrm{\ true})
-$$
+> ในการคำนวณ เราใช้ค่าขอบเขตที่มีเครื่องหมายเท่ากับ เช่น $\mu=5$ แม้โจทย์อาจเขียน null เชิงประกอบว่า $\mu \ge 5$ ก็ตาม
 
-$\alpha$ คืออัตรา false positive ระยะยาวที่ยอมรับภายใต้กระบวนการทดสอบ ไม่ใช่ probability ว่าการตัดสินใจครั้งนี้ผิด
+---
 
-### 9.2 Type II error และ power
+## 3. ตรรกะของ Hypothesis Testing
 
-$$
-\beta = \mathrm{P}(\mathrm{Fail\ to\ reject\ }H_0 \mid H_1\mathrm{\ true})
-$$
+วิธีคิดมีเพียงแกนเดียว:
 
-$$
-\mathrm{Power}=1-\beta
-$$
+1. สมมติไว้ก่อนว่า $H_0$ จริง
+2. พิจารณาว่าผลจาก sample อยู่ไกลจากค่าที่ $H_0$ คาดไว้เพียงใด
+3. ถ้าผลที่พบเกิดขึ้นได้ยากมากภายใต้ $H_0$ ข้อมูลจึงเป็นหลักฐานต่อต้าน $H_0$
 
-Power คือโอกาสที่ test จะตรวจพบ effect ขนาดหนึ่งเมื่อ effect นั้นมีจริง ค่า power ไม่ได้มีค่าเดียวโดยไม่มีการระบุ effect size เพราะ effect ยิ่งห่างจาก null ยิ่งตรวจพบง่าย
+เปรียบเหมือนการโยนเหรียญที่อ้างว่ายุติธรรม ถ้าโยน 10 ครั้งแล้วออกหัว 6 ครั้ง ยังไม่น่าแปลกมาก แต่ถ้าออกหัว 10 ครั้ง ผลนั้นขัดกับสิ่งที่คาดภายใต้เหรียญยุติธรรมมากกว่า
 
-### 9.3 Trade-off
+ผลที่เข้ากันได้กับ $H_0$ ไม่ได้พิสูจน์ว่า $H_0$ จริง เพียงแปลว่า sample ปัจจุบันยังไม่มีหลักฐานเพียงพอให้ปฏิเสธ
 
-เมื่อ sample size คงที่ การลด $\alpha$ ทำให้เกณฑ์เข้มขึ้นและมักเพิ่ม $\beta$ การเพิ่ม sample size ช่วยลดทั้ง uncertainty และเพิ่ม power โดยไม่จำเป็นต้องผ่อน $\alpha$ ปัจจัยที่เพิ่ม power ได้แก่ effect size ใหญ่ขึ้น, variability ต่ำลง, sample ใหญ่ขึ้น และ one-sided test ที่กำหนดทิศทางถูกต้องล่วงหน้า
+---
 
-## 10. p-value
+## 4. Test Statistic: ความต่างเมื่อเทียบกับความไม่แน่นอน
 
-p-value คือ probability ภายใต้ $H_0$ ที่จะได้ test statistic อย่างน้อยสุดโต่งเท่าค่าที่สังเกต ในทิศทางที่ $H_1$ กำหนด เขียนเชิงแนวคิดได้ว่า
+Test statistic แปลงความต่างระหว่างค่าที่ประมาณได้กับค่าภายใต้ $H_0$ ให้อยู่ในหน่วยของ standard error
 
 $$
-p\mathrm{-value} =
-\mathrm{P}(\mathrm{result\ at\ least\ as\ extreme\ as\ observed}\mid H_0)
+\mathrm{Test\ statistic} = \frac{\mathrm{Estimate}-\mathrm{Null\ value}}{\mathrm{SE\ under\ }H_0}
 $$
 
-กฎการตัดสินใจคือ
+ตัวเศษบอกว่า estimate ต่างจาก null value เท่าใด ส่วนตัวส่วนบอกว่าความผันผวนจากการสุ่มตัวอย่างตามปกติมีขนาดเท่าใด
+
+- Statistic ใกล้ 0: estimate อยู่ใกล้ค่าภายใต้ $H_0$
+- Statistic เป็นบวกมาก: estimate อยู่สูงกว่าค่าภายใต้ $H_0$ หลาย standard errors
+- Statistic เป็นลบมาก: estimate อยู่ต่ำกว่าค่าภายใต้ $H_0$ หลาย standard errors
+
+สำหรับการทดสอบค่าเฉลี่ยเมื่อไม่ทราบ population standard deviation เราใช้ t statistic และเปรียบเทียบกับ t distribution
+
+---
+
+## 5. p-value ตอบคำถามอะไร
+
+p-value คือความน่าจะเป็นที่จะได้ผลอย่างน้อยสุดโต่งเท่ากับที่สังเกต เมื่อสมมติว่า $H_0$ จริง
 
 $$
-p\mathrm{-value}\le\alpha
-\quad\Rightarrow\quad
-\mathrm{Reject\ }H_0
+p\mathrm{-value} = \mathrm{P}(\mathrm{result\ at\ least\ as\ extreme\ as\ observed}\mid H_0)
 $$
 
-หาก $p\mathrm{-value}>\alpha$ ให้ fail to reject $H_0$
+คำว่า “สุดโต่ง” ต้องตีความตาม $H_1$
 
-### 10.1 การเลือกพื้นที่หาง
+- $H_1: \mu < \mu_0$ สนใจหางซ้าย
+- $H_1: \mu > \mu_0$ สนใจหางขวา
+- $H_1: \mu \ne \mu_0$ สนใจทั้งสองหาง
 
-ถ้า $T$ คือ test statistic ที่สังเกตได้เป็น $t_{obs}$:
+p-value ขนาดเล็กหมายความว่า ผลที่สังเกตไม่ค่อยเข้ากับ $H_0$ จึงเป็นหลักฐานต่อต้าน $H_0$
 
-- Right-tailed: พื้นที่ตั้งแต่ $t_{obs}$ ไปทางขวา
-- Left-tailed: พื้นที่ตั้งแต่ $t_{obs}$ ไปทางซ้าย
-- Two-sided: รวมความสุดโต่งทั้งสองด้านตาม null distribution
+p-value **ไม่ใช่** ความน่าจะเป็นที่ $H_0$ เป็นจริง และไม่ใช่ขนาดของผลกระทบ
 
-สูตร “สองเท่าของพื้นที่หางเดียว” ใช้ตรงไปตรงมาเมื่อ null distribution สมมาตรและวัดความสุดโต่งด้วยค่าสัมบูรณ์ สำหรับการแจกแจงไม่สมมาตรหรือ discrete exact test ต้องใช้คำนิยามของวิธีนั้น ไม่ควรคูณสองโดยอัตโนมัติ
+---
 
-### 10.2 p-value ไม่ใช่อะไร
+## 6. การตัดสินใจด้วยระดับนัยสำคัญ
 
-- ไม่ใช่ probability ที่ $H_0$ จริง
-- ไม่ใช่ probability ที่ผลเกิดจากความบังเอิญ
-- ไม่บอกขนาดหรือความสำคัญเชิงปฏิบัติของ effect
-- ค่าใหญ่ไม่ได้พิสูจน์ว่า “ไม่มี effect”; อาจเกิดจาก sample เล็กหรือ test มี power ต่ำ
+ระดับนัยสำคัญ หรือ $\alpha$ คือเกณฑ์ที่กำหนดไว้ล่วงหน้าเพื่อควบคุมความเสี่ยงของ Type I error โดยโจทย์มักกำหนด $\alpha=0.05$
 
-## 11. ขั้นตอนการทดสอบสมมุติฐานอย่างเป็นระบบ
+- ถ้า p-value $\le \alpha$: reject $H_0$
+- ถ้า p-value $> \alpha$: fail to reject $H_0$
 
-1. ระบุ research question, population, parameter และ estimand
-2. ตั้ง $H_0/H_1$ และทิศทางก่อนดูผล
-3. เลือก $\alpha$ และกำหนด practical significance
-4. ตรวจ design: independent, paired, clustered หรือ repeated measures
-5. เลือก test statistic และ assumptions
-6. คำนวณ statistic กับ p-value หรือเทียบ critical value
-7. ตรวจ sensitivity, effect size และ confidence interval
-8. ตัดสินใจด้วยคำว่า reject/fail to reject
-9. แปลผลในหน่วยและบริบทจริง พร้อมข้อจำกัด
+เมื่อ fail to reject $H_0$ ควรเขียนว่า “ยังไม่มีหลักฐานเพียงพอ” ไม่ควรเขียนว่า “ยอมรับ $H_0$” หรือ “พิสูจน์แล้วว่าไม่แตกต่าง”
 
-## 12. One-sample t Test for a Mean
+### 6.1 Type I error
 
-เมื่อสุ่มข้อมูล (X_1,\ldots,X_n) อย่างอิสระจากประชากรที่มี mean $\mu$ และไม่ทราบ population variance ใช้
+Type I error เกิดเมื่อ reject $H_0$ ทั้งที่ $H_0$ จริง ความน่าจะเป็นสูงสุดของความผิดพลาดชนิดนี้ถูกควบคุมด้วย $\alpha$
+
+### 6.2 Type II error และ Power
+
+Type II error เกิดเมื่อ fail to reject $H_0$ ทั้งที่ $H_1$ เป็นจริง ให้ความน่าจะเป็นเป็น $\beta$
 
 $$
-t=
-\frac{\bar{X}-\mu_0}{s/\sqrt{n}}
+\mathrm{Power} = 1-\beta
 $$
 
-ภายใต้ $H_0:\mu=\mu_0$ และ assumptions ที่เหมาะสม statistic นี้มี t distribution ที่ (n-1) degrees of freedom
+Power คือโอกาสที่การทดสอบจะตรวจพบผลที่มีอยู่จริง โดยทั่วไป power สูงขึ้นเมื่อ sample size ใหญ่ขึ้น ผลต่างจริงมีขนาดใหญ่ขึ้น หรือข้อมูลมีความผันผวนน้อยลง
 
-ตัวเศษวัด observed effect ส่วนตัวส่วนวัด sampling uncertainty ดังนั้นค่าเฉลี่ยที่ต่างเท่ากันอาจให้ผลต่างกันหาก sample size หรือ variability ต่างกัน
+---
 
-### Assumptions
+## 7. Hypothesis Test เชื่อมกับ Confidence Interval อย่างไร
 
-- observations เป็น random และ independent ตาม sampling design
-- population ใกล้ Normal สำหรับ sample เล็ก หรือ sample ใหญ่พอให้ sampling distribution ของ mean ใกล้ Normal
-- ไม่มี outlier รุนแรงที่ทำให้ mean และ SD บิดเบือน โดยเฉพาะเมื่อ $n$ เล็ก
+ทั้งสองวิธีใช้ estimate และ standard error ชุดเดียวกัน เพียงตอบคนละคำถาม
 
-## 13. Worked Example: เวลารอเฉลี่ย
+- Confidence interval บอกช่วงค่าพารามิเตอร์ที่เข้ากันได้กับข้อมูล
+- Hypothesis test ตรวจว่าค่าที่ระบุใน $H_0$ เข้ากันได้กับข้อมูลเพียงใด
 
-โรงพยาบาลต้องการตรวจว่าเวลารอเฉลี่ยสูงกว่าเกณฑ์ 30 นาทีหรือไม่ สุ่มผู้ป่วย $n=25$ คน ได้ $\bar{x}=34$ นาที และ $s=10$ นาที กำหนด $\alpha=0.05$
+สำหรับ two-sided test ที่ $\alpha=0.05$:
 
-### Step 1: ตั้งสมมุติฐาน
+- ถ้า null value อยู่นอก 95% CI จะ reject $H_0$
+- ถ้า null value อยู่ใน 95% CI จะ fail to reject $H_0$
 
-$$
-H_0:\mu\le30
-$$
+---
 
-$$
-H_1:\mu>30
-$$
+## 8. เลือกการทดสอบจากโครงสร้างข้อมูล
 
-### Step 2: คำนวณ standard error
+ก่อนเปิด R ให้ตอบสี่คำถาม:
 
-$$
-SE=\frac{10}{\sqrt{25}}=2
-$$
+1. Parameter ที่ถามคือ mean, proportion หรือความสัมพันธ์ของตัวแปรเชิงหมวดหมู่
+2. มีหนึ่งกลุ่ม สองกลุ่ม หรือหลายกลุ่ม
+3. ถ้ามีสองชุดข้อมูล ชุดข้อมูล independent หรือ paired
+4. Alternative เป็น two-sided, less หรือ greater
 
-### Step 3: คำนวณ statistic
-
-$$
-t=\frac{34-30}{2}=2.00
-$$
-
-Degrees of freedom เท่ากับ 24 สำหรับ right-tailed test ค่านี้ให้ p-value ประมาณ 0.028 จึงปฏิเสธ $H_0$ ที่ $\alpha=0.05$
-
-### Step 4: แปลผล
-
-ข้อมูลให้หลักฐานทางสถิติว่าเวลารอเฉลี่ยสูงกว่า 30 นาที แต่ observed difference เท่ากับ 4 นาที ต้องพิจารณาต่อว่า 4 นาทีมีความสำคัญเชิงบริการหรือไม่ และ sample เป็นตัวแทนของช่วงเวลา/หน่วยบริการเป้าหมายเพียงใด
-
-### Validation
-
-ใช้ critical-value approach ได้ผลเดียวกัน เพราะ (t_{0.95,24}\approx1.711) และ (2.00>1.711) นอกจากนี้ one-sided 95% lower confidence bound ควรอยู่เหนือ 30 เมื่อ test ปฏิเสธ $H_0$
-
-## 14. Tests for Two Independent Means
-
-ให้กลุ่ม 1 และ 2 เป็นคนละหน่วยสังเกต และต้องการทดสอบ
-
-$$
-H_0:\mu_1-\mu_2=\Delta_0
-$$
-
-โดยทั่วไป $\Delta_0=0$
-
-### 14.1 Welch t test: ไม่สมมุติ equal variances
-
-$$
-t=
-\frac{(\bar{X}_1-\bar{X}_2)-\Delta_0}
-{\sqrt{s_1^2/n_1+s_2^2/n_2}}
-$$
-
-Welch test เป็น default ที่ปลอดภัยกว่าสำหรับ independent groups เพราะไม่ต้องสมมุติ population variances เท่ากัน degrees of freedom ใช้ Welch–Satterthwaite approximation
-
-### 14.2 Pooled t test: สมมุติ equal variances
-
-$$
-s_p^2=
-\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}
-{n_1+n_2-2}
-$$
-
-$$
-t=
-\frac{(\bar{X}_1-\bar{X}_2)-\Delta_0}
-{s_p\sqrt{1/n_1+1/n_2}}
-$$
-
-Degrees of freedom เท่ากับ (n_1+n_2-2) วิธี pooled เหมาะเมื่อมีเหตุผลจาก design หรือ domain ว่า variances เท่ากัน ไม่ควรเลือกเพียงเพราะ preliminary variance test ไม่ significant
-
-### 14.3 Worked Example จากสไลด์
-
-เด็กชายและเด็กหญิงกลุ่มละ 11 คน มี sample means 14 และ 10 และ SD เท่ากับ 3 และ 2 ตามลำดับ หากใช้ Welch test เพื่อทดสอบด้านขวา:
-
-$$
-SE=
-\sqrt{\frac{3^2}{11}+\frac{2^2}{11}}
-=1.087
-$$
-
-$$
-t=\frac{14-10}{1.087}=3.68
-$$
-
-ค่า statistic อยู่ไกลทางขวาและให้หลักฐานคัดค้าน equal-mean null อย่างมาก อย่างไรก็ตาม การสรุปเชิงสาเหตุต้องพิจารณาวิธีสุ่ม ความเท่าเทียมของข้อสอบ และ confounders ไม่ใช่อาศัย p-value เพียงอย่างเดียว
-
-## 15. Paired t Test
-
-ข้อมูล paired เกิดเมื่อแต่ละค่าของกลุ่มหนึ่งเชื่อมกับอีกค่าหนึ่ง เช่น before/after ของคนเดียวกันหรือ matched twins วิธีที่ถูกต้องคือสร้าง difference ภายในคู่
-
-$$
-d_i=X_{1i}-X_{2i}
-$$
-
-แล้วทดสอบ mean difference ด้วย one-sample t test
-
-$$
-t=
-\frac{\bar{d}-\mu_{d,0}}
-{s_d/\sqrt{n}}
-$$
-
-Degrees of freedom เท่ากับ (n-1) จุดสำคัญคือ (s_d) รวม covariance ภายในคู่ไว้แล้ว การปฏิบัติต่อข้อมูล paired เป็น independent groups ทิ้งสารสนเทศความสัมพันธ์และอาจประมาณ SE ผิด
-
-### Worked Example: คะแนนก่อนและหลังเรียน
-
-สมมุติ differences หลังลบก่อนของนักศึกษา 8 คนมี $\bar{d}=2.5$, $s_d=2.0$ ต้องการทดสอบว่าคะแนนเพิ่มขึ้น:
-
-$$
-H_0:\mu_d\le0
-$$
-
-$$
-H_1:\mu_d>0
-$$
-
-$$
-t=\frac{2.5}{2/\sqrt{8}}=3.54
-$$
-
-ให้ใช้ t distribution ที่ 7 degrees of freedom การตีความต้องกล่าวถึง “ค่าเฉลี่ยของ within-person changes” ไม่ใช่ความต่างระหว่างคนสองกลุ่ม
-
-## 16. Tests for Population Proportions
-
-ข้อมูลสัดส่วนเกิดจากจำนวน successes $X$ ใน $n$ Bernoulli trials โดย $\hat{p}=X/n$ เมื่อ sample ใหญ่พอ Normal approximation ช่วยสร้าง z statistic ได้
-
-### 16.1 One-proportion z test
-
-ภายใต้ $H_0:p=p_0$:
-
-$$
-z=
-\frac{\hat{p}-p_0}
-{\sqrt{p_0(1-p_0)/n}}
-$$
-
-สังเกตว่าตัวส่วนใช้ $p_0$ เพราะ sampling distribution ถูกสร้างภายใต้ null ควรตรวจว่า $np_0$ และ $n(1-p_0)$ มากพอ หากไม่พอให้พิจารณา exact binomial test
-
-### Worked Example: ความเห็นต่อวัคซีน
-
-สุ่มนักศึกษา 200 คน พบว่า 170 คนเห็นด้วยกับวัคซีน จึงได้ $\hat{p}=0.85$ ต้องการทดสอบว่ามากกว่า 0.80 หรือไม่
-
-$$
-z=
-\frac{0.85-0.80}
-{\sqrt{0.80(0.20)/200}}
-=1.77
-$$
-
-right-tailed p-value ประมาณ 0.038 จึงปฏิเสธ $H_0$ ที่ $\alpha=0.05$ แต่ margin เหนือเกณฑ์มีเพียง 5 percentage points จึงต้องพิจารณาความสำคัญทางนโยบายแยกต่างหาก
-
-### 16.2 Two-proportion z test
-
-สำหรับ independent groups ภายใต้ $H_0:p_1=p_2$ ใช้ pooled proportion
-
-$$
-\hat{p}_{pool}=\frac{x_1+x_2}{n_1+n_2}
-$$
-
-$$
-z=
-\frac{\hat{p}_1-\hat{p}_2}
-{\sqrt{\hat{p}_{pool}(1-\hat{p}_{pool})(1/n_1+1/n_2)}}
-$$
-
-การ pooling ใช้เฉพาะ SE ของ significance test ภายใต้ equality null สำหรับ confidence interval ของ (p_1-p_2) โดยทั่วไปใช้ unpooled standard error
-
-## 17. หลายประชากรและ ANOVA
-
-หากเปรียบเทียบ means ของ (k>2) groups การทำ pairwise t tests จำนวนมากทำให้ familywise Type I error สูงขึ้น One-way ANOVA ทดสอบ global null
-
-$$
-H_0:\mu_1=\mu_2=\cdots=\mu_k
-$$
-
-กับ alternative ว่ามีอย่างน้อยหนึ่งคู่ต่างกัน โดยใช้ F statistic เปรียบเทียบ between-group variability กับ within-group variability หาก global test significant ยังต้องทำ post-hoc comparisons เพื่อระบุว่าคู่ใดต่างกัน รายละเอียดเป็นหัวข้อของบท ANOVA ภายหลัง
-
-## 18. Decision Framework
-
-| Research design | Parameter | วิธีหลัก | จุดตรวจสำคัญ |
-|---|---|---|---|
-| หนึ่ง sample, continuous outcome | $\mu$ | One-sample t test | independence, outliers, distribution/size |
-| สองกลุ่มคนละหน่วย | $\mu_1-\mu_2$ | Welch t test | independent groups, outliers |
-| ก่อน–หลังหรือ matched pairs | $\mu_d$ | Paired t test | pairing ถูกต้อง, distribution ของ differences |
-| หนึ่ง sample, binary outcome | $p$ | One-proportion z หรือ exact test | success/failure counts |
-| สองกลุ่ม binary outcome | (p_1-p_2) | Two-proportion z test | independent groups, expected counts |
-| มากกว่าสอง means | $\mu_1,\ldots,\mu_k$ | ANOVA | independence, variance structure, residuals |
-
-หาก observations มี cluster, repeated measures หลายเวลา หรือ dependence ซับซ้อน วิธีในตารางอาจประเมิน SE ต่ำเกินไป ต้องใช้ model หรือ resampling strategy ที่รักษา dependence structure
-
-## 19. Confidence Interval, Effect Size และ Practical Significance
-
-สำหรับ two-sided test ที่ระดับ $\alpha$ ค่า null จะถูกปฏิเสธเมื่ออยู่นอก confidence interval ระดับ $1-\alpha$ ความสัมพันธ์นี้ช่วยตรวจคำตอบและทำให้เห็นขนาด effect
-
-p-value ตอบว่าข้อมูลขัดกับ null มากเพียงใดภายใต้ model ส่วน effect estimate กับ CI ตอบว่าขนาดที่สมเหตุสมผลมีช่วงเท่าใด การตัดสินใจจริงควรรายงานอย่างน้อย estimate, CI, p-value, sample size และบริบทของ practical threshold
-
-ตัวอย่าง ผลต่างเวลารอ 0.5 นาทีอาจ significant เมื่อ sample ใหญ่มาก แต่ไม่มีผลต่อการปฏิบัติงาน ขณะที่ผลต่าง 8 นาทีอาจยังไม่ significant ใน pilot sample เล็กแต่มีความสำคัญเชิงบริการและควรศึกษาต่อ
-
-## 20. Validation and Troubleshooting
-
-### เลือกหางผิด
-
-ตรวจเครื่องหมายของ $H_1$ ก่อนคำนวณ p-value หาก $H_1:\mu>\mu_0$ ต้องใช้ right tail แม้ observed statistic จะเป็นลบ ซึ่งกรณีนั้น p-value จะใหญ่
-
-### ใช้ independent test กับ paired data
-
-ตรวจว่า observation หนึ่งในกลุ่มแรกจับคู่กับ observation ใดในกลุ่มสอง หากเป็นคนเดียวกัน ให้คำนวณ differences และวิเคราะห์ที่ระดับคู่
-
-### p-value จาก software เป็น two-sided
-
-software หลายตัวรายงาน two-sided p-value โดย default ห้ามหารสองโดยอัตโนมัติ เว้นแต่ alternative ถูกกำหนดล่วงหน้า null distribution สมมาตร และ observed direction ตรงกับ $H_1$
-
-### Sample ใหญ่มากจนทุกอย่าง significant
-
-รายงาน effect size และ CI แล้วเทียบกับ minimum practically important difference
-
-### Assumptions ไม่ผ่าน
-
-ตรวจ data collection ก่อนเลือก remedy สำหรับ outliers หรือ skewness อาจใช้ robust/nonparametric method หรือ Bootstrap ที่เหมาะสม แต่ resampling ไม่แก้ non-random sample หรือ dependence ที่ถูกละเลย
-
-## 21. Python Workflow
-
-ตัวอย่างข้อมูล illustrative สำหรับ one-sample t test:
-
-```python
-import numpy as np
-from scipy import stats
-
-waiting_time = np.array([
-    28, 31, 35, 30, 42,
-    29, 37, 33, 36, 34
-])
-
-result = stats.ttest_1samp(
-    waiting_time,
-    popmean=30,
-    alternative='greater'
-)
-
-mean_wait = waiting_time.mean()
-sd_wait = waiting_time.std(ddof=1)
-
-print(mean_wait, sd_wait)
-print(result.statistic, result.pvalue)
-```
-
-ก่อนรัน ให้ทำนายเครื่องหมายของ statistic จาก $\bar{x}-30$ หลังรัน ตรวจว่า p-value อยู่ระหว่าง 0 และ 1 และผลสอดคล้องกับ critical-value approach เปลี่ยน `alternative` เป็น `'two-sided'` แล้วสังเกตว่า p-value เปลี่ยนเพราะพื้นที่หางที่นับเปลี่ยน ไม่ใช่เพราะข้อมูลเปลี่ยน
-
-สำหรับ paired data ใช้ `stats.ttest_rel(after, before, alternative='greater')`; สำหรับ independent groups ใช้ `stats.ttest_ind(group_1, group_2, equal_var=False)` เพื่อใช้ Welch test
-
-## 22. Guided Lab: ตรวจ SLA เวลารอ
-
-### Objective
-
-ประเมินว่าเวลารอเฉลี่ยสูงกว่า SLA 30 นาทีหรือไม่ และสื่อสารทั้ง statistical และ practical significance
-
-### Steps
-
-1. ใช้ `waiting_time` จาก Section 21 และกำหนด $\alpha=0.05$
-2. เขียน $H_0/H_1$ ก่อนรันโค้ด
-3. คำนวณ mean, SD, SE และ t statistic ด้วยมือ
-4. รัน SciPy แล้วเปรียบเทียบผล
-5. สร้าง 95% two-sided CI ด้วย `stats.t.interval`
-6. ตรวจ boxplot และ Q–Q plot เพื่อหา outlier/shape ที่ผิดปกติ
-7. เปลี่ยน observation 42 เป็น 82 แล้วทำนายทิศทางของ mean, SD, t และ p-value ก่อนรัน
-8. อธิบายว่าทำไม outlier อาจเพิ่ม mean พร้อมเพิ่ม uncertainty จนทิศทางของ p-valueไม่ชัดจาก mean เพียงอย่างเดียว
-
-### Expected validation
-
-- manual statistic และ SciPy statistic ต้องตรงกันภายใต้ rounding
-- one-sided p-value ต้องไม่มากกว่า two-sided p-value เมื่อ observed effect อยู่ในทิศทาง $H_1$
-- เปลี่ยนหน่วยนาทีเป็นวินาทีต้องไม่เปลี่ยน t statistic หรือ p-value หาก null value ถูกแปลงหน่วยด้วย
-
-### Transfer challenge
-
-ออกแบบการศึกษาใหม่ให้ครอบคลุมหลายสาขา ระบุว่า sampling unit คือผู้ป่วยหรือสาขา และอธิบายว่าการสุ่มผู้ป่วยทุกแถวเป็นอิสระเหมาะสมหรือไม่
-
-## 23. Critical Discussion ระดับปริญญาโท
-
-### Multiple testing
-
-การทดสอบ hypotheses จำนวนมากที่ $\alpha=0.05$ ทำให้โอกาสพบ significant result อย่างน้อยหนึ่งครั้งเพิ่มขึ้นแม้ nulls จริงทั้งหมด จึงต้องวาง analysis plan และพิจารณาการควบคุม familywise error หรือ false discovery rate ตามวัตถุประสงค์
-
-### Optional stopping และ researcher degrees of freedom
-
-การดูผลซ้ำแล้วหยุดเมื่อ significant หรือทดลองหลายวิธีแล้วรายงานเฉพาะวิธีที่ให้ p-value ต่ำ ทำให้ Type I error จริงสูงกว่าที่ประกาศ วิธีป้องกันคือกำหนด protocol, stopping rule และ analysis plan ล่วงหน้า
-
-### Statistical model กับ data-generating process
-
-สูตรทดสอบถูกต้องเชิงคณิตศาสตร์ไม่ได้รับประกันข้อสรุปที่น่าเชื่อถือ หาก sample selection มี bias, measurement ไม่ valid หรือ observations ไม่ independent ความไม่แน่นอนที่คำนวณจะไม่ครอบคลุมปัญหาเหล่านี้
-
-## 24. Common Misconceptions
-
-1. **(p<0.05) แปลว่า $H_0$ มีโอกาสจริงน้อยกว่า 5%** — ผิด p-value condition บน $H_0$
-2. **ไม่ significant แปลว่าไม่มี effect** — ผิด อาจมี power ต่ำหรือ CI กว้าง
-3. **Significant แปลว่าสำคัญในงานจริง** — ผิด ต้องดู effect size และ practical threshold
-4. **Fail to reject เท่ากับ accept $H_0$** — ผิด หลักฐานอาจยังไม่พอ
-5. **เลือก one-tailed หลังเห็นผลได้** — ทำให้ error rate ไม่เป็นไปตามที่ประกาศ
-6. **ทุกข้อมูลก่อน–หลังใช้ independent test** — ต้องใช้ pairing information
-7. **Bootstrap แก้ assumption ทุกชนิด** — ไม่แก้ biased sampling หรือ resampling unit ที่ผิด
-
-## 25. Likely Exam Focus
-
-หัวข้อต่อไปนี้เป็นการคาดการณ์จาก learning objectives และเนื้อหาที่สไลด์เน้น ไม่ใช่ข้อมูลข้อสอบจริง:
-
-- ตั้ง $H_0/H_1$ จากข้อความและระบุ one-/two-tailed test
-- อธิบาย logic ของ rejection และเหตุผลที่ไม่ใช้คำว่า accept $H_0$
-- สร้าง decision table ของ Type I/II errors และคำนวณ power
-- ตีความ p-value และตรวจข้อความตีความที่ผิด
-- เลือก one-sample, Welch, pooled หรือ paired t test
-- คำนวณ one-/two-proportion z statistic
-- ระบุ assumptions และผลกระทบเมื่อ violation
-- เชื่อม hypothesis test กับ confidence interval และ practical significance
-
-## 26. Progressive Practice
-
-### 26.1 Guided: ตั้งสมมุติฐาน
-
-โรงงานกำหนดว่าน้ำหนักบรรจุเฉลี่ยต้องไม่น้อยกว่า 500 กรัม ผู้ตรวจต้องการหาหลักฐานว่าน้ำหนักต่ำกว่าเกณฑ์
-
-**เฉลย:** ให้ $\mu$ เป็น population mean weight ตั้ง $H_0:\mu\ge500$ และ $H_1:\mu<500$ เป็น left-tailed test
-
-### 26.2 Completion: One-sample t
-
-ให้ $n=16$, $\bar{x}=52$, $s=8$, $H_0:\mu=50$ จงเติม $SE$ และ $t$
-
-**เฉลย:** (SE=8/\sqrt{16}=2) และ (t=(52-50)/2=1)
-
-### 26.3 Apply: Type I error
-
-ในงานตรวจ fraud ตั้ง $H_0$: transaction ปกติ และ $H_1$: transaction ผิดปกติ Type I error หมายถึงอะไร
-
-**เฉลย:** ระบบ flag transaction ปกติว่าเป็น fraud หรือ false positive ผลกระทบคือเพิ่มภาระตรวจสอบและอาจรบกวนผู้ใช้ที่สุจริต
-
-### 26.4 Analyze: Independent หรือ paired
-
-เปรียบเทียบความดันก่อนและหลังให้ยาของผู้ป่วย 30 คน ควรใช้ test ใด
-
-**เฉลย:** Paired t test เพราะ observation ก่อนและหลังมาจากคนเดียวกัน วิเคราะห์ differences ภายในผู้ป่วย 30 ค่า ไม่ใช่ทำเหมือนมีคนอิสระ 60 คน
-
-### 26.5 Evaluate: Significant แต่ CI แคบใกล้ศูนย์
-
-งานศึกษาขนาดใหญ่มากพบ difference 0.2 หน่วย, 95% CI ([0.1,0.3]), (p<0.001) ควรสรุปอย่างไร
-
-**เฉลย:** มีหลักฐานว่า effect ไม่เท่าศูนย์และ estimate แม่นยำ แต่ขนาด 0.2 ต้องเทียบกับ practical threshold หากเล็กกว่าค่าที่มีความหมาย ไม่ควรอ้างว่าผลสำคัญในทางปฏิบัติ
-
-### 26.6 Transfer: เลือก proportion test
-
-สำรวจผู้ป่วย 40 คน พบ adverse event 1 คน ต้องการเทียบกับอัตรา 10% ควรใช้ Normal approximation ทันทีหรือไม่
-
-**เฉลย:** ภายใต้ null expected adverse events เท่ากับ 4 ซึ่งค่อนข้างเล็ก Normal approximation อาจไม่น่าเชื่อถือ ควรพิจารณา exact binomial test และรายงาน CI ที่เหมาะกับ rare event
-
-## 27. Exam Blueprint
-
-| Objective | Cognitive level | Assessment evidence |
+| โครงสร้างโจทย์ | สิ่งที่เปรียบเทียบ | วิธีหลัก |
 |---|---|---|
-| ตั้ง hypotheses และทิศทาง | Apply | 26.1 |
-| คำนวณและตัดสินใจ | Apply | 13, 26.2 |
-| แยก errors และ power | Explain/Analyze | 9, 26.3 |
-| เลือก test ตาม design | Analyze | 18, 26.4 |
-| ตีความ significance | Evaluate | 19, 26.5 |
-| ตรวจ assumptions และเลือก alternative | Evaluate/Transfer | 20, 26.6 |
+| ตัวเลขหนึ่ง sample เทียบค่ามาตรฐาน | $\mu$ กับ $\mu_0$ | One-sample t test |
+| ตัวเลขสองกลุ่ม คนละหน่วยทดลอง | $\mu_1$ กับ $\mu_2$ | Independent two-sample t test |
+| ก่อน–หลัง หรือจับคู่เป็นคู่เดียวกัน | Mean ของค่าผลต่าง | Paired t test |
+| ค่าเฉลี่ยมากกว่าสองกลุ่ม | หลาย population means | ANOVA |
+| หนึ่งสัดส่วนเทียบค่ามาตรฐาน | $p$ กับ $p_0$ | One-proportion test |
+| สัดส่วนของสองกลุ่ม | $p_1$ กับ $p_2$ | Two-proportion test |
 
-## 28. Mini-project: Quality and Service Hypothesis Test
+คำว่า one mean, independent means และ paired means เป็นชื่อย่อที่บอก **parameter และโครงสร้าง sample** ชื่อเต็มที่พบบ่อยคือ one-sample t test, independent two-sample t test และ paired-sample t test
 
-เลือก KPI หนึ่งตัว เช่น waiting time, dispensing error rate หรือ patient satisfaction แล้วดำเนินงานต่อไปนี้:
+---
 
-1. ระบุ population, sampling unit, parameter และ practical threshold
-2. ตั้ง $H_0/H_1$ ก่อนดู inferential result
-3. ตรวจ data quality, independence และ distribution/count conditions
-4. เลือก test พร้อมเหตุผลและคำนวณ effect estimate, CI และ p-value
-5. ทำ sensitivity analysis อย่างน้อยหนึ่งแบบ
-6. สื่อสารผลสำหรับผู้บริหารโดยแยก evidence, magnitude และ limitation
+## 9. การทดสอบค่าเฉลี่ยที่ใช้ใน Lecture และ Lab
 
-### Rubric
+### 9.1 One-sample t test
 
-| ด้าน | คะแนน |
-|---|---:|
-| Statistical framing และ hypotheses | 20 |
-| Method choice และ assumptions | 20 |
-| Calculation/code correctness | 20 |
-| Interpretation และ practical significance | 20 |
-| Validation, limitations และ reproducibility | 20 |
+ใช้เมื่อมีตัวแปรเชิงตัวเลขหนึ่ง sample และต้องการเปรียบเทียบ population mean กับค่ามาตรฐาน
 
-## 29. Mastery Checklist
+~~~r
+t.test(x, mu = null_value, alternative = "two.sided")
+t.test(x, mu = null_value, alternative = "less")
+t.test(x, mu = null_value, alternative = "greater")
+~~~
 
-- [ ] แปลงคำถามเป็น parameter และตั้ง $H_0/H_1$ โดยไม่ทำให้ parameter space มีช่องว่าง
-- [ ] เลือก tail จาก research question ก่อนเห็นผล
-- [ ] อธิบาย test statistic เป็น effect เทียบกับ SE
-- [ ] แยก $\alpha$, $\beta$ และ power พร้อมยกตัวอย่าง consequence
-- [ ] คำนวณและตีความ one-sample, independent และ paired mean tests
-- [ ] คำนวณและตีความ one-/two-proportion tests
-- [ ] รายงาน estimate, CI, p-value และ practical significance ร่วมกัน
-- [ ] ตรวจ dependence, outliers, sample size และ approximation conditions
-- [ ] อธิบายได้ว่าทำไม fail to reject ไม่เท่ากับพิสูจน์ null
+### 9.2 Independent two-sample t test
 
-## 30. Quick Formula Sheet
+ใช้เมื่อเปรียบเทียบค่าเฉลี่ยของสองกลุ่ม และหน่วยทดลองในกลุ่มหนึ่งไม่ได้จับคู่กับอีกกลุ่ม
 
-### One-sample mean
+**Welch t test** ไม่สมมติว่า population variances เท่ากัน และเป็นค่าเริ่มต้นของ t.test() จึงเป็นตัวเลือกทั่วไปเมื่อโจทย์ไม่ได้ระบุ equal variances
 
-$$
-t=\frac{\bar{X}-\mu_0}{s/\sqrt{n}},
-\qquad df=n-1
-$$
+~~~r
+# Welch two-sample t test
+t.test(group_1, group_2, alternative = "two.sided")
+~~~
 
-### Welch two-sample means
+**Pooled-variance t test** สมมติว่า population variances เท่ากัน ใช้เมื่อโจทย์กำหนดสมมติฐานนี้หรือมีเหตุผลรองรับชัดเจน
 
-$$
-t=
-\frac{(\bar{X}_1-\bar{X}_2)-\Delta_0}
-{\sqrt{s_1^2/n_1+s_2^2/n_2}}
-$$
+~~~r
+# Pooled-variance two-sample t test
+t.test(group_1, group_2, alternative = "two.sided", var.equal = TRUE)
+~~~
 
-### Pooled two-sample means
+ใน Lab มีการตรวจความแปรปรวนก่อนใช้ pooled test แต่ในการวิเคราะห์ทั่วไปไม่ควรเลือก pooled เพียงเพราะ variance test ไม่ significant เพราะ “ไม่พบความแตกต่าง” ไม่ได้พิสูจน์ว่า variances เท่ากัน หากโจทย์ไม่สั่งและไม่แน่ใจ ให้ใช้ Welch
 
-$$
-s_p^2=\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}{n_1+n_2-2}
-$$
+### 9.3 Paired t test
 
-$$
-t=
-\frac{(\bar{X}_1-\bar{X}_2)-\Delta_0}
-{s_p\sqrt{1/n_1+1/n_2}}
-$$
+ใช้เมื่อข้อมูลสองค่ามาจากหน่วยทดลองเดียวกัน เช่น น้ำหนักก่อนและหลังรักษาของผู้ป่วยคนเดิม หลักการคือสร้างค่าผลต่างในแต่ละคู่ แล้วทำ one-sample t test กับค่าผลต่างนั้น
 
-### Paired mean
+~~~r
+# ตรวจว่า after - before มากกว่า 0 หรือไม่
+t.test(after, before, paired = TRUE, alternative = "greater")
 
-$$
-t=\frac{\bar{d}-\mu_{d,0}}{s_d/\sqrt{n}},
-\qquad df=n-1
-$$
+# คำสั่งที่มีความหมายเท่ากัน
+difference <- after - before
+t.test(difference, mu = 0, alternative = "greater")
+~~~
 
-### One proportion
+ห้ามใช้ independent test กับข้อมูลก่อน–หลัง เพราะจะทิ้งข้อมูลความสัมพันธ์ภายในคนเดียวกัน
 
-$$
-z=\frac{\hat{p}-p_0}{\sqrt{p_0(1-p_0)/n}}
-$$
+### 9.4 มากกว่าสองค่าเฉลี่ยและการทดสอบสัดส่วน
 
-### Two proportions under equality null
+ถ้ามีหลายกลุ่ม การทำ t tests ทีละคู่จำนวนมากเพิ่มโอกาส Type I error วิธีมาตรฐานคือ ANOVA ส่วนข้อมูลจำนวน success จากจำนวนทั้งหมดสนใจ population proportion จึงใช้ proportion test ไม่ใช่ t test Lecture กล่าวถึงสองหัวข้อนี้ในภาพรวม ส่วน Lab ชุดนี้เน้น t tests สำหรับ means
 
-$$
-\hat{p}_{pool}=\frac{x_1+x_2}{n_1+n_2}
-$$
+---
 
-$$
-z=
-\frac{\hat{p}_1-\hat{p}_2}
-{\sqrt{\hat{p}_{pool}(1-\hat{p}_{pool})(1/n_1+1/n_2)}}
-$$
+## 10. Assumptions: ต้องตรวจอะไรและตรวจจากข้อมูลใด
 
-## 31. Key Takeaways
+### 10.1 Randomness และ Independence
 
-Hypothesis testing เปรียบเทียบ observed effect กับ sampling uncertainty ภายใต้ $H_0$ การเลือก test เริ่มจาก parameter และ study design ไม่ใช่เริ่มจากชื่อสูตร p-value วัดความสุดโต่งของข้อมูลภายใต้ null แต่ไม่บอก probability ที่ null จริง และไม่บอก practical importance การสรุปที่มีคุณภาพต้องรายงาน estimate, CI, p-value, assumptions และข้อจำกัดร่วมกัน
+การสุ่มตัวอย่างและความเป็นอิสระต้องพิจารณาจาก **การออกแบบการเก็บข้อมูล** ไม่สามารถพิสูจน์จาก Shapiro–Wilk test หรือกราฟได้
 
-บทนี้ยังเปิดคำถามต่อไปว่า หากสูตร parametric assumptions ไม่เหมาะ เราจะสร้าง null distribution จากข้อมูลได้อย่างไร นั่นนำไปสู่ Permutation Test ซึ่งเป็น computational testing counterpart ของแนวคิด resampling ใน [03 Jackknife and Bootstrap](03_jackknife_bootstrap.md)
+### 10.2 Normality
 
-## 32. Glossary
+เมื่อ sample เล็ก t test ต้องการให้ distribution ที่เกี่ยวข้องไม่เบี่ยงจาก normal มากและไม่มี outlier รุนแรง
 
-| คำศัพท์ | ความหมาย |
-|---|---|
-| Statistical hypothesis | ข้อความเกี่ยวกับ population หรือ data-generating process |
-| Null hypothesis | โมเดลฐานที่ใช้สร้าง reference distribution |
-| Alternative hypothesis | ชุดค่าหรือทิศทางที่แข่งขันกับ null |
-| Test statistic | คะแนนที่เปรียบ observed effect กับ uncertainty |
-| Critical value | ค่าที่แบ่ง rejection กับ non-rejection regions |
-| Significance level | อัตรา Type I error ที่กำหนดล่วงหน้า |
-| p-value | Probability ภายใต้ null ของผลที่อย่างน้อยสุดโต่งเท่าที่พบ |
-| Type I error | Reject null ทั้งที่ null จริง |
-| Type II error | Fail to reject null ทั้งที่ alternative จริง |
-| Power | Probability ที่ reject null เมื่อ effect ที่กำหนดมีจริง |
-| Effect size | ขนาดของความแตกต่างหรือความสัมพันธ์ |
-| Paired data | observations ที่เชื่อมโยงกันเป็นคู่ |
+- One-sample t test: ตรวจตัวแปรที่วัด
+- Paired t test: ตรวจ **ค่าผลต่างในแต่ละคู่**
+- Independent t test: ตรวจแต่ละกลุ่ม
 
-## Lab Supplement: Hypothesis Testing ด้วย R และรูปแบบคำตอบข้อสอบ
+~~~r
+hist(x)
+boxplot(x, horizontal = TRUE)
+qqnorm(x)
+qqline(x, col = "red")
+shapiro.test(x)
+~~~
 
-ส่วนนี้รวมโจทย์และ solution จาก Lab 04 สองชุด รวม 6 สถานการณ์ จุดประสงค์คือฝึกวงจรครบตั้งแต่กำหนด parameter และ hypotheses ตรวจ assumptions เลือก test อ่าน R output ไปจนถึงสรุปผลในบริบท
+Shapiro p-value มากกว่า .05 หมายถึงยังไม่มีหลักฐานต่อต้าน normality ไม่ได้พิสูจน์ว่าข้อมูลเป็น normal โดยเฉพาะเมื่อ sample เล็ก
 
-### 1. โครงคำตอบมาตรฐาน 7 ขั้น
+### 10.3 Outliers
 
-คำตอบข้อสอบ Hypothesis Testing ที่ครบควรเรียงดังนี้:
+Boxplot ใช้เกณฑ์ IQR เพื่อช่วยชี้ค่าที่ควรตรวจสอบ ค่าที่ถูก flag ไม่จำเป็นต้องลบทิ้ง ต้องตรวจว่าเป็นข้อมูลผิด เหตุการณ์จริง หรือ observation ที่สำคัญต่อโจทย์
 
-1. **Variable และ parameter:** บอกว่าข้อมูลวัดอะไร หน่วยอะไร และ parameter ของ population คืออะไร
-2. **Hypotheses:** เขียน (H_0/H_1) ด้วย parameter ไม่ใช้ sample statistic
-3. **Test และ assumptions:** ระบุ one-sample, independent หรือ paired test พร้อมเงื่อนไข
-4. **Test statistic:** รายงานค่า statistic และ degrees of freedom พร้อมอธิบายทิศทาง
-5. **p-value และ decision:** เปรียบเทียบกับ α แล้วใช้ reject/fail to reject
-6. **Contextual conclusion:** ตอบคำถามวิจัยโดยไม่ใช้คำว่าพิสูจน์
-7. **Effect/uncertainty:** รายงาน sample estimate, CI และ limitation ที่สำคัญ
+~~~r
+boxplot.stats(x)$out
+~~~
 
-Template ประโยค:
+---
 
-> ใช้ [ชื่อ test] เพื่อทดสอบ $H_0$: [parameter] เทียบกับ $H_1$: [parameter] ที่ระดับนัยสำคัญ 0.05 ได้ [statistic, df] และ p-value [ค่า] เนื่องจาก p-value [มากกว่า/น้อยกว่า] 0.05 จึง [ไม่ปฏิเสธ/ปฏิเสธ] $H_0$ ข้อมูล [ยังไม่ให้/ให้] หลักฐานเพียงพอว่า [ข้อสรุปในบริบท] ภายใต้ assumptions ของการสุ่ม ความเป็นอิสระ และ distribution ที่กำหนด
+## 11. เตรียม Google Colab สำหรับรัน R
 
-### 2. Lab Test 1.1: เวลาใช้ StatCrunch
+รัน cell นี้หนึ่งครั้งใน Python runtime:
 
-โจทย์ถามว่า mean weekly usage ของนักเรียนทั้งชั้นแตกต่างจาก 7 ชั่วโมงหรือไม่ จึงเป็น two-sided one-sample t test
+~~~python
+%load_ext rpy2.ipython
+~~~
+
+จากนั้นใช้ %%R ที่บรรทัดแรกของทุก cell ที่เป็น R:
+
+~~~r
+%%R
+# ปิด scientific notation และแสดงประมาณ 4 significant digits
+options(scipen = 999, digits = 4)
+~~~
+
+digits = 4 ควบคุมจำนวน significant digits ไม่ได้บังคับทศนิยมสี่ตำแหน่งเสมอ หากต้องการพิมพ์ค่าหนึ่งเป็นทศนิยมสี่ตำแหน่ง ใช้ sprintf("%.4f", value)
+
+Lab บทนี้ใช้คำสั่งจาก base R เป็นหลัก จึงไม่ต้องติดตั้ง package เพิ่ม
+
+---
+
+## 12. Lab 1.1: เวลาใช้โปรแกรม StatCrunch
+
+โจทย์ให้ข้อมูลเวลาใช้งาน 15 ค่า และถามว่า population mean **แตกต่างจาก 7** หรือไม่ ที่ระดับนัยสำคัญ .05
+
+### วิเคราะห์โจทย์
+
+ข้อมูลเป็นตัวเลขหนึ่ง sample คำว่า “different from” ทำให้เป็น two-sided one-sample t test
 
 $$
-H_0:\mu=7
+H_0: \mu = 7
 $$
 
 $$
-H_1:\mu\ne7
+H_1: \mu \ne 7
 $$
 
-Solution ให้ $\bar{x}=5.9$, $t=-0.85377$, $df=14$, p-value 0.4076 และ 95% CI $(3.1366,8.6634)$ ค่า t ติดลบเพราะ sample mean ต่ำกว่า null value แต่ค่าสัมบูรณ์ไม่มากเมื่อเทียบกับ SE
+### รัน R
 
-> ที่ระดับ 0.05 p-value 0.4076 มากกว่า 0.05 จึง fail to reject $H_0$ ข้อมูลจากนักเรียน 15 คนยังไม่ให้หลักฐานเพียงพอว่า mean weekly StatCrunch usage ของนักเรียนทั้งชั้นแตกต่างจาก 7 ชั่วโมง ทั้งนี้ไม่ได้แปลว่า mean เท่ากับ 7 แน่นอน เพราะ CI ยังครอบคลุมค่ากว้างตั้งแต่ประมาณ 3.14 ถึง 8.66 ชั่วโมง
+~~~r
+%%R
+statcrunch_time <- c(6.5, 4, 3.5, 0, 12, 5, 12, 15, 12, 0, 1, 8, 0.5, 2, 7)
 
-```r
-time <- c(6.5, 4, 3.5, 0, 12, 5, 12, 15, 12, 0, 1, 8, 0.5, 2, 7)
+# ตรวจ normality และทดสอบ mean เทียบกับ 7 แบบสองด้าน
+print(shapiro.test(statcrunch_time))
+print(t.test(statcrunch_time, mu = 7, alternative = "two.sided"))
+~~~
 
-boxplot(time)
-shapiro.test(time)
-t.test(time, mu = 7, alternative = 'two.sided')
+### อ่านผล
 
-qt(0.975, df = 14)
-2 * pt(-abs(-0.85377), df = 14)
-```
+- Shapiro–Wilk: $W=0.9146$, p-value = 0.1590
+- Sample mean = 5.9000
+- $t=-0.8538$, df = 14
+- p-value = 0.4076
+- 95% CI = [3.1366, 8.6634]
 
-`mu=7` กำหนด null mean ส่วน `alternative='two.sided'` เป็นค่า default แต่เขียนไว้ช่วยให้เจตนาชัด `qt()` คืน critical value และ `pt()` คืน cumulative probability การคูณสองใช้กับ symmetric t distribution ใน two-sided test
+แม้ sample mean ต่ำกว่า 7 แต่ผลต่างยังเล็กเมื่อเทียบกับ standard error ค่า 7 ยังอยู่ใน 95% CI และ p-value มากกว่า .05
 
-### 3. Lab Test 1.2: Waiting Time
+### เขียนตอบข้อสอบ
 
-โจทย์ถามว่า population mean waiting time ต่ำกว่า 5 นาทีหรือไม่ จึงใช้ left-tailed one-sample t test
+> กำหนด $H_0:\mu=7$ และ $H_1:\mu\ne7$ ใช้ two-sided one-sample t test เนื่องจากเป็นข้อมูลเชิงตัวเลขหนึ่ง sample การตรวจ Shapiro–Wilk ให้ p-value = 0.1590 จึงยังไม่มีหลักฐานต่อต้าน normality ผลการทดสอบได้ $t(14)=-0.8538$, p-value = 0.4076 และ 95% CI เท่ากับ [3.1366, 8.6634] เนื่องจาก p-value มากกว่า .05 จึง fail to reject $H_0$ ยังไม่มีหลักฐานเพียงพอว่าเวลาใช้ StatCrunch เฉลี่ยแตกต่างจาก 7
 
-$$
-H_0:\mu\ge5
-$$
+---
 
-$$
-H_1:\mu<5
-$$
+## 13. Lab 1.2: เวลารอของลูกค้า
 
-Solution ให้ $\bar{x}=4.2867$, $t=-1.6867$, $df=14$, p-value 0.05691 และ one-sided 95% CI $(-\infty,5.0316)$
+คำถามทางสถิติคือ population mean ต่ำกว่า 5 นาทีหรือไม่
 
-> แม้ sample mean ต่ำกว่า 5 นาที แต่ p-value 0.0569 ยังมากกว่า 0.05 เล็กน้อย จึง fail to reject $H_0$ และยังไม่มีหลักฐานเพียงพอว่า population mean ต่ำกว่า 5 นาทีที่ระดับ 0.05
+### วิเคราะห์โจทย์
 
-Shapiro–Wilk ให้ p-value 0.5085 และกราฟไม่แสดง departure รุนแรง จึงถือว่า Normality assumption สมเหตุสมผลสำหรับ sample เล็กนี้ แต่คำกล่าวของผู้จัดการว่า “ลูกค้าแทบจะแน่นอนว่ารอน้อยกว่า 5 นาที” ยังผิดสองชั้น: test ไม่ significant และโจทย์ทดสอบ population mean ไม่ใช่ probability ที่ลูกค้าแต่ละคนจะรอต่ำกว่า 5 นาที
-
-```r
-waiting_time <- c(
-  4.21,5.55,3.02,5.13,4.77,2.34,3.54,3.20,
-  4.50,6.10,0.38,5.12,6.46,6.19,3.79
-)
-
-boxplot(waiting_time)
-qqnorm(waiting_time)
-qqline(waiting_time, col = 'steelblue')
-shapiro.test(waiting_time)
-t.test(waiting_time, mu = 5, alternative = 'less')
-```
-
-### 4. Lab Test 1.3: Strength of Insulators
-
-โจทย์ต้องการหลักฐานว่า mean breaking force มากกว่า 1,500 pounds:
+ข้อมูลเป็นเวลาหนึ่ง sample และ “less than” ทำให้เป็น left-sided one-sample t test
 
 $$
-H_0:\mu\le1500
+H_0: \mu = 5
 $$
 
 $$
-H_1:\mu>1500
+H_1: \mu < 5
 $$
 
-Solution ให้ $\bar{x}=1723.4$, $t=13.664$, $df=29$ และ p-value $1.816\times10^{-14}$ จึงปฏิเสธ $H_0$ อย่างชัดเจน Shapiro–Wilk p-value 0.622 และ Q–Q plot สนับสนุนว่า Normality assumption สมเหตุสมผล
+### รัน R
 
-> ข้อมูลให้หลักฐานอย่างมากว่า population mean force ที่ทำให้ insulator แตกสูงกว่า 1,500 pounds อย่างไรก็ตามข้อสรุปเรื่องความปลอดภัยยังต้องพิจารณา lower-tail failure, specification limits และ defect probability ไม่ใช่ mean เพียงค่าเดียว
+~~~r
+%%R
+waiting_time <- c(4.21, 5.55, 3.02, 5.13, 4.77, 2.34, 3.54, 3.20,
+                  4.50, 6.10, 0.38, 5.12, 6.46, 6.19, 3.79)
 
-```r
-force <- c(
-  1870,1764,1774,1680,1728,1734,1550,1810,1656,1662,
-  1756,1652,1610,1734,1762,1736,1634,1866,1784,1820,
-  1522,1744,1696,1788,1592,1688,1662,1810,1866,1752
-)
+# ตรวจ normality และทดสอบว่า mean ต่ำกว่า 5 หรือไม่
+print(shapiro.test(waiting_time))
+print(t.test(waiting_time, mu = 5, alternative = "less"))
+~~~
 
-qqnorm(force)
-qqline(force, col = 'steelblue')
-shapiro.test(force)
-t.test(force, mu = 1500, alternative = 'greater')
-```
+### อ่านผล
 
-### 5. Lab Test 2.1: Weight Change in Anorexic Girls
+- Shapiro–Wilk p-value = 0.5085
+- Sample mean = 4.2867 นาที
+- $t=-1.6867$, df = 14
+- One-sided p-value = 0.0569
+- One-sided 95% CI มี upper bound เท่ากับ 5.0316 นาที
 
-น้ำหนักวัดก่อนและหลังในคนเดิม จึงเป็น paired design และตัวแปรที่วิเคราะห์คือ $d_i=after_i-before_i$
+Sample mean ต่ำกว่า 5 จริง แต่ p-value ยังสูงกว่า .05 เล็กน้อย จึงยังไม่มีหลักฐานเพียงพอ
+
+### เขียนตอบข้อสอบ
+
+> กำหนด $H_0:\mu=5$ และ $H_1:\mu<5$ ใช้ left-sided one-sample t test การตรวจ Shapiro–Wilk ให้ p-value = 0.5085 ผลการทดสอบได้ $t(14)=-1.6867$, p-value = 0.0569 เนื่องจาก p-value มากกว่า .05 จึง fail to reject $H_0$ ยังไม่มีหลักฐานเพียงพอว่าเวลารอเฉลี่ยของลูกค้าน้อยกว่า 5 นาที
+
+คำกล่าวว่า “ลูกค้าแทบจะแน่ใจว่าจะรอน้อยกว่า 5 นาที” ยังแรงกว่าสิ่งที่ mean test ตอบ เพราะ mean ต่ำกว่า 5 ก็ไม่ได้หมายความว่าลูกค้าแต่ละคนจะรอน้อยกว่า 5 นาที
+
+---
+
+## 14. Lab 1.3: ความแข็งแรงของฉนวน
+
+โจทย์ถามว่าความแข็งแรงเฉลี่ยของฉนวนสูงกว่า 1,500 หน่วยหรือไม่ จากข้อมูล 30 ค่า
+
+### วิเคราะห์โจทย์
+
+เป็น right-sided one-sample t test
 
 $$
-H_0:\mu_d\le0
+H_0: \mu = 1500
 $$
 
 $$
-H_1:\mu_d>0
+H_1: \mu > 1500
 $$
 
-Solution ให้ mean change 2.5586, $t=2.4686$, $df=28$, p-value 0.009966 และ one-sided lower confidence bound 0.7955 จึงมีหลักฐานว่าการรักษาสัมพันธ์กับ positive mean weight change ภายในกลุ่มที่ได้รับ therapy
+### รัน R
 
-```r
-after <- c(
-  85.2,88.6,86.4,81.9,76.4,93.6,98.4,89.4,71.4,82.1,
-  100.5,95.3,87.6,72.5,78.1,71.3,89.4,92.1,83.9,82.7,
-  81.6,75.7,82.6,95.4,85.2,83.6,88.6,86.2,86.7
-)
+~~~r
+%%R
+strength <- c(1870, 1764, 1774, 1680, 1728, 1734, 1550, 1810, 1656, 1662,
+              1756, 1652, 1610, 1734, 1762, 1736, 1634, 1866, 1784, 1820,
+              1522, 1744, 1696, 1788, 1592, 1688, 1662, 1810, 1866, 1752)
 
-before <- c(
-  80.5,84.9,81.5,82.6,79.9,88.7,94.9,76.3,81.0,80.5,
-  85.0,89.2,81.3,76.5,70.0,80.6,83.3,87.7,84.2,86.4,
-  83.0,76.5,80.2,87.8,83.3,79.7,84.5,80.8,87.4
-)
+# ตรวจข้อมูลจากหลายมุม
+print(summary(strength))
+boxplot(strength, horizontal = TRUE, main = "Strength of insulators")
+qqnorm(strength)
+qqline(strength, col = "red")
+print(shapiro.test(strength))
 
+# ทดสอบว่า population mean สูงกว่า 1500 หรือไม่
+print(t.test(strength, mu = 1500, alternative = "greater"))
+~~~
+
+### อ่านผล
+
+- Mean = 1723.4 และ standard deviation ประมาณ 89.55
+- Q–Q plot มีจุดใกล้แนวเส้นตรงโดยรวม
+- Shapiro–Wilk p-value = 0.6220
+- เกณฑ์ IQR ไม่พบ outlier
+- $t=13.6640$, df = 29, p-value < 0.0001
+- One-sided 95% lower bound = 1695.62
+
+เอกสารเฉลยเสริมแสดงเกณฑ์ mean $\pm$ 2 SD ด้วย แต่ไม่ควรใช้เกณฑ์นี้เป็นเหตุผลอัตโนมัติในการลบข้อมูล ควรตรวจข้อมูลดิบและบริบทประกอบ
+
+### เขียนตอบข้อสอบ
+
+> กำหนด $H_0:\mu=1500$ และ $H_1:\mu>1500$ ใช้ right-sided one-sample t test ข้อมูลไม่มี outlier ตามเกณฑ์ IQR, Q–Q plot ใกล้เส้นตรง และ Shapiro–Wilk ให้ p-value = 0.6220 ผลการทดสอบได้ $t(29)=13.6640$, p-value < 0.0001 และ one-sided 95% lower confidence bound เท่ากับ 1695.62 จึง reject $H_0$ มีหลักฐานเพียงพอว่าความแข็งแรงเฉลี่ยของฉนวนสูงกว่า 1,500 หน่วย
+
+---
+
+## 15. Lab 2.1: น้ำหนักก่อนและหลังการรักษา
+
+ข้อมูลเป็นน้ำหนักก่อนและหลังของผู้ป่วย 29 คนเดียวกัน โจทย์ถามว่าน้ำหนักเฉลี่ยหลังรักษาสูงขึ้นหรือไม่
+
+### วิเคราะห์โจทย์
+
+มีสองค่าจากคนเดียวกัน จึงเป็น paired data กำหนด difference = after - before
+
+$$
+H_0: \mu_d = 0
+$$
+
+$$
+H_1: \mu_d > 0
+$$
+
+### รัน R
+
+~~~r
+%%R
+before <- c(80.5, 84.9, 81.5, 82.6, 79.9, 88.7, 94.9, 76.3, 81.0, 80.5,
+            85.0, 89.2, 81.3, 76.5, 70.0, 80.4, 83.3, 83.0, 87.7, 84.2,
+            86.4, 76.5, 80.2, 87.8, 83.3, 79.7, 84.5, 80.8, 87.4)
+
+after <- c(82.2, 85.6, 81.4, 81.9, 76.4, 103.6, 98.4, 93.4, 73.4, 82.1,
+           96.7, 95.3, 82.4, 72.5, 90.9, 71.3, 85.4, 81.6, 89.1, 83.9,
+           82.7, 75.7, 82.6, 100.4, 85.2, 83.6, 84.6, 96.2, 86.7)
+
+# Paired t test ตรวจ normality ของค่าผลต่าง
 weight_change <- after - before
-shapiro.test(weight_change)
-t.test(weight_change, alternative = 'greater', conf.level = 0.95)
+print(shapiro.test(weight_change))
+print(t.test(after, before, paired = TRUE, alternative = "greater"))
+~~~
 
-# Equivalent paired syntax
-t.test(after, before,
-       paired = TRUE,
-       alternative = 'greater',
-       conf.level = 0.95)
-```
+### อ่านผล
 
-> **แก้ typo จากเอกสาร:** ใช้ `conf.level` ไม่ใช่ `con.level` และค่า `83.3` ใน vector `before` ต้องไม่ถูกตัดด้วย line break
+- Mean difference = 2.5586 หน่วย
+- Shapiro–Wilk ของ differences: p-value = 0.3889
+- $t=2.4686$, df = 28
+- One-sided p-value = 0.0100
+- One-sided 95% lower bound = 0.7955
 
-คำว่า “effective” ต้องใช้ระมัดระวัง หากไม่มี randomized control group ผล before–after อาจได้รับอิทธิพลจาก time trend, regression to the mean หรือ intervention อื่น จึงสรุป association กับ change ได้มั่นใจกว่า causal effect
+### เขียนตอบข้อสอบ
 
-### 6. Lab Test 2.2: Gum Flavor Longevity
+> เนื่องจากน้ำหนักก่อนและหลังมาจากผู้ป่วยคนเดียวกัน จึงใช้ paired t test โดยกำหนด difference = after - before, $H_0:\mu_d=0$ และ $H_1:\mu_d>0$ การตรวจ differences ด้วย Shapiro–Wilk ให้ p-value = 0.3889 ผลการทดสอบได้ mean difference = 2.5586, $t(28)=2.4686$, p-value = 0.0100 จึง reject $H_0$ มีหลักฐานเพียงพอว่าน้ำหนักเฉลี่ยหลังการรักษาสูงกว่าก่อนการรักษา
 
-Female และ male เป็นคนละกลุ่ม จึงเป็น independent two-sample comparison โจทย์เป็น two-sided:
+---
+
+## 16. Lab 2.2: ระยะเวลาที่รสชาติหมากฝรั่งคงอยู่
+
+โจทย์เปรียบเทียบผู้หญิง 8 คนกับผู้ชาย 7 คน และถามว่าค่าเฉลี่ยแตกต่างกันหรือไม่
+
+### วิเคราะห์โจทย์
+
+ผู้หญิงและผู้ชายเป็นคนละกลุ่ม จึง independent คำว่า “different” ทำให้เป็น two-sided test เฉลยต้นฉบับตรวจ equal variances แล้วใช้ pooled t test
 
 $$
-H_0:\mu_F-\mu_M=0
+H_0: \mu_F-\mu_M = 0
 $$
 
 $$
-H_1:\mu_F-\mu_M\ne0
+H_1: \mu_F-\mu_M \ne 0
 $$
 
-Solution ใช้ pooled t test และได้ means 23.625 กับ 22.286 นาที, $t=0.41924$, $df=13$, p-value 0.6819 และ 95% CI $(-5.562,8.241)$ จึง fail to reject equality null
+### รัน R
 
-```r
+~~~r
+%%R
 female <- c(15, 21, 29, 22, 19, 25, 35, 23)
 male <- c(22, 24, 23, 30, 12, 17, 28)
 
-shapiro.test(female)
-shapiro.test(male)
+print(shapiro.test(female))
+print(shapiro.test(male))
 
-t.test(
-  female,
-  male,
-  alternative = 'two.sided',
-  var.equal = TRUE
-)
+# เฉลยกำหนด equal variances จึงใช้ pooled-variance t test
+print(t.test(female, male, alternative = "two.sided", var.equal = TRUE))
+~~~
 
-# Welch sensitivity analysis
-t.test(female, male, alternative = 'two.sided')
-```
+หากโจทย์ไม่ได้ให้สมมติว่า variances เท่ากัน ใช้ Welch โดยเอา var.equal = TRUE ออก
 
-> **แก้ typo จากเอกสาร:** ต้องเขียน `male <- c(...)` ไม่ใช่ `m< -c(...)` เพราะช่องว่างเปลี่ยน `<-` เป็นเครื่องหมายน้อยกว่าและ unary minus ทำให้ assignment ไม่เกิด
+### อ่านผล
 
-เอกสารตรวจ equal variance ด้วย `var.test()` และ Levene's test แต่ F test ไวต่อ non-Normality และ preliminary variance testing ไม่ควรเป็นเหตุผลเดียวในการเลือก pooled test สำหรับงานจริงควรรายงาน Welch เป็น default/sensitivity analysis และใช้ pooled เมื่อมีเหตุผลรองรับ common variance
+- Female mean = 23.6250, male mean = 22.2857
+- Shapiro p-values ของทั้งสองกลุ่มมากกว่า .05
+- $t=0.4192$, df = 13, p-value = 0.6819
+- 95% CI ของ $\mu_F-\mu_M$ = [-5.5622, 8.2408]
 
-### 7. Lab Test 2.3: Pizza Advertising Claim
+### เขียนตอบข้อสอบ
 
-Local และ Chain เป็น independent groups และ claim มีทิศทางว่า Local เร็วกว่า จึงตั้ง
+> กำหนด $H_0:\mu_F-\mu_M=0$ และ $H_1:\mu_F-\mu_M\ne0$ ใช้ two-sided pooled two-sample t test ตามสมมติฐาน equal variances ของโจทย์ ผลการทดสอบได้ $t(13)=0.4192$, p-value = 0.6819 และ 95% CI เท่ากับ [-5.5622, 8.2408] จึง fail to reject $H_0$ ยังไม่มีหลักฐานเพียงพอว่าระยะเวลาที่รสชาติหมากฝรั่งคงอยู่เฉลี่ยแตกต่างกันระหว่างผู้หญิงและผู้ชาย
+
+---
+
+## 17. Lab 2.3: เวลาส่งพิซซ่าของร้านท้องถิ่นและร้านเชน
+
+โฆษณาอ้างว่าร้านท้องถิ่นส่งเร็วกว่า เมื่อหน่วยเป็น “เวลา” คำว่าเร็วกว่าแปลว่า mean time **น้อยกว่า** ร้านเชน
+
+### วิเคราะห์โจทย์
+
+เป็น independent groups กำหนดผลต่างเป็น local - chain และเฉลยต้นฉบับใช้ pooled t test
 
 $$
-H_0:\mu_L-\mu_C\ge0
+H_0: \mu_L-\mu_C = 0
 $$
 
 $$
-H_1:\mu_L-\mu_C<0
+H_1: \mu_L-\mu_C < 0
 $$
 
-Solution ใช้ pooled t test ได้ means 16.70 กับ 18.88 นาที, observed difference -2.18 นาที, $t=-1.6341$, $df=18$, p-value 0.0598 และ one-sided upper bound 0.1334
+### รัน R
 
-> ที่ระดับ 0.05 p-value 0.0598 มากกว่า 0.05 จึง fail to reject $H_0$ แม้ sample mean ของ Local ต่ำกว่า 2.18 นาที แต่ข้อมูล 10 orders ต่อกลุ่มยังไม่ให้หลักฐานเพียงพอที่จะยืนยัน claim ว่า Local มี population mean delivery time ต่ำกว่า Chain
+~~~r
+%%R
+local <- c(16.8, 11.7, 15.6, 16.7, 17.5, 18.1, 14.1, 21.8, 13.9, 20.8)
+chain <- c(22.0, 15.2, 18.7, 15.6, 20.8, 19.5, 17.0, 19.5, 16.5, 24.0)
 
-```r
-local <- c(16.8,11.7,15.6,16.7,17.5,18.1,14.1,21.8,13.9,20.8)
-chain <- c(22.0,15.2,18.7,15.6,20.8,19.5,17.0,19.5,16.5,24.0)
+print(shapiro.test(local))
+print(shapiro.test(chain))
 
-shapiro.test(local)
-shapiro.test(chain)
+# local เป็น argument แรก: less หมายถึง local - chain < 0
+print(t.test(local, chain, alternative = "less", var.equal = TRUE))
+~~~
 
-t.test(
-  local,
-  chain,
-  var.equal = TRUE,
-  alternative = 'less'
-)
+### อ่านผล
 
-# Welch sensitivity analysis
-t.test(local, chain, alternative = 'less')
-```
+- Local mean = 16.70 นาที, chain mean = 18.88 นาที
+- Observed difference = -2.18 นาที
+- $t=-1.6341$, df = 18
+- One-sided p-value = 0.0598
+- One-sided 95% CI ของ local - chain มี upper bound = 0.1334
 
-การใช้ one-tailed test สมเหตุสมผลเมื่อ claim ถูกกำหนดก่อนเห็นข้อมูล หาก Local กลับช้ากว่าอย่างมาก one-tailed p-value ด้านซ้ายจะไม่ถือเป็นหลักฐานสนับสนุน claim
+แม้ sample ของร้านท้องถิ่นเร็วกว่าเฉลี่ย 2.18 นาที แต่ p-value สูงกว่า .05 เล็กน้อย และ interval ยังรวมค่าที่ local อาจช้ากว่าได้เล็กน้อย
 
-### 8. วิธีอ่าน R `t.test()` output
+### เขียนตอบข้อสอบ
 
-| Output | คำถามที่ตอบ |
-|---|---|
-| `t` | estimate ห่างจาก null กี่ estimated SE และทิศทางใด |
-| `df` | reference t distribution ใช้ degrees of freedom เท่าใด |
-| `p-value` | ภายใต้ null ผลที่อย่างน้อยสุดโต่งเท่านี้มี probability เท่าใด |
-| `alternative hypothesis` | R ใช้ tail ตรงกับโจทย์หรือไม่ |
-| `confidence interval` | ช่วง parameter ที่สอดคล้องกับข้อมูลตาม confidence level |
-| `mean of x/y` | sample estimates; ไม่ใช่ population parameters ที่รู้แน่นอน |
+> กำหนด $H_0:\mu_L-\mu_C=0$ และ $H_1:\mu_L-\mu_C<0$ ใช้ left-sided pooled two-sample t test ตามสมมติฐาน equal variances ของโจทย์ ผลการทดสอบได้ $t(18)=-1.6341$, p-value = 0.0598 จึง fail to reject $H_0$ ยังไม่มีหลักฐานเพียงพอที่ระดับ .05 ว่าร้านท้องถิ่นมีเวลาส่งเฉลี่ยน้อยกว่าร้านเชน
 
-`t.test(x, mu=...)` ใช้กับ one sample, `t.test(x, y)` ใช้กับ independent samples โดย default เป็น Welch และ `t.test(x, y, paired=TRUE)` ใช้กับ pairs การระบุ `alternative='less'` หมายถึง parameter ของ `x` ลบ parameter ของ `y` ต่ำกว่าศูนย์ ลำดับ argument จึงมีผลต่อเครื่องหมายและข้อสรุป
+การไม่ significant ไม่ได้แปลว่าความต่าง 2.18 นาทีไม่มีความสำคัญทางธุรกิจ เพียงแต่ sample นี้ยังให้หลักฐานทางสถิติไม่เพียงพอ
 
-### 9. Exam Decision Table จาก Lab
+---
 
-| สถานการณ์ | Design | Tail | คำสั่งหลัก |
-|---|---|---|---|
-| StatCrunch เทียบ 7 | One sample | Two-sided | `t.test(time, mu=7)` |
-| Waiting time ต่ำกว่า 5 | One sample | Left | `t.test(wt, mu=5, alternative='less')` |
-| Insulator มากกว่า 1500 | One sample | Right | `t.test(force, mu=1500, alternative='greater')` |
-| Before/after weight | Paired | Right | `t.test(after, before, paired=TRUE, alternative='greater')` |
-| Female vs male gum | Independent | Two-sided | `t.test(female, male)` |
-| Local faster than Chain | Independent | Left | `t.test(local, chain, alternative='less')` |
+## 18. วิธีอ่านผล t.test() โดยไม่หลงบรรทัด
 
-### 10. Common R errors จาก Lab
+เมื่อ R แสดงผล ให้หาองค์ประกอบตามลำดับนี้:
 
-- เขียน `< -` แทน `<-`: assignment ไม่ทำงาน
-- ใช้ `con.level`: R แจ้ง unused argument; ต้องเป็น `conf.level`
-- ลืม `paired=TRUE`: เปลี่ยน estimand และ SE
-- สลับลำดับ `x, y`: เครื่องหมาย effect และทิศทาง alternative กลับด้าน
-- อ่าน Shapiro p-value สูงว่า “พิสูจน์ Normal”: เป็นเพียง fail to reject
-- ใช้ `var.equal=TRUE` โดยไม่มีเหตุผล: บังคับ pooled test โดยไม่จำเป็น
-- สรุป individual outcome จาก test ของ population mean
-- รายงานเพียง p-value โดยไม่ให้ estimate, CI และบริบท
+1. ชื่อ test: one-sample, Welch, pooled หรือ paired
+2. ค่า t และ df
+3. p-value
+4. Alternative hypothesis ว่าทิศทางตรงกับโจทย์หรือไม่
+5. Confidence interval
+6. Sample estimate หรือ mean difference
 
-## 33. Source Coverage Audit
+ตรวจทิศทางทุกครั้ง เพราะ alternative = "less" หมายถึง parameter ของ **argument แรกน้อยกว่า argument ที่สอง**
 
-| Source slides | Primary teaching home |
-|---|---|
-| 1–2 | Chapter scope และ research-question examples |
-| 3–6 | Definition and formulation of $H_0/H_1$ |
-| 7–8 | Logic of hypothesis testing |
-| 9–10 | Components, workflow, test statistic, critical region |
-| 11 | One-/two-tailed tests |
-| 12 | Type I/II errors, significance and power |
-| 13 | p-value and decision rule |
-| 14–15 | Tests for population means and one-sample t test |
-| 16–17 | Independent two-sample tests: unequal/equal variances |
-| 18 | Matched-pair test |
-| 19 | Multiple means and ANOVA bridge |
-| 20–21 | Assumptions and tests for one/two proportions |
-| `lab_04_hypothsis_test1.pdf`, pp. 1–2 และ solution pp. 1–4 | Three one-sample t-test labs, assumption checks และ R output |
-| `lab_04_hypothsis_test2.pdf`, pp. 1–2 และ solution pp. 1–7 | Paired and independent t-test labs, corrected R code และ exam answers |
+~~~r
+# สองคำสั่งนี้ตอบคำถามเดียวกัน
+t.test(group_a, group_b, alternative = "less")
+t.test(group_b, group_a, alternative = "greater")
+~~~
 
-## 34. References
+---
 
-1. เอกสารประกอบการสอน `dads6001-applied_statistics/lecture/dads6001_04_hypothesis_testing.pptx`, Slides 1–21.
-2. Berenson, M. L., Levine, D. M., & Krehbiel, T. C. (2012). *Basic Business Statistics: Concepts and Applications* (12th ed.). Pearson.
-3. Weiss, N. A. (2017). *Introductory Statistics* (10th ed.). Pearson.
-4. `dads6001-applied_statistics/lab/lab_04_hypothsis_test1.pdf` และ `lab_04_hypothsis_test1_solution.pdf`.
-5. `dads6001-applied_statistics/lab/lab_04_hypothsis_test2.pdf` และ `lab_04_hypothsis_test2_solution.pdf`.
+## 19. โครงเขียนตอบข้อสอบ
+
+คำตอบที่ครบถ้วนควรมี:
+
+1. Population parameter และ $H_0$, $H_1$
+2. ชื่อ test และเหตุผลจากโครงสร้างข้อมูล
+3. Assumptions และวิธีตรวจที่เกี่ยวข้อง
+4. Statistic, df, p-value และ confidence interval ถ้ามี
+5. การเปรียบเทียบ p-value กับ $\alpha$
+6. ข้อสรุปด้วยภาษาของโจทย์
+
+แม่แบบสำหรับกรณี reject:
+
+> ใช้ [ชื่อ test] เนื่องจาก [เหตุผล] กำหนด $H_0$: [ข้อความ] และ $H_1$: [ข้อความ] ผลการทดสอบได้ [statistic และ df], p-value = [ค่า] เนื่องจาก p-value น้อยกว่า $\alpha$ จึง reject $H_0$ มีหลักฐานเพียงพอว่า [สรุปในบริบท]
+
+แม่แบบสำหรับกรณี fail to reject:
+
+> ผลการทดสอบได้ [statistic และ df], p-value = [ค่า] เนื่องจาก p-value มากกว่า $\alpha$ จึง fail to reject $H_0$ ยังไม่มีหลักฐานเพียงพอว่า [ข้อความตาม $H_1$]
+
+---
+
+## 20. จุดที่มักทำให้ตอบผิด
+
+### เลือก one-sided หลังเห็นข้อมูล
+
+ต้องเลือกจากคำถามวิจัยก่อนวิเคราะห์ มิฉะนั้น Type I error จะสูงกว่าที่กำหนด
+
+### ใช้ independent test กับ before–after
+
+ข้อมูลก่อน–หลังของคนเดิมต้องใช้ paired test และตรวจ normality ของ differences
+
+### เขียนว่า p-value คือโอกาสที่ null เป็นจริง
+
+p-value คำนวณภายใต้เงื่อนไขว่า $H_0$ จริง จึงไม่ใช่ความน่าจะเป็นของ $H_0$
+
+### เขียนว่า fail to reject แปลว่าเท่ากัน
+
+ข้อมูลอาจยังไม่พอแยกความแตกต่างจาก sampling variability การสรุปที่ถูกคือ “ยังไม่มีหลักฐานเพียงพอ”
+
+### ใช้ Shapiro p-value มากกว่า .05 เป็นหลักฐานว่า normal แน่นอน
+
+ควรเขียนว่า “ยังไม่มีหลักฐานต่อต้าน normality” และดู Q–Q plot, outliers, sample size และการออกแบบร่วมด้วย
+
+### สับสนระหว่าง statistical กับ practical significance
+
+รายงานทั้ง p-value และขนาดความแตกต่างพร้อม confidence interval เพื่อให้ผู้อ่านตัดสินความสำคัญในโลกจริง
+
+---
+
+## 21. สรุปวิธีเลือกคำสั่ง R
+
+~~~r
+# One sample
+t.test(x, mu = value, alternative = "two.sided")
+t.test(x, mu = value, alternative = "less")
+t.test(x, mu = value, alternative = "greater")
+
+# Independent groups: Welch เป็นค่าเริ่มต้น
+t.test(group_1, group_2, alternative = "two.sided")
+
+# Independent groups: pooled เมื่อสมมติ equal variances
+t.test(group_1, group_2, alternative = "two.sided", var.equal = TRUE)
+
+# Paired data
+t.test(group_1, group_2, paired = TRUE, alternative = "two.sided")
+~~~
+
+two.sided, less และ greater มาจาก $H_1$ ส่วน paired และ var.equal มาจากโครงสร้างข้อมูลและ assumptions
+
+---
+
+## 22. Likely Exam Focus
+
+1. แยก population parameter ออกจาก sample statistic
+2. ตั้ง $H_0$ และ $H_1$ จากคำว่าแตกต่าง มากกว่า หรือน้อยกว่า
+3. เลือก one-sample, independent หรือ paired t test
+4. อธิบายว่า paired test วิเคราะห์ differences
+5. อ่าน t, df, p-value, CI และ sample estimates จาก R
+6. ตัดสินใจจาก p-value เทียบกับ $\alpha$
+7. เขียน “fail to reject” โดยไม่แปลว่า $H_0$ ได้รับการพิสูจน์
+8. อธิบาย Type I error, Type II error และ power ในบริบทโจทย์
+9. ตรวจ normality จากข้อมูลที่ถูกต้องและไม่พึ่ง Shapiro test เพียงอย่างเดียว
+10. แยก statistical significance ออกจาก practical significance
+
+---
+
+## 23. แบบฝึกคิดก่อนสอบ
+
+### ข้อ 1
+
+โรงงานอ้างว่าน้ำหนักบรรจุเฉลี่ยมากกว่า 500 กรัม เก็บสินค้าสุ่ม 20 ชิ้น ควรใช้ test ใด
+
+**คำตอบ:** Right-sided one-sample t test
+
+$$
+H_0: \mu = 500
+$$
+
+$$
+H_1: \mu > 500
+$$
+
+### ข้อ 2
+
+วัดความดันผู้ป่วยคนเดิมก่อนและหลังรับยา ต้องใช้ independent หรือ paired test
+
+**คำตอบ:** Paired t test เพราะค่าทั้งสองมาจากคนเดียวกัน ให้สร้าง difference ตามทิศทางที่สนใจแล้วทดสอบ mean difference เทียบกับ 0
+
+### ข้อ 3
+
+ผลการทดสอบให้ p-value = 0.08 ที่ $\alpha=0.05$ เขียนว่า “ยอมรับว่าไม่มีความแตกต่าง” ได้หรือไม่
+
+**คำตอบ:** ไม่ได้ ควรเขียนว่า fail to reject $H_0$ และยังไม่มีหลักฐานเพียงพอว่ามีความแตกต่าง
+
+### ข้อ 4
+
+ถ้า two-sided test ที่ $\alpha=0.05$ ให้ 95% CI ของ mean difference เป็น [1.2, 3.8] ควรตัดสินใจอย่างไร
+
+**คำตอบ:** Reject $H_0$ ที่กำหนด mean difference = 0 เพราะ interval ไม่รวม 0
+
+---
+
+## 24. ภาพรวมทั้งบท
+
+Hypothesis testing ไม่ใช่ขั้นตอนหา p-value อย่างเดียว แต่เป็นกระบวนการเชื่อมคำถามในโลกจริงเข้ากับ population parameter เลือกแบบจำลองตามโครงสร้างข้อมูล ประเมินความแตกต่างเทียบกับ sampling variability แล้วสื่อสารข้อสรุปภายใต้ความไม่แน่นอน
+
+> อ่านคำถาม → ระบุ parameter → ดูโครงสร้าง sample → ตั้ง $H_0$ และ $H_1$ → เลือก test → ตรวจ assumptions → รัน R → อ่าน p-value และ CI → สรุปด้วยภาษาของโจทย์
+
+ถ้าทิศทางของ $H_1$ หรือการแยก independent กับ paired ผิด ต่อให้ R คำนวณถูก คำตอบก็ยังตอบคนละคำถามกับโจทย์
+
+---
+
+## แหล่งที่ใช้จัดทำบทนี้
+
+- lecture04_hypothesis_testing.pptx — 21 slides
+- lab04_hypothsis_test1.pdf — Exercise set 1
+- lab04_hypothsis_test1_solution.pdf — Solution set 1
+- lab04_hypothsis_test1_solution2_normalilty_outliers.pdf — Normality and outlier supplement
+- lab04_hypothsis_test2.pdf — Exercise set 2
+- lab04_hypothsis_test2_solution.pdf — Solution set 2
