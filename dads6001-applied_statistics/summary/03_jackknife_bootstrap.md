@@ -7,8 +7,10 @@
 ในบท Interval Estimation เราสร้าง confidence interval จากโครงสร้าง
 
 $$
-\text{Estimate} \pm \text{Critical value}\times SE
+\hat{\theta} \pm c \times SE
 $$
+
+โดย $\hat{\theta}$ คือค่าประมาณจาก sample และ $c$ คือ critical value
 
 ส่วนที่สำคัญที่สุดส่วนหนึ่งคือ standard error เพราะมันบอกว่า estimate จะเปลี่ยนมากเพียงใดหากสุ่ม sample ใหม่จาก population แต่ในงานจริงเราเห็น sample เพียงชุดเดียว และสำหรับ statistic บางชนิด เช่น median, percentile, correlation หรือ regression coefficient สูตรของ standard error อาจซับซ้อนหรือไม่มีสูตรที่สะดวกใช้
 
@@ -44,9 +46,7 @@ $$
 ถ้าประมาณ bias ได้ ค่า bias-corrected estimate คือ
 
 $$
-\hat{\theta}_{BC}
-=
-\hat{\theta}-\widehat{Bias}(\hat{\theta})
+\hat{\theta}_{BC} = \hat{\theta} - Bias_{est}
 $$
 
 ส่วน standard error คือ standard deviation ของ sampling distribution ของ estimator
@@ -92,7 +92,7 @@ $$
 Jackknife estimate of bias คือ
 
 $$
-\widehat{Bias}_{jack}
+Bias_{jack}
 =
 (n-1)(\bar{\theta}_{jack}-\hat{\theta})
 $$
@@ -100,15 +100,15 @@ $$
 Bias-corrected Jackknife estimate คือ
 
 $$
-\hat{\theta}_{jack,BC}
+\hat{\theta}_{BC,jack}
 =
-\hat{\theta}-\widehat{Bias}_{jack}
+\hat{\theta}-Bias_{jack}
 $$
 
 หรือเขียนได้เป็น
 
 $$
-\hat{\theta}_{jack,BC}
+\hat{\theta}_{BC,jack}
 =
 n\hat{\theta}-(n-1)\bar{\theta}_{jack}
 $$
@@ -116,7 +116,7 @@ $$
 Jackknife estimate of standard error คือ
 
 $$
-\widehat{SE}_{jack}
+SE_{jack}
 =
 \sqrt{
 \frac{n-1}{n}
@@ -239,7 +239,7 @@ $$
 ค่าเฉลี่ยของ leave-one-out means เท่ากับ 22.7 เช่นกัน ดังนั้น
 
 $$
-\widehat{Bias}_{jack}
+Bias_{jack}
 =
 (10-1)(22.7-22.7)
 =
@@ -249,7 +249,7 @@ $$
 สำหรับ sample mean ค่า Jackknife SE จะเท่ากับ classical standard error
 
 $$
-\widehat{SE}_{jack}
+SE_{jack}
 =
 \frac{s}{\sqrt{n}}
 =
@@ -280,7 +280,7 @@ $$
 Bootstrap estimate of bias คือ
 
 $$
-\widehat{Bias}_{boot}
+Bias_{boot}
 =
 \bar{\theta}_{boot}-\hat{\theta}
 $$
@@ -288,7 +288,7 @@ $$
 Bootstrap estimate of standard error คือ
 
 $$
-\widehat{SE}_{boot}
+SE_{boot}
 =
 \sqrt{
 \frac{1}{B-1}
@@ -308,7 +308,7 @@ $$
 $$
 \hat{\theta}
 \pm
-z_{\alpha/2}\widehat{SE}_{boot}
+z_{\alpha/2}SE_{boot}
 $$
 
 สำหรับ 95% confidence interval ใช้ critical value ประมาณ 1.96
@@ -316,7 +316,7 @@ $$
 $$
 \hat{\theta}
 \pm
-1.96\widehat{SE}_{boot}
+1.96SE_{boot}
 $$
 
 ช่วงนี้สมมาตรรอบ point estimate จึงอาจไม่เหมาะเมื่อ Bootstrap distribution เบ้มาก
@@ -398,11 +398,7 @@ print(sd(family_income))
 ค่าที่ได้คือ
 
 $$
-n=29,
-\qquad
-\bar{x}=90.2414,
-\qquad
-s=20.9926
+n=29, \bar{x}=90.2414, s=20.9926
 $$
 
 เนื่องจากข้อมูลมีหน่วยเป็นร้อยดอลลาร์ ค่าเฉลี่ยประมาณ 90.2414 หมายถึง 9,024.14 ดอลลาร์
@@ -536,9 +532,7 @@ print(sd(x))
 ผลสำคัญ:
 
 $$
-n=50,
-\qquad
-\bar{x}=43.04
+n=50, \bar{x}=43.04
 $$
 
 ใช้ `t.test()` สร้าง classical confidence interval:
@@ -694,7 +688,7 @@ $$
 ### Jackknife bias
 
 $$
-\widehat{Bias}_{jack}
+Bias_{jack}
 =
 (n-1)(\bar{\theta}_{jack}-\hat{\theta})
 $$
@@ -702,15 +696,15 @@ $$
 ### Bias-corrected Jackknife estimate
 
 $$
-\hat{\theta}_{jack,BC}
+\hat{\theta}_{BC,jack}
 =
-\hat{\theta}-\widehat{Bias}_{jack}
+\hat{\theta}-Bias_{jack}
 $$
 
 ### Jackknife standard error
 
 $$
-\widehat{SE}_{jack}
+SE_{jack}
 =
 \sqrt{
 \frac{n-1}{n}
@@ -731,7 +725,7 @@ $$
 ### Bootstrap bias
 
 $$
-\widehat{Bias}_{boot}
+Bias_{boot}
 =
 \bar{\theta}_{boot}-\hat{\theta}
 $$
@@ -739,7 +733,7 @@ $$
 ### Bootstrap standard error
 
 $$
-\widehat{SE}_{boot}
+SE_{boot}
 =
 \sqrt{
 \frac{1}{B-1}
