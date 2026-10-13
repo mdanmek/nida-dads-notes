@@ -391,8 +391,7 @@ $$
 Welch degrees of freedom คำนวณจาก
 
 $$
-\nu
-=
+\nu =
 \frac{
 (\frac{s_A^2}{n_A}+\frac{s_B^2}{n_B})^2
 }{
@@ -444,8 +443,7 @@ t.test(group_a, group_b)
 Pooled variance คือ
 
 $$
-s_p^2
-=
+s_p^2 =
 \frac{
 (n_A-1)s_A^2+(n_B-1)s_B^2
 }{
@@ -526,8 +524,7 @@ t.test(group_a, group_b, var.equal = TRUE)
 ให้สร้าง difference ของผู้ป่วยแต่ละคน เช่น
 
 $$
-d_i
-=
+d_i =
 \text{Before}_i-\text{After}_i
 $$
 
@@ -597,29 +594,17 @@ $$
 กำหนดให้กลุ่มยาใหม่เป็นกลุ่ม 1 และกลุ่มยามาตรฐานเป็นกลุ่ม 2
 
 $$
-\hat{p}_1
-=
-\frac{72}{100}
-=
-0.72
+\hat{p}_1 = \frac{72}{100} = 0.72
 $$
 
 $$
-\hat{p}_2
-=
-\frac{60}{100}
-=
-0.60
+\hat{p}_2 = \frac{60}{100} = 0.60
 $$
 
 Point estimate คือ
 
 $$
-\hat{p}_1-\hat{p}_2
-=
-0.72-0.60
-=
-0.12
+\hat{p}_1-\hat{p}_2 = 0.72-0.60 = 0.12
 $$
 
 ใช้ **difference in proportions interval** โดยคำนวณตาม **ข้อ 8 ผลต่างสัดส่วนของสองกลุ่ม**
