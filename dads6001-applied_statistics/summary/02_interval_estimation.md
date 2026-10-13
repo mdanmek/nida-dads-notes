@@ -288,13 +288,7 @@ t.test(x, conf.level = 0.95)
 Sample proportion คือ
 
 $$
-\hat{p}
-=
-\frac{x}{n}
-=
-\frac{320}{500}
-=
-0.64
+\hat{p} = \frac{x}{n} = \frac{320}{500} = 0.64
 $$
 
 ใช้ **one-proportion interval** โดยคำนวณตาม **ข้อ 5 สัดส่วนหนึ่งประชากร**
