@@ -220,231 +220,113 @@ $$
 
 ## 9. เลือกวิธีจากโครงสร้างของโจทย์
 
-ก่อนเลือกสูตร ให้แยกโครงสร้างของโจทย์ตามลำดับต่อไปนี้
+ก่อนเลือกสูตร ให้พิจารณาตามลำดับดังนี้
 
-1. ตัวแปรที่สนใจเป็น **ค่าต่อเนื่อง** หรือ **ผลลัพธ์สองแบบ**
-2. มีข้อมูลจาก **หนึ่งกลุ่ม** หรือ **สองกลุ่ม**
-3. ถ้ามีสองกลุ่ม ข้อมูลเป็น **อิสระจากกัน** หรือ **จับคู่กัน**
-4. โจทย์ต้องการประมาณ mean, proportion, difference in means หรือ difference in proportions
-5. ถ้าเปรียบเทียบค่าเฉลี่ยสองกลุ่ม ต้องตรวจว่าทราบ population variances หรือไม่ และสามารถสมมติว่า variances เท่ากันได้หรือไม่
+1. ตัวแปรเป็นค่าต่อเนื่องหรือผลลัพธ์สองแบบ
+2. มีหนึ่งกลุ่มหรือสองกลุ่ม
+3. ถ้ามีสองกลุ่ม เป็นคนละกลุ่มหรือเป็นข้อมูลจับคู่
+4. ต้องการประมาณ mean, proportion, difference in means หรือ difference in proportions
 
 ### 9.1 ค่าต่อเนื่องจากหนึ่งกลุ่ม
 
-ตัวอย่างโจทย์:
+ตัวอย่าง:
 
-> โรงพยาบาลสุ่มผู้ป่วย 40 คน พบว่ามีเวลารอรับยาเฉลี่ย 32.5 นาที และ sample standard deviation เท่ากับ 8.4 นาที จงสร้าง 95% confidence interval ของเวลาเฉลี่ยที่ผู้ป่วยทั้งหมดใช้รอรับยา
+> ต้องการประมาณเวลาเฉลี่ยในการรอรับยาของผู้ป่วยจากข้อมูลผู้ป่วยตัวอย่างหนึ่งกลุ่ม
 
-สิ่งที่สังเกตได้คือ:
+เนื่องจากเวลารอเป็นค่าต่อเนื่อง มีตัวอย่างหนึ่งกลุ่ม และต้องการ population mean จึงใช้ **one-sample t interval**
 
-- เวลารอรับยาเป็นค่าต่อเนื่อง
-- มีตัวอย่างหนึ่งกลุ่ม
-- ต้องการประมาณ population mean
-- ไม่ทราบ population standard deviation
-- ใช้ sample standard deviation แทน population standard deviation
-
-ดังนั้นใช้ **one-sample t interval** โดยคำนวณตาม **ข้อ 4 ค่าเฉลี่ยหนึ่งประชากร**
+คำนวณตาม **ข้อ 4 ค่าเฉลี่ยหนึ่งประชากร**
 
 $$
-\bar{x}\mathbin{\pm}
+\bar{x}
+\mathbin{\pm}
 t_{\alpha/2,n-1}
 \frac{s}{\sqrt{n}}
 $$
 
-แทนค่าได้เป็น
-
-$$
-32.5\mathbin{\pm}
-t_{0.025,39}
-\frac{8.4}{\sqrt{40}}
-$$
-
-#### คำนวณด้วย R
+#### R ที่ใช้
 
 ~~~r
 %%R
-# ข้อมูลสรุปจากโจทย์
-n <- 40
-x_bar <- 32.5
-s <- 8.4
-confidence_level <- 0.95
-
-# ค่า alpha และ degrees of freedom
-alpha <- 1 - confidence_level
-df <- n - 1
-
-# Standard error และ critical t
-se <- s / sqrt(n)
-t_critical <- qt(1 - alpha / 2, df = df)
-
-# Margin of error และ confidence interval
-margin_error <- t_critical * se
-lower <- x_bar - margin_error
-upper <- x_bar + margin_error
-
-print(c(
-  sample_mean = x_bar,
-  standard_error = se,
-  degrees_of_freedom = df,
-  t_critical = t_critical,
-  margin_error = margin_error,
-  lower = lower,
-  upper = upper
-))
+# Confidence interval ของค่าเฉลี่ยหนึ่งประชากร
+t.test(x, conf.level = 0.95)
 ~~~
 
-ผลที่ควรได้โดยประมาณ:
+`x` คือ vector ที่เก็บข้อมูลของตัวอย่างหนึ่งกลุ่ม
 
-~~~text
-sample_mean = 32.5000
-standard_error = 1.3282
-degrees_of_freedom = 39
-t_critical = 2.0227
-margin_error = 2.6865
-lower = 29.8135
-upper = 35.1865
-~~~
-
-เขียนตอบได้ว่า:
-
-> จากผู้ป่วยตัวอย่าง 40 คน ได้เวลาเฉลี่ยในการรอรับยาเท่ากับ 32.5 นาที ช่วงความเชื่อมั่น 95% ของเวลาเฉลี่ยในการรอรับยาของผู้ป่วยทั้งหมดอยู่ระหว่าง 29.8135 ถึง 35.1865 นาที
+ตัวอย่างอื่นที่ใช้วิธีเดียวกัน ได้แก่ ค่าใช้จ่ายเฉลี่ย น้ำหนักเฉลี่ย ระยะเวลานอนโรงพยาบาลเฉลี่ย และคะแนนสอบเฉลี่ย
 
 หลักจำคือ:
 
-> ค่าต่อเนื่อง + หนึ่งกลุ่ม + ต้องการค่าเฉลี่ย → ใช้ข้อ 4
+> ค่าต่อเนื่อง + หนึ่งกลุ่ม + ต้องการค่าเฉลี่ย → ใช้ข้อ 4 และ `t.test(x)`
 
 ---
 
 ### 9.2 ผลลัพธ์สองแบบจากหนึ่งกลุ่ม
 
-ตัวอย่างโจทย์:
+ตัวอย่าง:
 
-> จากประชาชนตัวอย่าง 500 คน พบว่า 320 คนได้รับวัคซีน จงสร้าง 95% confidence interval ของสัดส่วนประชาชนทั้งหมดที่ได้รับวัคซีน
+> จากประชาชนตัวอย่าง 500 คน พบว่า 320 คนได้รับวัคซีน ต้องการประมาณสัดส่วนประชาชนทั้งหมดที่ได้รับวัคซีน
 
-แต่ละคนมีผลลัพธ์สองแบบคือ
+แต่ละคนมีผลลัพธ์สองแบบคือได้รับวัคซีนหรือไม่ได้รับวัคซีน จึงต้องการประมาณ population proportion
 
-- ได้รับวัคซีน
-- ไม่ได้รับวัคซีน
-
-จึงต้องการประมาณ population proportion ไม่ใช่ population mean
-
-Sample proportion คือ
+คำนวณตาม **ข้อ 5 สัดส่วนหนึ่งประชากร**
 
 $$
 \hat{p}
-=
-\frac{x}{n}
-=
-\frac{320}{500}
-=
-0.64
-$$
-
-ดังนั้นใช้ **one-proportion interval** โดยคำนวณตาม **ข้อ 5 สัดส่วนหนึ่งประชากร**
-
-$$
-\hat{p}\mathbin{\pm}
+\mathbin{\pm}
 z_{\alpha/2}
 \sqrt{
 \frac{\hat{p}(1-\hat{p})}{n}
 }
 $$
 
-#### คำนวณด้วย R
+#### R ที่ใช้
 
 ~~~r
 %%R
-# จำนวนผู้ได้รับวัคซีนและจำนวนตัวอย่างทั้งหมด
-x <- 320
+# Confidence interval ของสัดส่วนหนึ่งประชากร
+success <- 320
 n <- 500
-confidence_level <- 0.95
 
-# Sample proportion
-p_hat <- x / n
-
-# ค่า alpha และ critical z
-alpha <- 1 - confidence_level
-z_critical <- qnorm(1 - alpha / 2)
-
-# Standard error และ confidence interval
-se <- sqrt(p_hat * (1 - p_hat) / n)
-margin_error <- z_critical * se
-lower <- p_hat - margin_error
-upper <- p_hat + margin_error
-
-print(c(
-  sample_proportion = p_hat,
-  standard_error = se,
-  z_critical = z_critical,
-  margin_error = margin_error,
-  lower = lower,
-  upper = upper
-))
+p_hat <- success / n
+p_hat + c(-1, 1) * qnorm(0.975) *
+  sqrt(p_hat * (1 - p_hat) / n)
 ~~~
 
-ผลที่ควรได้โดยประมาณ:
+`success` คือจำนวนคนที่เกิดผลลัพธ์ที่สนใจ และ `n` คือจำนวนตัวอย่างทั้งหมด
 
-~~~text
-sample_proportion = 0.6400
-standard_error = 0.0215
-z_critical = 1.9600
-margin_error = 0.0421
-lower = 0.5979
-upper = 0.6821
-~~~
-
-เขียนตอบได้ว่า:
-
-> จากประชาชนตัวอย่าง 500 คน พบสัดส่วนผู้ได้รับวัคซีนเท่ากับ 0.64 ช่วงความเชื่อมั่น 95% ของสัดส่วนประชาชนทั้งหมดที่ได้รับวัคซีนอยู่ระหว่าง 0.5979 ถึง 0.6821 หรือประมาณ 59.79% ถึง 68.21%
+ตัวอย่างอื่นที่ใช้วิธีเดียวกัน ได้แก่ สัดส่วนผู้ป่วยที่หาย สัดส่วนสินค้าที่ชำรุด สัดส่วนลูกค้าที่พึงพอใจ และสัดส่วนนักศึกษาที่สอบผ่าน
 
 หลักจำคือ:
 
-> ผลลัพธ์สองแบบ + หนึ่งกลุ่ม + ต้องการสัดส่วน → ใช้ข้อ 5
+> ผลลัพธ์สองแบบ + หนึ่งกลุ่ม + ต้องการสัดส่วน → ใช้ข้อ 5 และคำนวณจาก `p_hat`
 
 ---
 
 ### 9.3 ค่าต่อเนื่องจากสองกลุ่มอิสระ
 
-ตัวอย่างโจทย์:
+ตัวอย่าง:
 
-> สุ่มนักศึกษาที่เรียนด้วยวิธี A จำนวน 30 คน และนักศึกษาคนละกลุ่มที่เรียนด้วยวิธี B จำนวน 35 คน พบว่าคะแนนเฉลี่ยเท่ากับ 78 และ 72 คะแนนตามลำดับ จงสร้าง 95% confidence interval ของผลต่างคะแนนเฉลี่ยระหว่างวิธี A กับวิธี B
+> ต้องการเปรียบเทียบคะแนนเฉลี่ยของนักศึกษาที่เรียนด้วยวิธี A กับนักศึกษาคนละกลุ่มที่เรียนด้วยวิธี B
 
-คะแนนสอบเป็นค่าต่อเนื่อง และนักศึกษาในกลุ่ม A กับกลุ่ม B เป็นคนละคนกัน จึงเป็น **independent samples**
-
-กำหนดลำดับผลต่างเป็น
+คะแนนเป็นค่าต่อเนื่อง และนักศึกษาในสองกลุ่มเป็นคนละคนกัน จึงต้องประมาณ
 
 $$
 \mu_A-\mu_B
 $$
 
-Point estimate คือ
+คำนวณตาม **ข้อ 6 ผลต่างค่าเฉลี่ยของสองกลุ่ม**
+
+ต้องเรียง `group_a` และ `group_b` ให้ตรงกับลำดับที่ต้องการ เพราะ R จะคำนวณผลต่างเป็น
 
 $$
 \bar{x}_A-\bar{x}_B
-=
-78-72
-=
-6
 $$
-
-ค่าบวกหมายถึงกลุ่ม A มีคะแนนเฉลี่ยสูงกว่ากลุ่ม B ใน sample
-
-โจทย์ลักษณะนี้คำนวณตาม **ข้อ 6 ผลต่างค่าเฉลี่ยของสองกลุ่ม** แต่ยังต้องเลือกสูตรย่อยจากข้อมูลเกี่ยวกับ population variances
 
 #### 9.3.1 ทราบ population variances
 
-สมมติว่าโจทย์ระบุว่า
-
-$$
-\sigma_A=10
-$$
-
-และ
-
-$$
-\sigma_B=8
-$$
-
-เมื่อทราบ population standard deviations ให้ใช้ **two-sample z interval**
+ถ้าทราบ population standard deviations ของทั้งสองกลุ่ม ให้ใช้ **two-sample z interval**
 
 $$
 (\bar{x}_A-\bar{x}_B)
@@ -457,96 +339,39 @@ z_{\alpha/2}
 }
 $$
 
-สำหรับตัวอย่างนี้:
+ตัวอย่าง:
 
-$$
-(78-72)
-\mathbin{\pm}
-1.96
-\sqrt{
-\frac{10^2}{30}
-+
-\frac{8^2}{35}
-}
-$$
+> กลุ่ม A มี 30 คน และทราบว่า population standard deviation เท่ากับ 10 ส่วนกลุ่ม B มี 35 คน และทราบว่า population standard deviation เท่ากับ 8
 
-#### คำนวณด้วย R
+#### R ที่ใช้
 
 ~~~r
 %%R
-# ข้อมูลสรุปของสองกลุ่ม
-n_a <- 30
-n_b <- 35
-mean_a <- 78
-mean_b <- 72
-
-# Population standard deviations ที่โจทย์กำหนดให้
+# Known population variances: two-sample z interval
 sigma_a <- 10
 sigma_b <- 8
 
-# Point estimate
-mean_difference <- mean_a - mean_b
-
-# Standard error
-se <- sqrt(
-  sigma_a^2 / n_a +
-  sigma_b^2 / n_b
+mean_difference <- mean(group_a) - mean(group_b)
+standard_error <- sqrt(
+  sigma_a^2 / length(group_a) +
+  sigma_b^2 / length(group_b)
 )
 
-# Critical z สำหรับ 95% confidence interval
-z_critical <- qnorm(0.975)
-
-# Confidence interval
-margin_error <- z_critical * se
-lower <- mean_difference - margin_error
-upper <- mean_difference + margin_error
-
-print(c(
-  mean_difference = mean_difference,
-  standard_error = se,
-  z_critical = z_critical,
-  margin_error = margin_error,
-  lower = lower,
-  upper = upper
-))
+mean_difference + c(-1, 1) *
+  qnorm(0.975) * standard_error
 ~~~
 
-ผลที่ควรได้โดยประมาณ:
-
-~~~text
-mean_difference = 6.0000
-standard_error = 2.2720
-z_critical = 1.9600
-margin_error = 4.4531
-lower = 1.5469
-upper = 10.4531
-~~~
-
-เขียนตอบได้ว่า:
-
-> เมื่อทราบ population standard deviations ของทั้งสองกลุ่ม จึงใช้ two-sample z interval ได้ช่วงความเชื่อมั่น 95% ของผลต่างคะแนนเฉลี่ยระหว่างวิธี A กับวิธี B เท่ากับ 1.5469 ถึง 10.4531 คะแนน เนื่องจากทั้งช่วงมากกว่า 0 ข้อมูลจึงบ่งชี้ว่าคะแนนเฉลี่ยของวิธี A สูงกว่าวิธี B
+กรณีนี้ใช้สูตรคำนวณโดยตรง เพราะ `t.test()` ไม่ได้ถูกออกแบบมาสำหรับกรณีที่ทราบ population variances
 
 หลักจำคือ:
 
-> ค่าต่อเนื่อง + สองกลุ่มอิสระ + ทราบ population variances → ใช้ two-sample z interval ตามข้อ 6
+> ทราบ population variances → ใช้ z และคำนวณจาก `sigma_a` กับ `sigma_b`
 
 ---
 
 #### 9.3.2 ไม่ทราบ variances และไม่ได้สมมติว่าเท่ากัน
 
-ในงานจริง เรามักไม่ทราบ population variances หากโจทย์ไม่ได้ระบุว่า variances ของสองประชากรเท่ากัน ให้ใช้ **Welch interval**
-
-สมมติว่าตัวอย่างมีข้อมูลดังนี้
-
-$$
-n_A=30,\qquad \bar{x}_A=78,\qquad s_A=10
-$$
-
-$$
-n_B=35,\qquad \bar{x}_B=72,\qquad s_B=8
-$$
-
-สูตร confidence interval คือ
+ถ้าไม่ทราบ population variances และโจทย์ไม่ได้กำหนดว่า variances เท่ากัน ให้ใช้ **Welch interval**
 
 $$
 (\bar{x}_A-\bar{x}_B)
@@ -559,7 +384,7 @@ t_{\alpha/2,\nu}
 }
 $$
 
-ค่า degrees of freedom คำนวณด้วยสูตร Welch–Satterthwaite:
+Welch degrees of freedom คือ
 
 $$
 \nu
@@ -571,110 +396,46 @@ $$
 \frac{s_B^2}{n_B}
 \right)^2
 }{
-\frac{
-\left(s_A^2/n_A\right)^2
-}{
-n_A-1
-}
+\frac{(s_A^2/n_A)^2}{n_A-1}
 +
-\frac{
-\left(s_B^2/n_B\right)^2
-}{
-n_B-1
-}
+\frac{(s_B^2/n_B)^2}{n_B-1}
 }
 $$
 
-ดังนั้น degrees of freedom ของ Welch ไม่ได้ขึ้นกับเพียง \(n_A\) และ \(n_B\) แต่ขึ้นกับ \(s_A\) และ \(s_B\) ด้วย
+ค่า degrees of freedom จึงขึ้นกับทั้ง \(n_A,n_B,s_A\) และ \(s_B\) โดย R จะคำนวณให้โดยอัตโนมัติ
 
-#### คำนวณด้วย R
-
-~~~r
-%%R
-# ข้อมูลสรุปของสองกลุ่ม
-n_a <- 30
-n_b <- 35
-mean_a <- 78
-mean_b <- 72
-sd_a <- 10
-sd_b <- 8
-
-# Point estimate
-mean_difference <- mean_a - mean_b
-
-# Standard error ของ Welch interval
-se <- sqrt(
-  sd_a^2 / n_a +
-  sd_b^2 / n_b
-)
-
-# Welch-Satterthwaite degrees of freedom
-df <- (
-  sd_a^2 / n_a +
-  sd_b^2 / n_b
-)^2 / (
-  (sd_a^2 / n_a)^2 / (n_a - 1) +
-  (sd_b^2 / n_b)^2 / (n_b - 1)
-)
-
-# Critical t และ confidence interval
-t_critical <- qt(0.975, df = df)
-margin_error <- t_critical * se
-lower <- mean_difference - margin_error
-upper <- mean_difference + margin_error
-
-print(c(
-  mean_difference = mean_difference,
-  standard_error = se,
-  degrees_of_freedom = df,
-  t_critical = t_critical,
-  margin_error = margin_error,
-  lower = lower,
-  upper = upper
-))
-~~~
-
-ผลที่ควรได้โดยประมาณ:
-
-~~~text
-mean_difference = 6.0000
-standard_error = 2.2720
-degrees_of_freedom = 55.3397
-t_critical = 2.0038
-margin_error = 4.5525
-lower = 1.4475
-upper = 10.5525
-~~~
-
-หากมีข้อมูลดิบของแต่ละกลุ่ม สามารถใช้ R คำนวณโดยตรงได้ดังนี้
+#### R ที่ใช้
 
 ~~~r
 %%R
-# var.equal = FALSE หมายถึงไม่สมมติว่า variances เท่ากัน
+# Welch confidence interval
 t.test(
   group_a,
   group_b,
-  paired = FALSE,
   var.equal = FALSE,
   conf.level = 0.95
 )
 ~~~
 
-เขียนตอบได้ว่า:
+เนื่องจาก `var.equal = FALSE` เป็นค่าเริ่มต้นของ R จึงเขียนสั้น ๆ ได้ว่า
 
-> เนื่องจากเป็นข้อมูลค่าต่อเนื่องจากสองกลุ่มอิสระ ไม่ทราบ population variances และไม่ได้สมมติว่า variances เท่ากัน จึงใช้ Welch interval ได้ช่วงความเชื่อมั่น 95% ของผลต่างคะแนนเฉลี่ยระหว่างวิธี A กับวิธี B เท่ากับ 1.4475 ถึง 10.5525 คะแนน เนื่องจากทั้งช่วงมากกว่า 0 ข้อมูลจึงบ่งชี้ว่าคะแนนเฉลี่ยของวิธี A สูงกว่าวิธี B
+~~~r
+%%R
+# Welch confidence interval
+t.test(group_a, group_b)
+~~~
 
 หลักจำคือ:
 
-> ค่าต่อเนื่อง + สองกลุ่มอิสระ + ไม่ทราบ variances + ไม่สมมติว่าเท่ากัน → ใช้ Welch interval ตามข้อ 6
+> ไม่ทราบ variances + ไม่ได้สมมติว่าเท่ากัน → ใช้ Welch และ `var.equal = FALSE`
 
 ---
 
 #### 9.3.3 ไม่ทราบ variances แต่สมมติว่าเท่ากัน
 
-ถ้าไม่ทราบ population variances แต่โจทย์กำหนดให้สมมติว่า population variances เท่ากัน ให้รวมข้อมูลความแปรปรวนของสองกลุ่มเป็น **pooled variance**
+ถ้าไม่ทราบ population variances แต่โจทย์กำหนดให้สมมติว่า variances เท่ากัน ให้ใช้ **pooled-variance interval**
 
-Pooled variance คำนวณจาก
+Pooled variance คือ
 
 $$
 s_p^2
@@ -683,25 +444,6 @@ s_p^2
 (n_A-1)s_A^2+(n_B-1)s_B^2
 }{
 n_A+n_B-2
-}
-$$
-
-Pooled standard deviation คือ
-
-$$
-s_p=\sqrt{s_p^2}
-$$
-
-Standard error คือ
-
-$$
-SE
-=
-s_p
-\sqrt{
-\frac{1}{n_A}
-+
-\frac{1}{n_B}
 }
 $$
 
@@ -725,120 +467,48 @@ $$
 df=n_A+n_B-2
 $$
 
-สำหรับตัวอย่างนี้:
-
-$$
-df=30+35-2=63
-$$
-
-#### คำนวณด้วย R
+#### R ที่ใช้
 
 ~~~r
 %%R
-# ข้อมูลสรุปของสองกลุ่ม
-n_a <- 30
-n_b <- 35
-mean_a <- 78
-mean_b <- 72
-sd_a <- 10
-sd_b <- 8
-
-# Point estimate
-mean_difference <- mean_a - mean_b
-
-# Pooled variance และ pooled standard deviation
-pooled_variance <- (
-  (n_a - 1) * sd_a^2 +
-  (n_b - 1) * sd_b^2
-) / (
-  n_a + n_b - 2
-)
-
-pooled_sd <- sqrt(pooled_variance)
-
-# Degrees of freedom
-df <- n_a + n_b - 2
-
-# Standard error
-se <- pooled_sd * sqrt(
-  1 / n_a +
-  1 / n_b
-)
-
-# Critical t และ confidence interval
-t_critical <- qt(0.975, df = df)
-margin_error <- t_critical * se
-lower <- mean_difference - margin_error
-upper <- mean_difference + margin_error
-
-print(c(
-  mean_difference = mean_difference,
-  pooled_variance = pooled_variance,
-  pooled_standard_deviation = pooled_sd,
-  standard_error = se,
-  degrees_of_freedom = df,
-  t_critical = t_critical,
-  margin_error = margin_error,
-  lower = lower,
-  upper = upper
-))
-~~~
-
-ผลที่ควรได้โดยประมาณ:
-
-~~~text
-mean_difference = 6.0000
-pooled_variance = 80.5714
-pooled_standard_deviation = 8.9762
-standard_error = 2.2333
-degrees_of_freedom = 63
-t_critical = 1.9983
-margin_error = 4.4630
-lower = 1.5370
-upper = 10.4630
-~~~
-
-หากมีข้อมูลดิบของแต่ละกลุ่ม สามารถใช้ R ได้ดังนี้
-
-~~~r
-%%R
-# var.equal = TRUE หมายถึงสมมติว่า population variances เท่ากัน
+# Pooled-variance confidence interval
 t.test(
   group_a,
   group_b,
-  paired = FALSE,
   var.equal = TRUE,
   conf.level = 0.95
 )
 ~~~
 
-เขียนตอบได้ว่า:
-
-> เนื่องจากเป็นข้อมูลค่าต่อเนื่องจากสองกลุ่มอิสระ ไม่ทราบ population variances แต่กำหนดให้สมมติว่า variances เท่ากัน จึงใช้ pooled-variance interval ได้ช่วงความเชื่อมั่น 95% ของผลต่างคะแนนเฉลี่ยระหว่างวิธี A กับวิธี B เท่ากับ 1.5370 ถึง 10.4630 คะแนน เนื่องจากทั้งช่วงมากกว่า 0 ข้อมูลจึงบ่งชี้ว่าคะแนนเฉลี่ยของวิธี A สูงกว่าวิธี B
-
 หลักจำคือ:
 
-> ค่าต่อเนื่อง + สองกลุ่มอิสระ + ไม่ทราบ variances + สมมติว่าเท่ากัน → ใช้ pooled-variance interval ตามข้อ 6
+> ไม่ทราบ variances + สมมติว่าเท่ากัน → ใช้ pooled variance และ `var.equal = TRUE`
 
-#### สรุปการเลือกสูตรในข้อ 9.3
+สรุปความแตกต่างของ R ในข้อ 9.3:
 
-- ทราบ population variances → ใช้ **two-sample z interval**
-- ไม่ทราบ variances และไม่ได้สมมติว่าเท่ากัน → ใช้ **Welch interval**
-- ไม่ทราบ variances แต่สมมติว่าเท่ากัน → ใช้ **pooled-variance interval**
+~~~r
+%%R
+# ทราบ population variances
+# คำนวณ two-sample z interval จากสูตรโดยตรง
 
-ถ้าโจทย์ไม่ได้ระบุว่า variances เท่ากัน โดยทั่วไปให้ใช้ Welch interval เพราะไม่ต้องอาศัยข้อสมมติเรื่อง equal variances
+# ไม่ทราบ variances และไม่ได้สมมติว่าเท่ากัน
+t.test(group_a, group_b, var.equal = FALSE)
+
+# ไม่ทราบ variances แต่สมมติว่าเท่ากัน
+t.test(group_a, group_b, var.equal = TRUE)
+~~~
 
 ---
 
 ### 9.4 ค่าต่อเนื่องจากข้อมูลที่จับคู่กัน
 
-ตัวอย่างโจทย์:
+ตัวอย่าง:
 
-> วัดความดันโลหิตของผู้ป่วย 20 คนก่อนและหลังได้รับยา พบว่าค่าเฉลี่ยของความแตกต่างระหว่างก่อนและหลังเท่ากับ 8 mmHg และ sample standard deviation ของความแตกต่างเท่ากับ 12 mmHg จงสร้าง 95% confidence interval ของการเปลี่ยนแปลงความดันโลหิตเฉลี่ย
+> วัดความดันโลหิตของผู้ป่วยกลุ่มเดิมก่อนและหลังได้รับยา
 
-แม้จะมีข้อมูลสองชุด แต่ข้อมูลก่อนและหลังมาจากผู้ป่วยคนเดิม จึงไม่ใช่ independent samples
+แม้จะมีข้อมูลสองชุด แต่ข้อมูลก่อนและหลังมาจากผู้ป่วยคนเดิม จึงต้องวิเคราะห์ความแตกต่างภายในแต่ละคู่
 
-กำหนด difference ของผู้ป่วยแต่ละคนเป็น
+กำหนด
 
 $$
 d_i
@@ -846,13 +516,7 @@ d_i
 \text{Before}_i-\text{After}_i
 $$
 
-จากนั้นจึงประมาณค่าเฉลี่ยของ differences
-
-$$
-\mu_d
-$$
-
-ดังนั้นใช้ **paired t interval** โดยคำนวณตาม **ข้อ 7 ค่าเฉลี่ยของข้อมูลที่จับคู่กัน**
+จากนั้นประมาณค่าเฉลี่ยของ differences โดยคำนวณตาม **ข้อ 7 ค่าเฉลี่ยของข้อมูลที่จับคู่กัน**
 
 $$
 \bar{d}
@@ -861,56 +525,11 @@ t_{\alpha/2,n-1}
 \frac{s_d}{\sqrt{n}}
 $$
 
-#### คำนวณด้วย R จากข้อมูลสรุป
+#### R ที่ใช้
 
 ~~~r
 %%R
-# ข้อมูลสรุปของ differences
-n <- 20
-mean_difference <- 8
-sd_difference <- 12
-
-# Degrees of freedom
-df <- n - 1
-
-# Standard error
-se <- sd_difference / sqrt(n)
-
-# Critical t และ confidence interval
-t_critical <- qt(0.975, df = df)
-margin_error <- t_critical * se
-lower <- mean_difference - margin_error
-upper <- mean_difference + margin_error
-
-print(c(
-  mean_difference = mean_difference,
-  standard_error = se,
-  degrees_of_freedom = df,
-  t_critical = t_critical,
-  margin_error = margin_error,
-  lower = lower,
-  upper = upper
-))
-~~~
-
-ผลที่ควรได้โดยประมาณ:
-
-~~~text
-mean_difference = 8.0000
-standard_error = 2.6833
-degrees_of_freedom = 19
-t_critical = 2.0930
-margin_error = 5.6162
-lower = 2.3838
-upper = 13.6162
-~~~
-
-หากมีข้อมูลดิบก่อนและหลัง ใช้ R ได้ดังนี้
-
-~~~r
-%%R
-# paired = TRUE เพราะเป็นข้อมูลจากผู้ป่วยคนเดิม
-# ลำดับ before, after ทำให้ R คำนวณ before - after
+# Paired confidence interval
 t.test(
   before,
   after,
@@ -919,58 +538,35 @@ t.test(
 )
 ~~~
 
-เขียนตอบได้ว่า:
+R จะคำนวณ difference ตามลำดับเป็น
 
-> กำหนด difference เป็นความดันก่อนรักษาลบด้วยความดันหลังรักษา เนื่องจากเป็นการวัดผู้ป่วยคนเดิมสองครั้ง จึงใช้ paired t interval ได้ช่วงความเชื่อมั่น 95% ของค่าเฉลี่ยความแตกต่างเท่ากับ 2.3838 ถึง 13.6162 mmHg เนื่องจากทั้งช่วงมากกว่า 0 ข้อมูลจึงบ่งชี้ว่าความดันโลหิตเฉลี่ยหลังรักษาลดลง
+$$
+\text{Before}-\text{After}
+$$
+
+ถ้าสลับลำดับตัวแปร เครื่องหมายของค่าเฉลี่ยและ confidence interval จะเปลี่ยนไป
+
+ตัวอย่างอื่นที่ใช้วิธีเดียวกัน ได้แก่ น้ำหนักก่อนและหลังเข้าโปรแกรม คะแนนก่อนและหลังเรียน และยอดขายของร้านเดิมก่อนและหลังทำโปรโมชั่น
 
 หลักจำคือ:
 
-> ค่าต่อเนื่อง + คนเดิมสองครั้งหรือหน่วยที่จับคู่กัน → สร้าง difference แล้วใช้ข้อ 7
+> ค่าต่อเนื่อง + คนเดิมสองครั้งหรือข้อมูลจับคู่ → ใช้ข้อ 7 และ `paired = TRUE`
 
 ---
 
 ### 9.5 ผลลัพธ์สองแบบจากสองกลุ่มอิสระ
 
-ตัวอย่างโจทย์:
+ตัวอย่าง:
 
-> กลุ่มที่ได้รับยาใหม่มีผู้ป่วยหาย 72 คนจากทั้งหมด 100 คน ส่วนกลุ่มที่ได้รับยามาตรฐานมีผู้ป่วยหาย 60 คนจากทั้งหมด 100 คน จงสร้าง 95% confidence interval ของผลต่างสัดส่วนการหายระหว่างยาใหม่กับยามาตรฐาน
+> กลุ่มยาใหม่มีผู้ป่วยหาย 72 คนจาก 100 คน ส่วนกลุ่มยามาตรฐานมีผู้ป่วยหาย 60 คนจาก 100 คน ต้องการประมาณผลต่างของสัดส่วนการหาย
 
-ผลลัพธ์ของผู้ป่วยแต่ละคนมีสองแบบคือ
-
-- หาย
-- ไม่หาย
-
-ผู้ป่วยในกลุ่มยาใหม่กับกลุ่มยามาตรฐานเป็นคนละกลุ่มกัน จึงเป็นข้อมูลสองกลุ่มอิสระ
-
-กำหนดให้ยาใหม่เป็นกลุ่ม 1 และยามาตรฐานเป็นกลุ่ม 2
+ผลลัพธ์ของแต่ละคนมีสองแบบคือหายหรือไม่หาย และผู้ป่วยในสองกลุ่มเป็นคนละคนกัน จึงต้องประมาณ
 
 $$
-\hat{p}_1
-=
-\frac{72}{100}
-=
-0.72
+p_1-p_2
 $$
 
-$$
-\hat{p}_2
-=
-\frac{60}{100}
-=
-0.60
-$$
-
-Point estimate คือ
-
-$$
-\hat{p}_1-\hat{p}_2
-=
-0.72-0.60
-=
-0.12
-$$
-
-ดังนั้นใช้ **difference in proportions interval** โดยคำนวณตาม **ข้อ 8 ผลต่างสัดส่วนของสองกลุ่ม**
+คำนวณตาม **ข้อ 8 ผลต่างสัดส่วนของสองกลุ่ม**
 
 $$
 (\hat{p}_1-\hat{p}_2)
@@ -983,79 +579,67 @@ z_{\alpha/2}
 }
 $$
 
-#### คำนวณด้วย R
+#### R ที่ใช้
 
 ~~~r
 %%R
-# กลุ่ม 1: ยาใหม่
+# Difference in proportions confidence interval
 x_1 <- 72
 n_1 <- 100
-
-# กลุ่ม 2: ยามาตรฐาน
 x_2 <- 60
 n_2 <- 100
 
-# Sample proportions
 p_1 <- x_1 / n_1
 p_2 <- x_2 / n_2
 
-# Point estimate
 proportion_difference <- p_1 - p_2
-
-# Standard error
-se <- sqrt(
+standard_error <- sqrt(
   p_1 * (1 - p_1) / n_1 +
   p_2 * (1 - p_2) / n_2
 )
 
-# Critical z และ confidence interval
-z_critical <- qnorm(0.975)
-margin_error <- z_critical * se
-lower <- proportion_difference - margin_error
-upper <- proportion_difference + margin_error
-
-print(c(
-  proportion_1 = p_1,
-  proportion_2 = p_2,
-  proportion_difference = proportion_difference,
-  standard_error = se,
-  z_critical = z_critical,
-  margin_error = margin_error,
-  lower = lower,
-  upper = upper
-))
+proportion_difference + c(-1, 1) *
+  qnorm(0.975) * standard_error
 ~~~
 
-ผลที่ควรได้โดยประมาณ:
+การกำหนดกลุ่มต้องตรงกับคำถาม เพราะ code นี้คำนวณ
 
-~~~text
-proportion_1 = 0.7200
-proportion_2 = 0.6000
-proportion_difference = 0.1200
-standard_error = 0.0665
-z_critical = 1.9600
-margin_error = 0.1302
-lower = -0.0102
-upper = 0.2502
-~~~
+$$
+\hat{p}_1-\hat{p}_2
+$$
 
-ผลต่างสัดส่วนใน sample เท่ากับ 0.12 หรือ 12 percentage points แต่ confidence interval ครอบคลุม 0 จึงยังไม่สามารถสรุปได้ว่าสัดส่วนการหายของสองกลุ่มแตกต่างกันในประชากร
-
-เขียนตอบได้ว่า:
-
-> กลุ่มยาใหม่มีสัดส่วนผู้ป่วยที่หายเท่ากับ 0.72 ส่วนกลุ่มยามาตรฐานมีสัดส่วนผู้ป่วยที่หายเท่ากับ 0.60 ผลต่างสัดส่วนเท่ากับ 0.12 หรือ 12 percentage points ช่วงความเชื่อมั่น 95% ของผลต่างสัดส่วนอยู่ระหว่าง -0.0102 ถึง 0.2502 เนื่องจากช่วงดังกล่าวครอบคลุม 0 จึงยังไม่มีหลักฐานเพียงพอว่าสัดส่วนการหายของสองกลุ่มแตกต่างกันในประชากร
+ถ้าสลับกลุ่ม เครื่องหมายของผลต่างและ confidence interval จะเปลี่ยนไป
 
 หลักจำคือ:
 
-> ผลลัพธ์สองแบบ + สองกลุ่มอิสระ + ต้องการเปรียบเทียบสัดส่วน → ใช้ข้อ 8
+> ผลลัพธ์สองแบบ + สองกลุ่มอิสระ + เปรียบเทียบสัดส่วน → ใช้ข้อ 8 และคำนวณจาก `p_1 - p_2`
 
 ---
 
-เมื่ออ่านโจทย์ ให้เขียนโครงสร้างของโจทย์ออกมาเป็นประโยคสั้น ๆ ก่อนเลือกสูตร เช่น
+สรุปคำสั่ง R ที่แตกต่างกันตามโครงสร้างโจทย์:
 
-> ตัวแปรเป็นค่าต่อเนื่อง มีสองกลุ่ม และเป็นคนละกลุ่มกัน จึงต้องประมาณผลต่างค่าเฉลี่ยของสองประชากร หากไม่ทราบ population variances และไม่ได้สมมติว่าเท่ากัน จะใช้ Welch interval ตามข้อ 6
+~~~r
+%%R
+# 1. ค่าเฉลี่ยหนึ่งประชากร
+t.test(x)
 
-การเขียนประโยคนี้ก่อนคำนวณจะช่วยให้เลือกสูตรจากโครงสร้างข้อมูล ไม่ใช่เลือกจากคำศัพท์เพียงคำเดียว
+# 2. สัดส่วนหนึ่งประชากร
+p_hat + c(-1, 1) * qnorm(0.975) *
+  sqrt(p_hat * (1 - p_hat) / n)
+
+# 3. ค่าเฉลี่ยสองกลุ่มอิสระแบบ Welch
+t.test(group_a, group_b, var.equal = FALSE)
+
+# 4. ค่าเฉลี่ยสองกลุ่มอิสระแบบ pooled variance
+t.test(group_a, group_b, var.equal = TRUE)
+
+# 5. ข้อมูลจับคู่
+t.test(before, after, paired = TRUE)
+
+# 6. ผลต่างสัดส่วนสองกลุ่ม
+proportion_difference + c(-1, 1) *
+  qnorm(0.975) * standard_error
+~~~
 
 ## 10. สิ่งที่กำหนดความกว้างของช่วง
 
