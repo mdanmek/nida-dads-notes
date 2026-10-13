@@ -7,10 +7,8 @@
 ในบท Interval Estimation เราสร้าง confidence interval จากโครงสร้าง
 
 $$
-\hat{\theta} \pm c \times SE
+\text{Estimate} \pm \text{Critical value}\times SE
 $$
-
-โดย $\hat{\theta}$ คือค่าประมาณจาก sample และ $c$ คือ critical value
 
 ส่วนที่สำคัญที่สุดส่วนหนึ่งคือ standard error เพราะมันบอกว่า estimate จะเปลี่ยนมากเพียงใดหากสุ่ม sample ใหม่จาก population แต่ในงานจริงเราเห็น sample เพียงชุดเดียว และสำหรับ statistic บางชนิด เช่น median, percentile, correlation หรือ regression coefficient สูตรของ standard error อาจซับซ้อนหรือไม่มีสูตรที่สะดวกใช้
 
@@ -52,9 +50,7 @@ $$
 ส่วน standard error คือ standard deviation ของ sampling distribution ของ estimator
 
 $$
-SE(\hat{\theta})
-=
-\sqrt{Var(\hat{\theta})}
+SE(\hat{\theta}) = \sqrt{Var(\hat{\theta})}
 $$
 
 Standard deviation และ standard error จึงตอบคนละคำถาม Standard deviation อธิบายการกระจายของ observations ส่วน standard error อธิบายการกระจายของ estimator ระหว่างการสุ่ม sample ซ้ำ
@@ -74,55 +70,37 @@ $$
 Jackknife samples คือ
 
 $$
-(x_2,x_3,x_4),
-(x_1,x_3,x_4),
-(x_1,x_2,x_4),
-(x_1,x_2,x_3)
+(x_2,x_3,x_4), (x_1,x_3,x_4), (x_1,x_2,x_4), (x_1,x_2,x_3)
 $$
 
 ให้ $\hat{\theta}_{(i)}$ เป็น estimate จาก sample ที่ตัด observation ลำดับที่ $i$ ออก และให้ค่าเฉลี่ยของ leave-one-out estimates เป็น
 
 $$
-\bar{\theta}_{jack}
-=
-\frac{1}{n}
-\sum_{i=1}^{n}\hat{\theta}_{(i)}
+\bar{\theta}_{jack} = \frac{1}{n}\sum_{i=1}^{n}\hat{\theta}_{(i)}
 $$
 
 Jackknife estimate of bias คือ
 
 $$
-Bias_{jack}
-=
-(n-1)(\bar{\theta}_{jack}-\hat{\theta})
+Bias_{jack} = (n-1)(\bar{\theta}_{jack}-\hat{\theta})
 $$
 
 Bias-corrected Jackknife estimate คือ
 
 $$
-\hat{\theta}_{BC,jack}
-=
-\hat{\theta}-Bias_{jack}
+\hat{\theta}_{BC,jack} = \hat{\theta}-Bias_{jack}
 $$
 
 หรือเขียนได้เป็น
 
 $$
-\hat{\theta}_{BC,jack}
-=
-n\hat{\theta}-(n-1)\bar{\theta}_{jack}
+\hat{\theta}_{BC,jack} = n\hat{\theta}-(n-1)\bar{\theta}_{jack}
 $$
 
 Jackknife estimate of standard error คือ
 
 $$
-SE_{jack}
-=
-\sqrt{
-\frac{n-1}{n}
-\sum_{i=1}^{n}
-(\hat{\theta}_{(i)}-\bar{\theta}_{jack})^2
-}
+SE_{jack} = \sqrt{\frac{n-1}{n}\sum_{i=1}^{n}(\hat{\theta}_{(i)}-\bar{\theta}_{jack})^2}
 $$
 
 ถ้าตัด observation เพียงหนึ่งตัวแล้ว estimate เปลี่ยนมาก ค่า Jackknife SE จะสูง และยังบอกเป็นนัยว่า observation นั้นมีอิทธิพลต่อ estimate มาก
@@ -239,21 +217,13 @@ $$
 ค่าเฉลี่ยของ leave-one-out means เท่ากับ 22.7 เช่นกัน ดังนั้น
 
 $$
-Bias_{jack}
-=
-(10-1)(22.7-22.7)
-=
-0
+Bias_{jack} = (10-1)(22.7-22.7) = 0
 $$
 
 สำหรับ sample mean ค่า Jackknife SE จะเท่ากับ classical standard error
 
 $$
-SE_{jack}
-=
-\frac{s}{\sqrt{n}}
-=
-1.3421
+SE_{jack} = \frac{s}{\sqrt{n}} = 1.3421
 $$
 
 ### 4.5 เขียนตอบข้อสอบ
@@ -271,30 +241,19 @@ Bootstrap ใช้ sample เดิมแทน population ชั่วคร�
 ให้ $\hat{\theta}^{(b)}$ เป็น estimate จาก Bootstrap sample รอบที่ $b$ ค่าเฉลี่ยของ Bootstrap estimates คือ
 
 $$
-\bar{\theta}_{boot}
-=
-\frac{1}{B}
-\sum_{b=1}^{B}\hat{\theta}^{(b)}
+\bar{\theta}_{boot} = \frac{1}{B}\sum_{b=1}^{B}\hat{\theta}^{(b)}
 $$
 
 Bootstrap estimate of bias คือ
 
 $$
-Bias_{boot}
-=
-\bar{\theta}_{boot}-\hat{\theta}
+Bias_{boot} = \bar{\theta}_{boot}-\hat{\theta}
 $$
 
 Bootstrap estimate of standard error คือ
 
 $$
-SE_{boot}
-=
-\sqrt{
-\frac{1}{B-1}
-\sum_{b=1}^{B}
-(\hat{\theta}^{(b)}-\bar{\theta}_{boot})^2
-}
+SE_{boot} = \sqrt{\frac{1}{B-1}\sum_{b=1}^{B}(\hat{\theta}^{(b)}-\bar{\theta}_{boot})^2}
 $$
 
 สูตรนี้คือ sample standard deviation ของ Bootstrap estimates จำนวน $B$ ค่า ถ้าเพิ่ม $B$ ผลจะเสถียรขึ้นเพราะความผันผวนจากการจำลองลดลง แต่ไม่ได้เพิ่มจำนวน observations อิสระหรือแก้ selection bias ใน sample เดิม
@@ -306,17 +265,13 @@ $$
 ถ้า Bootstrap distribution ใกล้สมมาตรและ approximately normal สามารถใช้
 
 $$
-\hat{\theta}
-\pm
-z_{\alpha/2}SE_{boot}
+\hat{\theta} \pm z_{\alpha/2}SE_{boot}
 $$
 
 สำหรับ 95% confidence interval ใช้ critical value ประมาณ 1.96
 
 $$
-\hat{\theta}
-\pm
-1.96SE_{boot}
+\hat{\theta} \pm 1.96SE_{boot}
 $$
 
 ช่วงนี้สมมาตรรอบ point estimate จึงอาจไม่เหมาะเมื่อ Bootstrap distribution เบ้มาก
@@ -328,9 +283,7 @@ Percentile method เรียง Bootstrap estimates จากน้อยไ�
 สำหรับ 95% confidence interval:
 
 $$
-CI_{percentile}
-=
-[q_{0.025},q_{0.975}]
+CI_{percentile} = [q_{0.025},q_{0.975}]
 $$
 
 ดังนั้นขอบล่างคือ percentile ที่ 2.5 และขอบบนคือ percentile ที่ 97.5 ของ Bootstrap estimates
@@ -679,83 +632,55 @@ Bootstrap มี randomness จึงควรกำหนด `set.seed()` ก�
 ### Jackknife average
 
 $$
-\bar{\theta}_{jack}
-=
-\frac{1}{n}
-\sum_{i=1}^{n}\hat{\theta}_{(i)}
+\bar{\theta}_{jack} = \frac{1}{n}\sum_{i=1}^{n}\hat{\theta}_{(i)}
 $$
 
 ### Jackknife bias
 
 $$
-Bias_{jack}
-=
-(n-1)(\bar{\theta}_{jack}-\hat{\theta})
+Bias_{jack} = (n-1)(\bar{\theta}_{jack}-\hat{\theta})
 $$
 
 ### Bias-corrected Jackknife estimate
 
 $$
-\hat{\theta}_{BC,jack}
-=
-\hat{\theta}-Bias_{jack}
+\hat{\theta}_{BC,jack} = \hat{\theta}-Bias_{jack}
 $$
 
 ### Jackknife standard error
 
 $$
-SE_{jack}
-=
-\sqrt{
-\frac{n-1}{n}
-\sum_{i=1}^{n}
-(\hat{\theta}_{(i)}-\bar{\theta}_{jack})^2
-}
+SE_{jack} = \sqrt{\frac{n-1}{n}\sum_{i=1}^{n}(\hat{\theta}_{(i)}-\bar{\theta}_{jack})^2}
 $$
 
 ### Bootstrap average
 
 $$
-\bar{\theta}_{boot}
-=
-\frac{1}{B}
-\sum_{b=1}^{B}\hat{\theta}^{(b)}
+\bar{\theta}_{boot} = \frac{1}{B}\sum_{b=1}^{B}\hat{\theta}^{(b)}
 $$
 
 ### Bootstrap bias
 
 $$
-Bias_{boot}
-=
-\bar{\theta}_{boot}-\hat{\theta}
+Bias_{boot} = \bar{\theta}_{boot}-\hat{\theta}
 $$
 
 ### Bootstrap standard error
 
 $$
-SE_{boot}
-=
-\sqrt{
-\frac{1}{B-1}
-\sum_{b=1}^{B}
-(\hat{\theta}^{(b)}-\bar{\theta}_{boot})^2
-}
+SE_{boot} = \sqrt{\frac{1}{B-1}\sum_{b=1}^{B}(\hat{\theta}^{(b)}-\bar{\theta}_{boot})^2}
 $$
 
 ### Bootstrap percentile confidence interval
 
 $$
-CI_{percentile}
-=
-[q_{\alpha/2},q_{1-\alpha/2}]
+CI_{percentile} = [q_{\alpha/2},q_{1-\alpha/2}]
 $$
 
 สำหรับ 95% confidence interval:
 
 $$
-CI_{95}
-=
-[q_{0.025},q_{0.975}]
+CI_{95} = [q_{0.025},q_{0.975}]
 $$
 
 ## 13. แนวคำถามที่ควรทำได้ก่อนสอบ
