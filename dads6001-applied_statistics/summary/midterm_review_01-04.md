@@ -2,6 +2,8 @@
 
 เอกสารนี้รวมเนื้อหาบท 01–04 ให้เป็นเรื่องเดียว เป้าหมายไม่ใช่ท่องว่าแต่ละบทมีสูตรอะไร แต่คือมองโจทย์ใหม่ให้ออกว่า **โจทย์ต้องการรู้ค่าใด ข้อมูลมีโครงสร้างแบบไหน ต้องใช้วิธีใด รัน R อย่างไร และต้องหยิบค่าใดจาก output ไปเขียนตอบ**
 
+ตัวอย่าง R ทุกข้อมีข้อมูลตัวเลขให้รันได้จริง และใช้ชื่อตัวแปรที่มีเลขข้อกำกับ เช่น `_61`, `_83` และ `_11a` เพื่อไม่ให้ตัวแปรจากคนละข้อทับกันเมื่อรันต่อเนื่องใน notebook เดียว หากใช้ Google Colab ให้รัน setup ในข้อ 12 ก่อนเริ่มตัวอย่างที่เรียก package `bootstrap` หรือ `boot`
+
 ให้ใช้สถานการณ์เดียวเป็นภาพตั้งต้น: โรงพยาบาลต้องการทราบเวลารอของผู้ป่วยทั้งหมด แต่ไม่สามารถจับเวลาผู้ป่วยทุกคนได้ จึงสุ่มผู้ป่วยมาบางส่วน ข้อมูลที่เก็บได้เป็นเพียง sample แต่คำถามต้องการคำตอบเกี่ยวกับ population ช่องว่างระหว่างสองสิ่งนี้คือเหตุผลที่เราต้องเรียน Probability, Sampling Distribution, Confidence Interval, Resampling และ Hypothesis Testing
 
 ~~~mermaid
@@ -129,12 +131,22 @@ Central Limit Theorem กล่าวว่า เมื่อ observations เ�
 
 ~~~r
 %%R
-summary(x)
-boxplot(x, horizontal = TRUE)
-hist(x)
-qqnorm(x)
-qqline(x, col = 'red')
-shapiro.test(x)
+waiting_min_05 <- c(
+  4.1, 5.0, 3.8, 4.7, 6.2,
+  5.4, 4.9, 5.1, 3.9, 4.6,
+  5.8, 4.3, 4.5, 5.2, 4.0
+)
+
+print(summary(waiting_min_05))
+
+par(mfrow = c(2, 2))
+boxplot(waiting_min_05, horizontal = TRUE, main = 'Boxplot')
+hist(waiting_min_05, main = 'Histogram', xlab = 'Waiting time (minutes)')
+qqnorm(waiting_min_05)
+qqline(waiting_min_05, col = 'red')
+par(mfrow = c(1, 1))
+
+print(shapiro.test(waiting_min_05))
 ~~~
 
 ให้ดูผลดังนี้
@@ -174,8 +186,8 @@ Estimate บอกตำแหน่งกึ่งกลาง SE บอก sam
 
 ~~~r
 %%R
-x <- c(12, 15, 9, 20, 18, 11, 14, 16, 10, 13, 17, 12)
-t.test(x, conf.level = 0.95)$conf.int
+waiting_min_61 <- c(12, 15, 9, 20, 18, 11, 14, 16, 10, 13, 17, 12)
+t.test(waiting_min_61, conf.level = 0.95)$conf.int
 ~~~
 
 **ดูอะไร:** Lower และ upper limits พร้อมหน่วย
@@ -190,9 +202,17 @@ t.test(x, conf.level = 0.95)$conf.int
 
 ~~~r
 %%R
-p_hat <- 24 / 3900
-se <- sqrt(p_hat * (1 - p_hat) / 3900)
-p_hat + c(-1, 1) * qnorm(0.975) * se
+flu_cases_62 <- 24
+flu_total_62 <- 3900
+flu_prop_62 <- flu_cases_62 / flu_total_62
+flu_se_62 <- sqrt(flu_prop_62 * (1 - flu_prop_62) / flu_total_62)
+flu_ci_62 <- flu_prop_62 + c(-1, 1) * qnorm(0.975) * flu_se_62
+
+print(c(
+  estimate = flu_prop_62,
+  lower = flu_ci_62[1],
+  upper = flu_ci_62[2]
+))
 ~~~
 
 **ดูอะไร:** Point estimate และขอบล่าง–ขอบบน แปลงเป็นเปอร์เซ็นต์เมื่อช่วยให้สื่อความหมายง่ายขึ้น
@@ -205,15 +225,21 @@ p_hat + c(-1, 1) * qnorm(0.975) * se
 
 ~~~r
 %%R
+waiting_a_63 <- c(18, 20, 17, 22, 19, 21, 16, 23, 18, 20)
+waiting_b_63 <- c(24, 26, 22, 25, 27, 23, 28, 24, 26, 25)
+
 # Welch interval เป็นค่าเริ่มต้นเมื่อไม่สมมติ equal variances
-t.test(group_a, group_b)$conf.int
-~~~
+t_interval_welch_63 <- t.test(waiting_a_63, waiting_b_63)
+print(t_interval_welch_63)
 
-ถ้าโจทย์กำหนด equal population variances:
-
-~~~r
-%%R
-t.test(group_a, group_b, var.equal = TRUE)$conf.int
+# ถ้าโจทย์กำหนด equal population variances
+# Pooled-variance interval เมื่อโจทย์สมมติ equal variances
+t_interval_pooled_63 <- t.test(
+  waiting_a_63,
+  waiting_b_63,
+  var.equal = TRUE
+)
+print(t_interval_pooled_63)
 ~~~
 
 **ดูอะไร:** Estimate ของแต่ละกลุ่มและ CI ของ $\mu_A-\mu_B$ ถ้าช่วงครอบคลุม 0 ยังไม่มีหลักฐานของความแตกต่างแบบ two-sided ที่ระดับ .05
@@ -226,7 +252,15 @@ t.test(group_a, group_b, var.equal = TRUE)$conf.int
 
 ~~~r
 %%R
-t.test(after, before, paired = TRUE)$conf.int
+bp_before_64 <- c(152, 148, 160, 155, 150, 158, 162, 149, 154, 157)
+bp_after_64 <- c(144, 142, 151, 148, 145, 149, 153, 143, 146, 150)
+
+t_interval_bp_64 <- t.test(
+  bp_after_64,
+  bp_before_64,
+  paired = TRUE
+)
+print(t_interval_bp_64)
 ~~~
 
 **ดูอะไร:** Mean difference และ CI ของ mean difference ไม่ใช่ CI ของ before และ after แยกกัน
@@ -237,11 +271,17 @@ t.test(after, before, paired = TRUE)$conf.int
 
 ~~~r
 %%R
-prop.test(
-  x = c(80, 65),
-  n = c(100, 100),
+success_a_65 <- 80
+total_a_65 <- 100
+success_b_65 <- 65
+total_b_65 <- 100
+
+prop_comparison_65 <- prop.test(
+  x = c(success_a_65, success_b_65),
+  n = c(total_a_65, total_b_65),
   correct = FALSE
 )
+print(prop_comparison_65)
 ~~~
 
 **ดูอะไร:** Sample proportions, CI ของ $p_A-p_B$ และลำดับกลุ่ม หากสลับ A กับ B เครื่องหมายของผลต่างและ CI จะสลับ
@@ -267,9 +307,9 @@ Resampling พยายามใช้สิ่งหลังประมาณ
 %%R
 library(bootstrap)
 
-fuel <- c(26, 23, 21, 23, 19, 29, 15, 26, 19, 26)
-jack_mean <- jackknife(fuel, mean)
-print(jack_mean)
+fuel_mpg_71 <- c(26, 23, 21, 23, 19, 29, 15, 26, 19, 26)
+jack_fuel_mean_71 <- jackknife(fuel_mpg_71, mean)
+print(jack_fuel_mean_71)
 ~~~
 
 **ดูอะไร**
@@ -290,14 +330,20 @@ Jackknife เหมาะกับ statistic ที่เปลี่ยนอ�
 %%R
 library(boot)
 
-median_stat <- function(data, index) {
-  median(data[index])
+delivery_days_72 <- c(2, 3, 4, 4, 5, 6, 7, 8, 9, 14, 18)
+
+median_stat_72 <- function(data_72, index_72) {
+  median(data_72[index_72])
 }
 
 set.seed(11)
-boot_median <- boot(x, statistic = median_stat, R = 2000)
-print(boot_median)
-boot.ci(boot_median, type = c('perc', 'bca'))
+boot_median_72 <- boot(
+  delivery_days_72,
+  statistic = median_stat_72,
+  R = 2000
+)
+print(boot_median_72)
+print(boot.ci(boot_median_72, type = c('perc', 'bca')))
 ~~~
 
 **ดูอะไร**
@@ -371,12 +417,13 @@ $$
 
 ~~~r
 %%R
-t.test(waiting_time, mu = 5, alternative = 'less')
+waiting_min_83 <- c(4.2, 4.7, 5.1, 4.5, 4.9, 5.0, 4.4, 5.3, 4.6, 4.8, 5.2, 4.1)
+t.test(waiting_min_83, mu = 5, alternative = 'less')
 ~~~
 
 **ดูอะไร:** Mean, t, df, p-value, one-sided CI และ alternative ว่าตรงกับโจทย์
 
-ถ้า p-value = 0.0569 ที่ $\alpha=0.05$ ให้เขียนว่า “fail to reject $H_0$ ยังไม่มีหลักฐานเพียงพอว่า population mean waiting time ต่ำกว่า 5 นาที”
+จากข้อมูลตัวอย่างนี้จะได้ p-value ประมาณ 0.0180 ซึ่งน้อยกว่า $\alpha=0.05$ ให้เขียนว่า “reject $H_0$ มีหลักฐานเพียงพอว่า population mean waiting time ต่ำกว่า 5 นาที”
 
 ### 8.4 Independent two-sample t test
 
@@ -384,21 +431,26 @@ t.test(waiting_time, mu = 5, alternative = 'less')
 
 ~~~r
 %%R
+waiting_a_84 <- c(17, 19, 16, 20, 18, 21, 15, 22, 17, 19)
+waiting_b_84 <- c(21, 23, 20, 24, 22, 25, 19, 26, 21, 24)
+
 # Welch test
-t.test(group_a, group_b, alternative = 'two.sided')
-~~~
+t_test_welch_84 <- t.test(
+  waiting_a_84,
+  waiting_b_84,
+  alternative = 'two.sided'
+)
+print(t_test_welch_84)
 
-ถ้าโจทย์กำหนด equal variances:
-
-~~~r
-%%R
+# ถ้าโจทย์กำหนด equal variances
 # Pooled-variance test
-t.test(
-  group_a,
-  group_b,
+t_test_pooled_84 <- t.test(
+  waiting_a_84,
+  waiting_b_84,
   alternative = 'two.sided',
   var.equal = TRUE
 )
+print(t_test_pooled_84)
 ~~~
 
 **ดูอะไร:** Mean ของแต่ละกลุ่ม ทิศทางของ group A minus group B, t, df, p-value และ CI
@@ -409,12 +461,16 @@ t.test(
 
 ~~~r
 %%R
-t.test(
-  after,
-  before,
+weight_before_85 <- c(70, 72, 68, 75, 74, 69, 71, 73)
+weight_after_85 <- c(72, 73, 70, 76, 75, 71, 72, 75)
+
+t_test_weight_85 <- t.test(
+  weight_after_85,
+  weight_before_85,
   paired = TRUE,
   alternative = 'greater'
 )
+print(t_test_weight_85)
 ~~~
 
 R กำลังทดสอบ after minus before ถ้าสลับ argument ทิศทางของ alternative ต้องสลับตาม
@@ -476,7 +532,8 @@ CI ให้ข้อมูลมากกว่าคำว่า significant �
 
 ~~~r
 %%R
-t.test(weight, mu = 500, alternative = 'greater')
+package_weight_g_11a <- c(502, 498, 505, 501, 499, 504, 503, 500, 506, 502)
+t.test(package_weight_g_11a, mu = 500, alternative = 'greater')
 ~~~
 
 **อ่าน output:** mean, t, df, p-value และ lower confidence bound
@@ -491,7 +548,9 @@ t.test(weight, mu = 500, alternative = 'greater')
 
 ~~~r
 %%R
-t.test(wait_a, wait_b)
+wait_hospital_a_11b <- c(18, 20, 17, 22, 19, 21, 16, 23)
+wait_hospital_b_11b <- c(24, 26, 22, 25, 27, 23, 28, 24)
+t.test(wait_hospital_a_11b, wait_hospital_b_11b)
 ~~~
 
 **อ่าน output:** mean ของทั้งสองกลุ่ม, difference direction, CI และ p-value
@@ -504,7 +563,14 @@ t.test(wait_a, wait_b)
 
 ~~~r
 %%R
-t.test(after, before, paired = TRUE, alternative = 'greater')
+score_before_11c <- c(62, 70, 68, 75, 66, 72, 64, 69)
+score_after_11c <- c(70, 76, 74, 82, 72, 79, 71, 75)
+t.test(
+  score_after_11c,
+  score_before_11c,
+  paired = TRUE,
+  alternative = 'greater'
+)
 ~~~
 
 **อ่าน output:** Mean difference และ p-value ของ differences
@@ -517,9 +583,23 @@ t.test(after, before, paired = TRUE, alternative = 'greater')
 
 ~~~r
 %%R
-median_stat <- function(data, index) median(data[index])
-boot_result <- boot(income, median_stat, R = 2000)
-boot.ci(boot_result, type = 'perc')
+income_baht_11d <- c(
+  18000, 19500, 21000, 22000, 23500,
+  25000, 27000, 30000, 36000, 48000
+)
+
+median_income_stat_11d <- function(data_11d, index_11d) {
+  median(data_11d[index_11d])
+}
+
+set.seed(11)
+boot_income_11d <- boot(
+  income_baht_11d,
+  statistic = median_income_stat_11d,
+  R = 2000
+)
+print(boot_income_11d)
+print(boot.ci(boot_income_11d, type = 'perc'))
 ~~~
 
 **อ่าน output:** Original median และ percentile CI
@@ -530,8 +610,9 @@ boot.ci(boot_result, type = 'perc')
 
 ~~~r
 %%R
-jack_result <- jackknife(x, mean)
-print(jack_result)
+systolic_bp_11e <- c(118, 121, 119, 123, 120, 122, 117, 124, 120, 135)
+jack_bp_mean_11e <- jackknife(systolic_bp_11e, mean)
+print(jack_bp_mean_11e)
 ~~~
 
 **อ่าน output:** jack.bias, jack.se และช่วงของ jack.values
