@@ -1,577 +1,789 @@
-# Permutation Test
+# 05 Permutation Test
 
-> บทนี้อธิบายการทดสอบสมมติฐานแบบเรียงสับเปลี่ยนตั้งแต่แนวคิดพื้นฐาน เงื่อนไข Exchangeability การสร้าง Permutation Distribution การคำนวณ p-value แบบ Exact และ Monte Carlo ตลอดจนการเลือกวิธีสลับข้อมูลให้ตรงกับรูปแบบการทดลอง พร้อมตัวอย่างคำนวณและโค้ด R
+Permutation Test เป็นเนื้อหาสำหรับการสอบปลายภาคต่อจาก Classical hypothesis testing ในบทก่อนหน้า แก่นของบทนี้ยังเป็นคำถามเดิมว่า “ผลจาก sample ขัดกับ $H_0$ มากพอหรือไม่” สิ่งที่เปลี่ยนคือวิธีสร้าง null distribution
 
-## 1. ทำไมเราจึงต้องเรียน Permutation Test
+Classical test อาศัย distribution ทางทฤษฎี เช่น t distribution เพื่อบอกว่า test statistic ควรกระจายอย่างไรเมื่อ $H_0$ เป็นจริง ส่วน Permutation Test สร้าง null distribution จากข้อมูลที่สังเกตได้ โดยสลับ group labels หรือจับคู่ข้อมูลใหม่ในรูปแบบที่ $H_0$ อนุญาต แล้วดูว่าผลจริงสุดโต่งเพียงใดเมื่อเทียบกับผลจากการสลับเหล่านั้น
 
-การทดสอบสมมติฐานแบบคลาสสิก เช่น z test, t test และ Pearson correlation test อาศัยการแจกแจงอ้างอิงที่ได้จากทฤษฎี ภายใต้ข้อสมมติบางอย่างเกี่ยวกับการสุ่ม ความเป็นอิสระ รูปแบบการแจกแจง หรือขนาดตัวอย่าง ตัวอย่างเช่น one-sample t test ใช้ข้อเท็จจริงว่า หากข้อมูลมาจากประชากรปกติแล้ว
+บทนี้เริ่มจากตัวอย่างผู้ป่วย 5 คน เพราะสามารถแจกแจงทุก assignment ด้วยมือได้ เมื่อเข้าใจตัวอย่างนี้แล้ว โจทย์ขนาดใหญ่และ R code จะเป็นเพียงการให้คอมพิวเตอร์ทำขั้นตอนเดิมซ้ำจำนวนมาก
 
-$$
-T=\frac{\bar{X}-\mu_0}{S/\sqrt{n}}
-$$
+---
 
-จะมีการแจกแจง t ที่มี degrees of freedom เท่ากับ $n-1$ เมื่อสมมติฐานว่างเป็นจริง เราจึงนำค่า $T$ ที่สังเกตได้ไปเปรียบเทียบกับ t distribution เพื่อหา p-value
+## 1. เริ่มจากคำถามที่ Classical t test ตอบได้ไม่มั่นใจ
 
-อย่างไรก็ตาม ข้อมูลจริงอาจมีขนาดเล็ก เบ้ มี outlier หรือมีตัวสถิติที่ไม่ทราบ sampling distribution ในรูปปิด จึงเกิดคำถามว่า เราจะสร้างการแจกแจงอ้างอิงภายใต้สมมติฐานว่างจากข้อมูลที่มีอยู่ได้หรือไม่
+สมมติทดลองยากับผู้ป่วยภูมิแพ้ 5 คน โดยสุ่ม 2 คนให้ High dose และอีก 3 คนให้ Low dose ผลลัพธ์คือจำนวนวันที่ไม่มีอาการ
 
-Permutation Test ตอบคำถามนี้ด้วยแนวคิดง่าย ๆ ว่า ถ้า $H_0$ เป็นจริงและ label ที่ใช้แบ่งกลุ่มไม่มีความหมายต่อผลลัพธ์ การสลับ label เหล่านั้นควรให้ชุดข้อมูลที่เป็นไปได้พอ ๆ กัน เราจึงสลับ label หลายครั้ง คำนวณตัวสถิติทุกครั้ง และใช้ค่าที่ได้เป็นการแจกแจงของตัวสถิติภายใต้ $H_0$
+- High dose: 12, 13 วัน
+- Low dose: 6, 6, 7 วัน
 
-กล่าวอีกอย่างหนึ่ง Permutation Test ไม่ได้ถามว่า “ข้อมูลมีรูปทรงเหมือน Normal distribution หรือไม่” เป็นหลัก แต่ถามว่า “ภายใต้ $H_0$ เรามีสิทธิ์สลับอะไร โดยยังรักษาโครงสร้างการทดลองเดิมไว้”
+ต้องการตรวจว่า High dose ทำให้จำนวนวันที่ไม่มีอาการเฉลี่ยมากกว่า Low dose หรือไม่
 
-## 2. จาก Classical Test สู่ Resampling Test
+ข้อมูลมีเพียง 2 คนกับ 3 คน การตรวจ Normality แทบไม่มีพลัง และการอาศัย t distribution ต้องใช้ assumptions ที่ประเมินจากข้อมูลได้ยาก Permutation Test จึงย้อนกลับไปใช้สิ่งที่การทดลองให้มาโดยตรง นั่นคือการสุ่มว่าใครอยู่กลุ่มใด
 
-### 2.1 โครงสร้างร่วมของการทดสอบสมมติฐาน
+ถ้า $H_0$ เป็นจริงและ dose ไม่มีผลต่อ response แล้ว ค่า 12, 13, 6, 6 และ 7 ไม่ควรผูกติดกับ label High หรือ Low ผู้ป่วยที่ได้ 12 วันอาจถูกจัดเป็น Low dose ได้เช่นเดียวกับ High dose การสลับ labels จึงจำลองโลกที่ $H_0$ เป็นจริง
 
-ไม่ว่าจะใช้วิธีคลาสสิกหรือ Permutation Test กระบวนการหลักยังเหมือนกัน
-
-1. กำหนด $H_0$ และ $H_1$
-2. เลือกตัวสถิติที่สะท้อนความแตกต่างหรือความสัมพันธ์ที่ต้องการตรวจสอบ
-3. คำนวณ observed statistic จากข้อมูลจริง
-4. สร้างหรือเลือก null distribution ของตัวสถิติเมื่อ $H_0$ เป็นจริง
-5. วัดว่า observed statistic อยู่ไกลเข้าไปในหางของ null distribution เพียงใด
-6. คำนวณ p-value และสรุปผลในบริบทของปัญหา
-
-จุดที่ต่างกันคือวิธีสร้าง null distribution
-
-| ประเด็น | Classical test | Permutation test |
-|---|---|---|
-| แหล่งของ null distribution | สูตรและทฤษฎีความน่าจะเป็น | การสลับข้อมูลที่สอดคล้องกับ $H_0$ |
-| ข้อสมมติเด่น | รูปแบบ distribution และเงื่อนไขของ test | Exchangeability และรูปแบบการสุ่ม/การทดลอง |
-| ตัวสถิติ | มักมีสูตรมาตรฐาน | เลือกให้ตรงกับคำถามได้ยืดหยุ่น |
-| การคำนวณ | มักรวดเร็ว | อาจต้องใช้การคำนวณจำนวนมาก |
-| ผลลัพธ์ | Exact หรือ asymptotic ตามทฤษฎี | Exact เมื่อแจกแจงครบทุก permutation และเงื่อนไขถูกต้อง |
-
-### 2.2 Sampling Distribution กับ Permutation Distribution
-
-Sampling distribution คือการแจกแจงของตัวสถิติที่เกิดจากการสุ่มตัวอย่างใหม่จากประชากรซ้ำ ๆ แต่ในงานจริงเรามี sample เพียงชุดเดียวและมักไม่รู้ population distribution
-
-Permutation distribution ต่างออกไป เราคงค่าที่สังเกตได้ไว้ แต่จัดสรร label หรือจับคู่ใหม่ตามกฎที่ $H_0$ อนุญาต แล้วคำนวณตัวสถิติจากแต่ละ arrangement การแจกแจงที่ได้จึงเป็น conditional distribution ซึ่งมีเงื่อนไขบนข้อมูลที่สังเกตแล้ว
-
-Permutation Test จึงไม่ใช่การสร้างข้อมูลใหม่จากประชากร และไม่ใช่ Bootstrap จุดประสงค์ของ Bootstrap โดยทั่วไปคือประมาณความไม่แน่นอนของ estimator ด้วยการสุ่มแบบคืนที่ ส่วน Permutation Test สร้างโลกที่ $H_0$ เป็นจริงด้วยการสลับข้อมูลตามโครงสร้างของสมมติฐาน
-
-## 3. แนวคิดหัวใจ: Exchangeability
-
-### 3.1 Exchangeability คืออะไร
-
-ข้อมูลหรือ label มีสมบัติ Exchangeability ภายใต้ $H_0$ เมื่อการสลับตำแหน่งตามกฎที่กำหนดไม่เปลี่ยน joint distribution ของข้อมูล กล่าวในภาษาง่าย ๆ คือ หาก $H_0$ เป็นจริง arrangement ที่สังเกตได้ไม่ควรมีสิทธิพิเศษเหนือ arrangement อื่นที่อนุญาต
-
-ใน randomized experiment ซึ่งหน่วยทดลองถูกสุ่มให้รับ Treatment หรือ Control เมื่อ $H_0$ ระบุว่า treatment ไม่มีผล label ทั้งสองกลุ่มสามารถสลับระหว่างหน่วยทดลองตามกลไกการสุ่มเดิมได้ เพราะภายใต้ $H_0$ ผลลัพธ์ไม่ควรขึ้นกับ label
-
-สำหรับ observational study การสลับ label ต้องระวังมากขึ้น เพราะความแตกต่างของกลุ่มอาจมาจาก confounding หรือ selection mechanism แม้คำนวณ permutation p-value ได้ ก็ไม่ได้ทำให้การศึกษากลายเป็น randomized experiment และไม่เพียงพอสำหรับข้อสรุปเชิงสาเหตุ
-
-### 3.2 Exchangeability ไม่เท่ากับ Independence
-
-Independence หมายถึงความรู้เกี่ยวกับตัวแปรหนึ่งไม่ให้ข้อมูลเกี่ยวกับอีกตัวแปรหนึ่ง ส่วน Exchangeability หมายถึง joint distribution ไม่เปลี่ยนเมื่อสลับตำแหน่งที่อนุญาต ทั้งสองแนวคิดเกี่ยวข้องกันแต่ไม่เหมือนกัน
-
-ข้อมูล repeated measures จากคนเดียวกันอาจไม่เป็นอิสระระหว่างเวลา แต่ยังสร้างการทดสอบแบบ permutation ที่ถูกต้องได้ หากสลับ treatment ภายใน block หรือสลับเครื่องหมายของ paired differences ตามโครงสร้าง $H_0$ การสลับ observation ทุกแถวอย่างอิสระจะทำลายความสัมพันธ์ภายในคนและทำให้ null distribution ผิด
-
-### 3.3 สิ่งที่ต้องสลับขึ้นกับ Design
-
-| Design | หน่วยที่สลับได้ภายใต้ $H_0$ | สิ่งที่ไม่ควรทำ |
-|---|---|---|
-| Two independent groups | สลับ group labels โดยคงขนาดกลุ่มเดิม | สลับเฉพาะลำดับภายในแต่ละกลุ่ม |
-| Matched pairs | สลับ Treatment/Control ภายในคู่ หรือ sign-flip paired difference | กระจายสมาชิกของคู่ไปปนกับคู่อื่น |
-| Randomized block | สลับ label ภายในแต่ละ block | สลับข้าม block โดยไม่รักษาโครงสร้าง |
-| Correlation | ตรึงตัวแปรหนึ่ง แล้วสลับอีกตัวแปรหนึ่ง | สลับทั้งสองตัวแปรด้วยลำดับเดียวกัน |
-| Time series | ต้องใช้วิธีที่รักษา dependence ตามเวลา | สลับทุก time point อย่างอิสระ |
-
-ดังนั้นคำถามสำคัญก่อนเริ่มไม่ใช่ “จะใช้กี่ permutation” แต่คือ “ภายใต้ $H_0$ อะไรคือหน่วยที่ exchangeable”
-
-## 4. กลไกของ Permutation Test
-
-ให้ $S$ เป็นตัวสถิติทดสอบ และให้
-
-$$
-S_{obs}=S(x_1,x_2,\ldots,x_n)
-$$
-
-เป็นค่าจากข้อมูลจริง สำหรับแต่ละ permutation ที่อนุญาต ให้ $S_b$ เป็นค่าตัวสถิติจากข้อมูลที่สลับแล้ว เมื่อ $b=1,2,\ldots,B$
-
-กระบวนการทำงานมีดังนี้
-
-1. เขียน $H_0$ และ $H_1$ ให้ตรงกับคำถาม
-2. เลือก statistic ที่ค่ามากหรือค่าสุดโต่งสะท้อนหลักฐานต้าน $H_0$
-3. คำนวณ $S_{obs}$
-4. สลับข้อมูลตามหน่วยที่ exchangeable ภายใต้ $H_0$
-5. คำนวณ $S_b$ จากแต่ละ permutation
-6. รวมค่า $S_b$ เป็น permutation distribution
-7. นับสัดส่วนของค่า permutation ที่สุดโต่งอย่างน้อยเท่ากับ $S_{obs}$
-8. เปรียบเทียบ p-value กับระดับนัยสำคัญ $\alpha$
-
-ภาพทางความคิดของกระบวนการคือ
+นี่คือภาพรวมของกระบวนการ:
 
 ```mermaid
 flowchart TD
-    A[ข้อมูลจริงและ Design] --> B[คำนวณ Observed Statistic]
-    A --> C[สลับหน่วยที่ Exchangeable]
-    C --> D[คำนวณ Statistic ซ้ำ]
-    D --> E[Permutation Distribution]
-    B --> F[เปรียบเทียบความสุดโต่ง]
-    E --> F
-    F --> G[p-value และข้อสรุป]
+    A["คำนวณผลต่างจริง S_obs"] --> B["รวมข้อมูลทุกกลุ่ม"]
+    B --> C["สลับ labels ภายใต้ H0"]
+    C --> D["คำนวณ S_perm ทุกครั้ง"]
+    D --> E["หาสัดส่วนที่ extreme เท่าหรือมากกว่าผลจริง"]
 ```
 
-จุดสำคัญคือ Permutation Test ไม่ได้เพียง “สลับข้อมูลแบบสุ่ม” แต่ต้องสลับด้วยกฎที่จำลองโลกของ $H_0$ และรักษาโครงสร้างการเก็บข้อมูลเดิม
+ค่าในขั้นสุดท้ายคือ permutation p-value
 
-## 5. การเลือก Test Statistic
+---
 
-ตัวสถิติต้องไวต่อรูปแบบของ $H_1$ และต้องเปลี่ยนเมื่อสลับสิ่งที่สนใจ ตัวอย่างที่ใช้บ่อย ได้แก่
+## 2. สิ่งที่ถูกสลับคือ label ไม่ใช่ค่าข้อมูล
 
-| คำถาม | ตัวสถิติที่เป็นไปได้ |
-|---|---|
-| ค่าเฉลี่ยสองกลุ่มต่างกันหรือไม่ | $\bar{x}_1-\bar{x}_2$ หรือ absolute mean difference |
-| Median สองกลุ่มต่างกันหรือไม่ | $median_1-median_2$ |
-| Treatment ให้ผลสูงกว่า Control หรือไม่ | $\bar{x}_{T}-\bar{x}_{C}$ |
-| ตัวแปรสองตัวสัมพันธ์กันหรือไม่ | Pearson $r$ หรือ Spearman correlation |
-| หลายกลุ่มต่างกันหรือไม่ | Between-group sum of squares หรือ F statistic |
-| Regression coefficient เป็นศูนย์หรือไม่ | coefficient หรือ t statistic ภายใต้ permutation scheme ที่เหมาะสม |
+ใน two-sample permutation test เราคงค่าที่วัดได้ไว้ครบทุกค่า แล้วสลับว่า observation ใดอยู่กลุ่ม 1 หรือกลุ่ม 2 โดยรักษาขนาดของแต่ละกลุ่มเท่าเดิม
 
-ข้อผิดพลาดที่พบบ่อยคือสลับลำดับ observation แต่คำนวณ statistic ที่ไม่ขึ้นกับลำดับ เช่น mean ของข้อมูลรวม หากเราเพียงเรียงค่า $x_1,\ldots,x_n$ ใหม่ ค่า mean และ median ของชุดรวมจะเท่าเดิมทุกครั้ง จึงไม่เกิด null distribution ที่มีประโยชน์
-
-สิ่งที่ควรสลับใน two-group test คือ group label หรือการจัดสมาชิกเข้าสู่กลุ่ม ไม่ใช่การเรียงลำดับของชุดรวมโดยปล่อย membership เดิมไว้
-
-## 6. Exact Permutation กับ Monte Carlo Permutation
-
-### 6.1 Exact Permutation Test
-
-ถ้าแจกแจงทุก arrangement ที่เป็นไปได้ครบทั้งหมด และแต่ละ arrangement มีโอกาสเท่ากันภายใต้ $H_0$ เราจะได้ Exact Permutation Test
-
-คำว่า Exact หมายถึงการควบคุม Type I error จาก randomization distribution ได้ตามระดับที่กำหนด ภายใต้เงื่อนไขของ design และ exchangeability ไม่ได้หมายความว่าวิธีนี้ปราศจากข้อสมมติ
-
-จำนวน permutation ไม่จำเป็นต้องเป็น $n!$ เสมอ หากแบ่งข้อมูล $n$ ค่าเป็นสองกลุ่มขนาด $n_1$ และ $n_2$ โดยลำดับภายในกลุ่มไม่มีความหมาย จำนวนการจัดกลุ่มที่ไม่ซ้ำกันคือ
-
-$$
-\binom{n}{n_1}=\frac{n!}{n_1!n_2!}
-$$
-
-สำหรับ paired design ที่มี $n$ คู่และภายใต้ $H_0$ สามารถสลับ Treatment/Control ภายในแต่ละคู่ได้ จำนวน arrangement คือ $2^n$ ไม่ใช่ $(2n)!$
-
-### 6.2 Monte Carlo Permutation Test
-
-เมื่อจำนวน arrangement ใหญ่มาก เราสุ่มเพียง $B$ permutations แทนการแจกแจงครบทั้งหมด วิธีนี้ประมาณ exact permutation distribution และมี Monte Carlo error เพิ่มเข้ามา
-
-หากนับได้ว่า $K$ permutations จาก $B$ รอบมี statistic สุดโต่งอย่างน้อยเท่าค่าที่สังเกต สูตรที่แนะนำเมื่อ observed arrangement ไม่ได้รวมอยู่ใน $B$ รอบคือ
-
-$$
-\hat{p}=\frac{K+1}{B+1}
-$$
-
-การบวกหนึ่งทั้งเศษและส่วนรวม observed arrangement เข้าเป็นหนึ่งกรณี และป้องกันการรายงาน p-value เท่ากับศูนย์จากการสุ่มจำนวนจำกัด
-
-Standard error เชิง Monte Carlo ของสัดส่วนโดยประมาณคือ
-
-$$
-SE_{MC}\approx\sqrt{\frac{\hat{p}(1-\hat{p})}{B}}
-$$
-
-ดังนั้นถ้า p-value อยู่ใกล้ระดับตัดสินใจ เช่น $\hat{p}=0.049$ เมื่อ $\alpha=0.05$ เราควรเพิ่ม $B$ และตรวจสอบความเสถียร ไม่ควรตัดสินจากตัวเลขรอบเดียว
-
-### 6.3 จำนวน permutation มากไม่ได้แก้ทุกปัญหา
-
-การเพิ่ม $B$ ลด Monte Carlo error แต่ไม่แก้การเลือก statistic ผิด การสลับผิดหน่วย การละเมิด exchangeability การสุ่มตัวอย่างที่มี bias หรือข้อจำกัดด้าน causal inference หาก permutation scheme ไม่สะท้อน $H_0$ ผลที่แม่นยำทางคอมพิวเตอร์ก็ยังเป็นคำตอบของคำถามที่ผิด
-
-## 7. การคำนวณ p-value ตามทิศทางของสมมติฐาน
-
-สำหรับ right-tailed test ซึ่งค่ามากสนับสนุน $H_1$
-
-$$
-p=P(S_{perm}\ge S_{obs}\mid H_0)
-$$
-
-สำหรับ left-tailed test ซึ่งค่าน้อยสนับสนุน $H_1$
-
-$$
-p=P(S_{perm}\le S_{obs}\mid H_0)
-$$
-
-สำหรับ two-sided test ต้องกำหนดความสุดโต่งให้ชัด วิธีที่เข้าใจง่ายเมื่อ null distribution สมมาตรรอบศูนย์คือ
-
-$$
-p=P(|S_{perm}|\ge |S_{obs}|\mid H_0)
-$$
-
-แต่การนำ one-sided p-value คูณสองไม่ถูกต้องเสมอ โดยเฉพาะเมื่อ permutation distribution ไม่สมมาตรหรือ statistic มี discrete support จึงควรนิยาม two-sided extremeness ก่อนคำนวณ
-
-การใช้ $\ge$ แทน $>$ มีความสำคัญ เพราะ permutation distribution เป็น discrete และอาจมี ties ค่า statistic ที่เท่ากับ observed statistic ถือว่าสุดโต่งอย่างน้อยเท่ากันและควรถูกนับรวม
-
-## 8. Worked Example 1: Shampoo กับคุณภาพขนอัลปากา
-
-### 8.1 คำถามและข้อมูล
-
-กลุ่ม Treatment ใช้แชมพูใหม่ และกลุ่ม Control ไม่ใช้แชมพูใหม่ คะแนนคุณภาพขนคือ
+สำหรับตัวอย่างยา เรารวมข้อมูลเป็น
 
 ```text
-Treatment: 8.3, 7.4, 5.8, 4.3, 7.2, 8.3,
-           6.2, 4.8, 7.7, 7.1, 4.1, 4.4
-
-Control:   3.9, 4.6, 4.4, 3.8, 2.8, 5.6,
-           4.6, 5.4, 4.2, 5.1, 5.8, 4.1
+12 13 6 6 7
 ```
 
-หากต้องการพิสูจน์ว่าแชมพูใหม่เพิ่มคุณภาพขน ควรเขียนสมมติฐานเป็น
+จากนั้นเลือก 2 ค่าให้เป็น High dose ส่วนอีก 3 ค่าเป็น Low dose จำนวน assignments ที่แตกต่างกันคือ
 
 $$
-H_0:\mu_T\le\mu_C
+\binom{5}{2}=10
 $$
 
-$$
-H_1:\mu_T>\mu_C
-$$
+ไม่จำเป็นต้องใช้ $5!=120$ เพราะการสลับลำดับภายใน High dose หรือภายใน Low dose ไม่สร้าง assignment ใหม่ ตัวอย่างเช่น High = 12, 13 กับ High = 13, 12 คือกลุ่มเดียวกัน
 
-Equality ต้องอยู่ใน null hypothesis เพราะการควบคุม Type I error และการสร้าง permutation distribution ใช้ boundary case ที่ไม่มี treatment effect
-
-เลือก statistic เป็นผลต่างค่าเฉลี่ย
+หลักนี้ใช้กับ two-sample test ทั่วไป ถ้ามีข้อมูลรวม $N$ ค่าและกลุ่มแรกมี $n_1$ ค่า จำนวนวิธีแบ่งกลุ่มคือ
 
 $$
-S=\bar{x}_T-\bar{x}_C
+\binom{N}{n_1}
+$$
+
+ส่วน $N!$ เป็นจำนวนการเรียงลำดับ observations ทั้งหมด ซึ่งอาจมีการนับ assignment เดิมซ้ำหลายครั้ง
+
+---
+
+## 3. Observed test statistic คือสิ่งที่เห็นจากข้อมูลจริง
+
+โจทย์ถามว่า High dose ให้ค่าเฉลี่ยมากกว่า Low dose จึงกำหนด test statistic เป็น
+
+$$
+S_{obs}=\bar{x}_{high}-\bar{x}_{low}
 $$
 
 จากข้อมูลจริง
 
 $$
-\bar{x}_T=6.300
+S_{obs}=12.50-6.33=6.17
 $$
 
-$$
-\bar{x}_C=4.525
-$$
+เครื่องหมายของ test statistic ต้องตรงกับคำถาม หากกำหนด High minus Low แล้ว $H_1$ คือ High มากกว่า Low ค่า test statistic ที่สนับสนุน $H_1$ จะอยู่ทางขวาหรือมีค่ามาก
 
-ดังนั้น
+Permutation Test ไม่ได้บังคับว่าต้องใช้ผลต่างค่าเฉลี่ย เราเลือก statistic ให้ตรงกับคำถามได้ เช่น
 
-$$
-S_{obs}=6.300-4.525=1.775
-$$
+- Difference in means เมื่อสนใจค่าเฉลี่ย
+- Difference in medians เมื่อข้อมูลเบ้และสนใจค่ากลาง
+- Pearson correlation เมื่อสนใจความสัมพันธ์เชิงเส้น
+- Difference in proportions เมื่อ outcome เป็น binary
+- Variance ratio เมื่อสนใจความแตกต่างของการกระจาย
 
-### 8.2 สร้าง null distribution
+หลังเลือก statistic แล้ว ต้องใช้ definition เดิมทั้งข้อมูลจริงและทุก permuted sample
 
-ภายใต้ $H_0$ ว่าแชมพูไม่มีผล เรารวมคะแนนทั้ง 24 ค่า แล้วจัดสรรใหม่ให้ Treatment 12 ค่าและ Control 12 ค่า ทุกครั้งคำนวณ mean difference ใหม่
+---
 
-เนื่องจากลำดับภายในกลุ่มไม่มีความหมาย จำนวนการแบ่งกลุ่มที่ไม่ซ้ำกันคือ
+## 4. Null distribution เกิดจาก assignments ที่เป็นไปได้ภายใต้ H0
 
-$$
-\binom{24}{12}=2{,}704{,}156
-$$
+เมื่อแจกแจงครบ 10 assignments ตัวอย่างยาให้ผลต่างค่าเฉลี่ย High minus Low ดังนี้
 
-ไม่ใช่ $24!$ เพราะการสลับตำแหน่งภายในกลุ่มเดิมไม่ทำให้การแบ่ง Treatment/Control เปลี่ยน
+```text
+6.17, 0.33, 0.33, 1.17, 1.17,
+1.17, 2.00, -4.67, -3.83, -3.83
+```
 
-### 8.3 ผลจากสไลด์และการตรวจสอบเพิ่มเติม
-
-จากเอกสาร สุ่ม 200 permutations และรายงานว่า 16 ค่ามากกว่า $1.775$ จึงได้
-
-$$
-p=\frac{16}{200}=0.08
-$$
-
-ที่ระดับ $\alpha=0.10$ เอกสารจึงปฏิเสธ $H_0$ และสรุปว่าแชมพูใหม่เพิ่มคุณภาพขน
-
-อย่างไรก็ตาม เมื่อแจกแจงการแบ่งกลุ่มครบทั้ง $2{,}704{,}156$ กรณี พบ 4,261 กรณีที่ mean difference มากกว่าหรือเท่ากับ $1.775$ ทำให้ exact one-sided p-value เป็น
+ค่า 6.17 จาก assignment จริงเป็นค่ามากที่สุด ถ้า $H_0$ เป็นจริง แต่ละ assignment มีโอกาสเท่ากัน $1/10$ ดังนั้น one-sided p-value คือสัดส่วนของ assignments ที่ได้ $S_{perm}\ge S_{obs}$
 
 $$
-p=\frac{4{,}261}{2{,}704{,}156}\approx0.00158
+p\text{-value}=\frac{1}{10}=0.10
 $$
 
-ผลตรวจสอบนี้ไม่สอดคล้องกับค่า 0.08 ในสไลด์ ความต่างมีขนาดใหญ่เกินกว่าจะอธิบายด้วย Monte Carlo randomness ตามปกติ จึงควรถือค่าจากสไลด์เป็นตัวอย่างของขั้นตอน แต่ใช้ค่า exact ที่ตรวจสอบใหม่เมื่อต้องรายงานผลจากข้อมูลชุดนี้
+ค่า 0.10 มีความหมายว่า ถ้า dose ไม่ได้ทำให้ response distribution แตกต่างกัน การสุ่มแบ่งผู้ป่วย 2 คนกับ 3 คนจะให้ผลต่างค่าเฉลี่ยอย่างน้อย 6.17 วันได้ประมาณ 10% ของ assignments ทั้งหมด
 
-ข้อสรุปที่เหมาะสมคือ ข้อมูลให้หลักฐานทางสถิติว่า Treatment มี mean wool-quality score สูงกว่า Control ภายใต้ exchangeability และ design ที่สมเหตุสมผล แต่การสรุปว่า “แชมพูเป็นสาเหตุ” ต้องอาศัยการสุ่มจัด Treatment และการควบคุมตัวแปรรบกวนจริงในการทดลอง
+ที่ระดับนัยสำคัญ 0.05 เราจึงไม่ปฏิเสธ $H_0$ ข้อมูลยังไม่มีหลักฐานเพียงพอว่า High dose ให้จำนวนวันที่ไม่มีอาการเฉลี่ยมากกว่า Low dose
 
-## 9. Worked Example 2: Permutation Test สำหรับ Correlation
+สาเหตุที่ผลต่าง 6.17 ดูใหญ่มากแต่ยังไม่ significant คือ sample เล็กจน p-value มีค่าที่เป็นไปได้แบบขั้นบันได สำหรับ 10 assignments ค่า one-sided p-value ที่เล็กที่สุดคือ $1/10=0.10$ จึงไม่มีทางปฏิเสธ $H_0$ ที่ระดับ 0.05 ด้วย permutation test ชุดนี้ แม้ assignment จริงจะสุดโต่งที่สุดแล้วก็ตาม
 
-### 9.1 คำถามและ statistic
+---
 
-ต้องการตรวจว่าอุปทาน $Q$ และราคา $P$ มีความสัมพันธ์เชิงเส้นทางบวกหรือไม่
+## 5. Exchangeability คือ assumption สำคัญที่สุด
 
-$$
-H_0:\rho=0
-$$
+Permutation Test ไม่ต้องสมมติว่า population เป็น Normal แต่ไม่ได้แปลว่าไม่มี assumptions
 
-$$
-H_1:\rho>0
-$$
+ภายใต้ $H_0$ observations หรือ labels ที่นำมาสลับต้องมีสมบัติ **exchangeable** หมายถึง หลังจากพิจารณาโครงสร้างการทดลองแล้ว assignments ที่นำมาสลับต้องมีโอกาสเกิดเท่าเทียมกันภายใต้ $H_0$
 
-ใช้ Pearson correlation coefficient เป็น statistic
+สำหรับ randomized experiment แบบสองกลุ่ม ถ้าผู้เข้าร่วมถูกสุ่มเข้ากลุ่มจริง labels ของสองกลุ่มมักสลับกันได้ภายใต้สมมติฐานว่า treatment ไม่มีผล
 
-$$
-r=\frac{\sum_{i=1}^{n}(P_i-\bar{P})(Q_i-\bar{Q})}
-{\sqrt{\sum_{i=1}^{n}(P_i-\bar{P})^2}\sqrt{\sum_{i=1}^{n}(Q_i-\bar{Q})^2}}
-$$
+สำหรับ observational study ต้องระวังมากขึ้น เพราะความแตกต่างระหว่างกลุ่มอาจเกิดจากปัจจัยอื่นตั้งแต่ก่อนเก็บข้อมูล เช่น อายุหรือความรุนแรงของโรค การสลับ labels โดยไม่รักษาโครงสร้างเหล่านี้อาจไม่สอดคล้องกับกระบวนการสร้างข้อมูล
 
-ค่า $r$ อยู่ระหว่าง $-1$ และ $1$ ขนาดของ $|r|$ สะท้อนความแรงของความสัมพันธ์เชิงเส้น ส่วนเครื่องหมายบอกทิศทาง
+หลักที่ควรตรวจมีดังนี้
 
-จากข้อมูล 20 คู่ในเอกสารได้
+- Observations ระหว่างหน่วยทดลองเป็นอิสระตามการออกแบบ
+- รูปแบบการ permutation ตรงกับวิธีสุ่มหรือโครงสร้างของข้อมูล
+- ข้อมูล independent groups ต้องสลับ group labels โดยรักษาขนาดกลุ่ม
+- ข้อมูล paired ต้องรักษาคู่ไว้ แล้วสลับทิศทางหรือ signs ภายในคู่
+- Correlation test ต้องตรึงตัวแปรหนึ่งไว้แล้ว permute อีกตัว เพื่อทำลายความสัมพันธ์แต่รักษาค่าของแต่ละตัวแปร
 
-$$
-r_{obs}=0.6183
-$$
+จึงควรถามว่า “ภายใต้ $H_0$ เราสลับอะไรได้โดยไม่ทำลายโครงสร้างข้อมูล” ก่อนเขียน code ทุกครั้ง
 
-### 9.2 ทำไมต้องตรึง Q แล้วสลับ P
+---
 
-ข้อมูลจริงมีคู่ $(P_i,Q_i)$ ถ้า $P$ และ $Q$ ไม่มีความสัมพันธ์ การจับคู่ที่สังเกตไม่ควรพิเศษกว่าการจับคู่ใหม่ เราจึงตรึงลำดับ $Q$ และสลับลำดับ $P$ เพื่อทำลายความสัมพันธ์ระหว่างสองตัวแปร แต่ยังรักษาค่าขอบของแต่ละตัวแปรไว้ครบถ้วน
+## 6. Exact permutation กับ Monte Carlo permutation
 
-หากสลับ $P$ และ $Q$ ด้วย permutation เดียวกัน คู่เดิมจะยังอยู่ด้วยกันทุกคู่ ค่า correlation จึงไม่เปลี่ยน วิธีนั้นไม่สร้างโลกของ $H_0$
+### 6.1 Exact permutation
 
-ข้อมูล 20 คู่มี $20!\approx2.43\times10^{18}$ permutations จึงไม่เหมาะกับการแจกแจงครบทุกกรณี เอกสารสุ่ม 50,000 permutations และรายงาน
+Exact test คำนวณ statistic จาก assignments ที่เป็นไปได้ทั้งหมด p-value จึงเกิดจาก null distribution ที่ครบถ้วน
+
+ตัวอย่างยาใช้เพียง 10 assignments จึงแจกแจงครบได้ง่าย ตัวอย่างสุนัข 14 ตัว แบ่งเป็นกลุ่มละ 7 ตัว มี
 
 $$
-p=P(R_{perm}\ge0.6183\mid H_0)=0.0016
+\binom{14}{7}=3432
 $$
 
-เนื่องจาก p-value ต่ำกว่า 0.05 จึงปฏิเสธ $H_0$ และสรุปว่าข้อมูลให้หลักฐานของความสัมพันธ์เชิงเส้นทางบวกระหว่างอุปทานกับราคา
+assignments ซึ่งคอมพิวเตอร์ยังคำนวณครบได้
 
-คำว่า “สัมพันธ์” ไม่เท่ากับ “เป็นสาเหตุ” และ Permutation Test ไม่แก้ปัญหา reverse causality, omitted variables หรือ dependence ตามเวลา หากข้อมูลราคาและอุปทานเรียงตามเวลา การสลับทุก observation อย่างอิสระอาจไม่เหมาะสมเพราะทำลาย autocorrelation
+### 6.2 Monte Carlo permutation
 
-## 10. R Walkthrough
+เมื่อจำนวน assignments มากเกินไป เราสุ่ม assignments มาจำนวน $B$ ครั้ง เช่น 5,000 หรือ 50,000 ครั้ง แล้วใช้สัดส่วนของ random permutations ที่ extreme เท่าหรือมากกว่าผลจริงเป็น approximate p-value
 
-### 10.1 Two-group Permutation Test
+ยิ่ง $B$ มาก Monte Carlo error ยิ่งลดลง แต่เวลาในการคำนวณเพิ่มขึ้นด้วย การกำหนด `set.seed()` ทำให้รันซ้ำได้ผลเดิม
+
+ใน lecture และ solution คำนวณ approximate p-value เป็น
+
+$$
+\frac{\text{จำนวน permutations ที่ extreme}}{B}
+$$
+
+ใน code สมัยใหม่มักใช้ plus-one correction เพื่อป้องกันการรายงาน p-value เป็นศูนย์
+
+$$
+\frac{\text{จำนวน permutations ที่ extreme}+1}{B+1}
+$$
+
+ถ้าตอบตามผลจาก package หรือคำสั่งที่อาจารย์ให้ ให้รายงานค่าจาก output นั้นโดยตรง หากเขียน simulation เอง ควรบอกสูตรที่ใช้เพื่อให้ตรวจสอบได้
+
+---
+
+## 7. ทิศทางของ p-value
+
+สมมติใช้ statistic เป็น group 1 minus group 2
+
+- $H_1:$ group 1 มากกว่า group 2 ใช้สัดส่วน $S_{perm}\ge S_{obs}$
+- $H_1:$ group 1 น้อยกว่า group 2 ใช้สัดส่วน $S_{perm}\le S_{obs}$
+- $H_1:$ สองกลุ่มแตกต่างกัน ใช้สัดส่วน $|S_{perm}|\ge|S_{obs}|$
+
+Two-sided p-value ไม่ควรคำนวณด้วยการคูณ one-sided p-value ด้วย 2 โดยอัตโนมัติในทุก permutation distribution เพราะ distribution อาจไม่สมมาตร การเปรียบเทียบ absolute values เป็นวิธีที่ชัดเจนเมื่อ statistic มีศูนย์เป็นค่ากลางภายใต้ $H_0$
+
+---
+
+## 8. เตรียม Google Colab สำหรับ R
+
+รัน Python cell นี้ครั้งเดียว:
+
+```python
+%load_ext rpy2.ipython
+```
+
+จากนั้นรัน R setup cell:
 
 ```r
-treatment <- c(
-  8.3, 7.4, 5.8, 4.3, 7.2, 8.3,
-  6.2, 4.8, 7.7, 7.1, 4.1, 4.4
+%%R
+# ปิด scientific notation และแสดงผลประมาณ 4 significant digits
+options(scipen = 999, digits = 4)
+```
+
+Code หลักในบทนี้ใช้ Base R จึงไม่ต้องติดตั้ง package เพิ่ม
+
+---
+
+## 9. R pattern สำหรับ two-sample permutation test
+
+### 9.1 Exact test เมื่อจำนวน assignments ไม่มาก
+
+ตัวอย่าง High-dose กับ Low-dose:
+
+```r
+%%R
+high_dose_91 <- c(12, 13)
+low_dose_91 <- c(6, 6, 7)
+
+all_scores_91 <- c(high_dose_91, low_dose_91)
+n_high_91 <- length(high_dose_91)
+
+# Observed statistic: High minus Low
+observed_diff_91 <- mean(high_dose_91) - mean(low_dose_91)
+
+# แต่ละ column คือ index ของผู้ป่วยที่ถูกกำหนดเป็น High dose
+high_assignments_91 <- combn(
+  seq_along(all_scores_91),
+  n_high_91
 )
 
-control <- c(
-  3.9, 4.6, 4.4, 3.8, 2.8, 5.6,
-  4.6, 5.4, 4.2, 5.1, 5.8, 4.1
+permuted_diff_91 <- apply(
+  high_assignments_91,
+  2,
+  function(high_index) {
+    mean(all_scores_91[high_index]) -
+      mean(all_scores_91[-high_index])
+  }
 )
 
-observed_diff <- mean(treatment) - mean(control)
+exact_p_value_91 <- mean(permuted_diff_91 >= observed_diff_91)
 
-pooled <- c(treatment, control)
-n_treatment <- length(treatment)
-B <- 50000
+print(c(
+  observed_difference = observed_diff_91,
+  total_assignments = length(permuted_diff_91),
+  extreme_assignments = sum(permuted_diff_91 >= observed_diff_91),
+  exact_p_value = exact_p_value_91
+))
+```
 
-set.seed(2026)
+ค่าที่ควรได้:
 
-permuted_diff <- replicate(B, {
-  shuffled <- sample(pooled, replace = FALSE)
-  mean(shuffled[1:n_treatment]) - mean(shuffled[-(1:n_treatment)])
+```text
+observed_difference    6.1667
+total_assignments     10.0000
+extreme_assignments    1.0000
+exact_p_value          0.1000
+```
+
+### 9.2 Monte Carlo test เมื่อ assignments มีจำนวนมาก
+
+```r
+%%R
+group1_92 <- c(8, 9, 11, 12, 13)
+group2_92 <- c(3, 5, 6, 7, 8)
+
+combined_92 <- c(group1_92, group2_92)
+n_group1_92 <- length(group1_92)
+B_92 <- 10000
+
+observed_diff_92 <- mean(group1_92) - mean(group2_92)
+
+set.seed(6001)
+permuted_diff_92 <- replicate(B_92, {
+  shuffled_92 <- sample(combined_92, replace = FALSE)
+
+  mean(shuffled_92[1:n_group1_92]) -
+    mean(shuffled_92[(n_group1_92 + 1):length(shuffled_92)])
 })
 
-K <- sum(permuted_diff >= observed_diff)
-p_value <- (K + 1) / (B + 1)
+# One-sided H1: group 1 mean is greater than group 2 mean
+mc_p_value_92 <-
+  (sum(permuted_diff_92 >= observed_diff_92) + 1) / (B_92 + 1)
 
-c(
-  observed_difference = observed_diff,
-  extreme_permutations = K,
-  p_value = p_value
+print(c(
+  observed_difference = observed_diff_92,
+  extreme_permutations = sum(permuted_diff_92 >= observed_diff_92),
+  approximate_p_value = mc_p_value_92
+))
+
+hist(permuted_diff_92,
+     main = 'Permutation distribution under H0',
+     xlab = 'Difference in sample means')
+abline(v = observed_diff_92, col = 'red', lwd = 2)
+```
+
+แต่ละรอบต้องสุ่มโดย `replace = FALSE` เพราะเรากำลังแบ่ง observations เดิมกลับเป็นกลุ่มใหม่ ไม่ใช่สร้าง bootstrap sample
+
+### 9.3 ใช้ `permTS()` ตาม solution
+
+Solution ใช้ package `perm` ซึ่งเขียนสั้นกว่า แต่ต้องติดตั้ง package ก่อน
+
+```r
+%%R
+if (!requireNamespace('perm', quietly = TRUE)) {
+  install.packages('perm', repos = 'https://cloud.r-project.org')
+}
+library(perm)
+```
+
+Exact test:
+
+```r
+%%R
+high_dose_93 <- c(12, 13)
+low_dose_93 <- c(6, 6, 7)
+
+score_93 <- c(high_dose_93, low_dose_93)
+group_93 <- factor(rep(
+  c('High', 'Low'),
+  c(length(high_dose_93), length(low_dose_93))
+))
+
+permTS(
+  score_93 ~ group_93,
+  alternative = 'greater',
+  method = 'exact.ce',
+  control = permControl(p.conf.level = 0.95)
 )
 ```
 
-`pooled` รวมข้อมูลภายใต้แนวคิดว่า เมื่อ $H_0$ เป็นจริง label Treatment และ Control แลกกันได้ `sample(..., replace = FALSE)` สลับลำดับโดยไม่สุ่มค่าซ้ำ แล้ว 12 ค่าแรกถูกจัดเป็น Treatment ใหม่ การทำซ้ำผ่าน `replicate()` สร้าง permutation distribution ส่วน `sum(permuted_diff >= observed_diff)` นับ right-tail events
-
-ต้องใช้ `replace = FALSE` เพราะ Permutation Test จัดสรรค่าสังเกตเดิมใหม่โดยแต่ละ observation ปรากฏหนึ่งครั้ง การใช้ `replace = TRUE` จะกลายเป็นแนวทางแบบ Bootstrap และเปลี่ยนคำถามทางสถิติ
-
-### 10.2 Correlation Permutation Test
+Monte Carlo test 5,000 permutations:
 
 ```r
-P <- c(
-  5.0, 4.8, 4.7, 4.0, 5.3, 4.1, 5.5, 4.7, 3.3, 4.0,
-  4.0, 4.6, 5.3, 3.0, 3.5, 3.9, 4.7, 5.0, 5.2, 4.6
+%%R
+permTS(
+  score_93 ~ group_93,
+  alternative = 'greater',
+  method = 'exact.mc',
+  control = permControl(
+    nmc = 5000,
+    p.conf.level = 0.95,
+    seed = 123
+  )
 )
+```
 
-Q <- c(
-  60, 59, 58, 47, 65, 48, 67, 70, 55, 63,
-  62, 65, 71, 56, 59, 60, 74, 77, 78, 62
-)
+ต้องตรวจว่า factor level แรกเป็นกลุ่มที่ต้องการให้อยู่ด้านซ้ายของผลต่าง ในตัวอย่างนี้ `High` เป็น level แรก จึงตีความ `alternative = 'greater'` เป็น High มากกว่า Low
 
-observed_r <- cor(P, Q, method = 'pearson')
-B <- 50000
+---
 
-set.seed(2026)
+## 10. One-sample และ paired permutation test ใช้ sign flipping
 
-permuted_r <- replicate(B, {
-  cor(sample(P, replace = FALSE), Q, method = 'pearson')
+One-sample test ไม่มีกลุ่ม labels สองชุดให้สลับ ภายใต้ $H_0$ เราพิจารณาว่าค่าคลาดจากค่าที่กำหนดสามารถเปลี่ยนเครื่องหมายบวกหรือลบได้
+
+Paired test ลดรูปเป็น one-sample test ของ differences ก่อน เช่น $d=$ after minus before แล้วสลับ sign ของแต่ละ difference โดยไม่แยกคู่
+
+ถ้ามี differences จำนวน $n$ ค่า จำนวน sign assignments ทั้งหมดคือ $2^n$
+
+Monte Carlo code สำหรับ paired test:
+
+```r
+%%R
+before_10 <- c(72, 68, 75, 80, 77, 69, 74, 71)
+after_10 <- c(76, 71, 78, 86, 80, 74, 78, 75)
+
+difference_10 <- after_10 - before_10
+observed_mean_10 <- mean(difference_10)
+B_10 <- 10000
+
+set.seed(6001)
+permuted_mean_10 <- replicate(B_10, {
+  random_sign_10 <- sample(
+    c(-1, 1),
+    size = length(difference_10),
+    replace = TRUE
+  )
+
+  mean(difference_10 * random_sign_10)
 })
 
-K <- sum(permuted_r >= observed_r)
-p_value <- (K + 1) / (B + 1)
+# H1: mean difference after minus before is greater than 0
+p_value_10 <-
+  (sum(permuted_mean_10 >= observed_mean_10) + 1) / (B_10 + 1)
 
-c(
-  observed_correlation = observed_r,
-  extreme_permutations = K,
-  p_value = p_value
-)
+print(c(
+  observed_mean_difference = observed_mean_10,
+  approximate_p_value = p_value_10
+))
 ```
 
-โค้ดนี้ตรึง `Q` แล้วสุ่มลำดับ `P` ใหม่ทุกครั้ง ค่า marginal distribution ของ `P` และ `Q` จึงไม่เปลี่ยน แต่ pairings ซึ่งเป็นแหล่งของ correlation ถูกทำลาย หากเปลี่ยนเป็น two-sided alternative ต้องนับ
+การ sign flipping อาศัยสมมติฐานว่าภายใต้ $H_0$ เครื่องหมายบวกและลบของ differences แลกเปลี่ยนกันได้ ถ้า distribution ของ differences เบ้รุนแรง assumption นี้อาจไม่เหมาะสม
+
+---
+
+## 11. Permutation test สำหรับ correlation
+
+Lecture ยกตัวอย่างการทดสอบความสัมพันธ์ทางบวกระหว่างราคา $P$ และอุปทาน $Q$ โดยใช้ Pearson correlation เป็น statistic
+
+- $H_0:$ ราคาและอุปทานไม่มีความสัมพันธ์
+- $H_1:$ ราคาและอุปทานมีความสัมพันธ์ทางบวก
+- Observed statistic: $r_{obs}=0.6183$
+
+หลักการคือ fix $Q$ และ permute $P$ การสลับทำลายการจับคู่ระหว่างราคาและอุปทาน แต่ยังรักษาค่าทั้งหมดของแต่ละตัวแปรไว้ จาก 50,000 permutations lecture รายงาน p-value เท่ากับ 0.0016 จึงปฏิเสธ $H_0$ และสรุปว่าข้อมูลมีหลักฐานของความสัมพันธ์ทางบวก
+
+R pattern ต่อไปนี้ใช้ข้อมูลตัวอย่างขนาดเล็กชุดใหม่เพื่อให้คัดลอกไปรันได้ทันที หลักการเดียวกับตัวอย่างราคาและอุปทานใน lecture:
 
 ```r
-K <- sum(abs(permuted_r) >= abs(observed_r))
+%%R
+P_11 <- c(10, 12, 11, 15, 14, 16, 18, 17, 20, 19)
+Q_11 <- c(30, 38, 31, 42, 36, 50, 46, 55, 49, 60)
+
+observed_r_11 <- cor(P_11, Q_11, method = 'pearson')
+B_11 <- 50000
+
+set.seed(6001)
+permuted_r_11 <- replicate(
+  B_11,
+  cor(sample(P_11), Q_11, method = 'pearson')
+)
+
+# H1: positive correlation
+p_value_11 <-
+  (sum(permuted_r_11 >= observed_r_11) + 1) / (B_11 + 1)
+
+print(c(
+  observed_correlation = observed_r_11,
+  approximate_p_value = p_value_11
+))
 ```
 
-### 10.3 ตรวจความเสถียรของ Monte Carlo p-value
+ถ้า $H_1$ เป็น correlation แตกต่างจากศูนย์แบบสองด้าน ให้เปลี่ยนบรรทัด p-value เป็น
 
 ```r
-se_mc <- sqrt(p_value * (1 - p_value) / B)
-
-c(
-  p_value = p_value,
-  monte_carlo_se = se_mc,
-  lower_check = max(0, p_value - 2 * se_mc),
-  upper_check = min(1, p_value + 2 * se_mc)
-)
+%%R
+p_value_two_sided_11 <-
+  (sum(abs(permuted_r_11) >= abs(observed_r_11)) + 1) /
+  (B_11 + 1)
 ```
 
-ช่วง `p_value ± 2 * se_mc` เป็นเพียง diagnostic โดยประมาณของความผันผวนจาก Monte Carlo ไม่ใช่ confidence interval ของ effect size หากช่วงตรวจสอบยังคร่อม $\alpha$ ควรเพิ่ม $B$ แล้วรันใหม่ด้วย seed ที่รายงานได้
+---
 
-## 11. การตีความผลลัพธ์อย่างถูกต้อง
+## 12. Permutation, Bootstrap และ Classical test ต่างกันตรงไหน
 
-p-value ของ Permutation Test คือความน่าจะเป็น ภายใต้ $H_0$ และ permutation scheme ที่กำหนด ที่จะได้ statistic สุดโต่งอย่างน้อยเท่ากับค่าที่สังเกต p-value ไม่ใช่ความน่าจะเป็นที่ $H_0$ เป็นจริง และไม่ใช่ขนาดของ treatment effect
+| วิธี | ทำอะไรกับข้อมูล | เป้าหมายหลัก |
+|---|---|---|
+| Classical test | ใช้ theoretical distribution | คำนวณ p-value หรือ CI ภายใต้ assumptions ของแบบจำลอง |
+| Permutation test | สลับ labels หรือโครงสร้างโดยไม่ใส่คืน | สร้าง null distribution ภายใต้ $H_0$ |
+| Bootstrap | สุ่ม observations แบบใส่คืน | ประมาณ sampling distribution, bias, SE หรือ CI |
 
-การรายงานผลที่ดีควรมีอย่างน้อยสี่ส่วน
+จุดที่มักสับสนคือทั้ง Permutation และ Bootstrap เป็น resampling methods แต่ถามคนละคำถาม
 
-1. statistic และทิศทางของ alternative
-2. วิธีสลับข้อมูลและเหตุผลที่สอดคล้องกับ design
-3. จำนวน permutations และวิธีคำนวณ p-value
-4. ข้อสรุปในบริบท พร้อมข้อจำกัด
+- Permutation ถามว่า “ถ้า $H_0$ เป็นจริง ผลแบบนี้สุดโต่งแค่ไหน”
+- Bootstrap ถามว่า “ถ้าเราสุ่ม sample ใหม่จาก population ที่ sample นี้เป็นตัวแทน estimate จะเปลี่ยนมากเพียงใด”
 
-ตัวอย่างการรายงานคือ
+ดังนั้น Permutation Test ใช้ `replace = FALSE` ส่วน Bootstrap ใช้ `replace = TRUE`
 
-> ใช้ one-sided permutation test โดยสลับ Treatment/Control labels และคงขนาดกลุ่มละ 12 ตัวอย่าง ค่า observed mean difference เท่ากับ 1.775 คะแนน จาก exact permutation distribution ได้ p-value ประมาณ 0.00158 จึงปฏิเสธ $H_0$ ที่ระดับ 0.05 ข้อมูลให้หลักฐานว่า mean wool-quality score ของกลุ่มที่ใช้แชมพูสูงกว่ากลุ่มควบคุม ภายใต้เงื่อนไขว่า label สามารถแลกเปลี่ยนได้ตาม design
+---
 
-แม้ p-value ต่ำ ควรรายงาน observed effect และหน่วยร่วมด้วย เพราะนัยสำคัญทางสถิติไม่ได้บอกว่า effect มีความสำคัญในทางปฏิบัติเพียงใด
+## 13. Exercise 1: Comparing Dosages
 
-## 12. Assumptions และข้อจำกัด
+### 13.1 วิเคราะห์โจทย์
 
-Permutation Test มักถูกเรียกว่า nonparametric แต่ไม่ได้แปลว่าไม่มี assumption เงื่อนไขสำคัญประกอบด้วย
+ผู้ป่วย 5 คนถูกสุ่มให้ High dose 2 คนและ Low dose 3 คน Outcome คือจำนวนวันที่ไม่มีอาการ โจทย์ถามว่า High dose ให้ mean symptom-free days มากกว่า Low dose หรือไม่
 
-### 12.1 Permutation scheme ต้องถูกต้อง
-
-หน่วยที่สลับต้อง exchangeable ภายใต้ $H_0$ และต้องสะท้อน randomization scheme หรือ dependence structure จริง หากสลับผิดหน่วย p-value จะไม่มีความหมายตามที่ตั้งใจ
-
-### 12.2 Observations และ Sampling Design
-
-ความเป็นอิสระระหว่างหน่วยยังสำคัญในหลาย design หากข้อมูลมี cluster, household, hospital, repeated measures หรือ time dependence ต้องรักษาโครงสร้างเหล่านั้นระหว่าง permutation
-
-### 12.3 Generalizability
-
-Permutation inference อาจ exact สำหรับหน่วยที่ศึกษา แต่การขยายผลไปยังประชากรกว้างขึ้นยังขึ้นกับวิธีสุ่ม sample ความครอบคลุมของประชากร และคุณภาพข้อมูล
-
-### 12.4 Causal Interpretation
-
-การสุ่ม permutation ไม่สามารถทดแทนการสุ่ม treatment จริง หากข้อมูลเป็น observational การปฏิเสธ $H_0$ แสดง association ตาม statistic และ permutation scheme ไม่ได้พิสูจน์เหตุและผล
-
-### 12.5 Discrete p-value
-
-เมื่อจำนวน permutations น้อย p-value ที่เป็นไปได้มีขั้นห่าง เช่น หากมี 99 random permutations แล้วใช้ plus-one correction ค่า p-value ต่ำสุดคือ $1/100=0.01$ จึงไม่สามารถรายงานความละเอียดเกินกว่าที่จำนวน permutations รองรับ
-
-## 13. เปรียบเทียบ Permutation Test กับวิธีใกล้เคียง
-
-| วิธี | กลไกหลัก | เป้าหมายทั่วไป | จุดที่ต้องระวัง |
-|---|---|---|---|
-| Parametric test | ใช้ theoretical distribution | ทดสอบ parameter ภายใต้ model | Distributional assumptions |
-| Permutation test | สลับ label หรือ pairing แบบไม่คืนที่ | ทดสอบ $H_0$ จาก randomization distribution | Exchangeability และ design |
-| Bootstrap | สุ่ม observation แบบคืนที่ | ประมาณ SE, bias และ confidence interval | Sample ต้องแทน population ได้ดี |
-| Randomization test | อ้างอิง assignment mechanism จริง | ทดสอบผลของ treatment ใน experiment | ต้องรู้ randomization scheme |
-| Rank-based test | แปลงข้อมูลเป็นอันดับ | ทดสอบ location หรือ stochastic ordering | คำถามไม่จำเป็นต้องเป็น mean difference |
-
-คำว่า Permutation Test และ Randomization Test มักใช้ทับซ้อนกัน แต่ในความหมายที่เข้ม Randomization Test ผูกกับกลไกสุ่มจัด treatment จริง ส่วน Permutation Test อาจอาศัย exchangeability จาก model หรือ $H_0$ ที่กำหนด
-
-## 14. Common Misconceptions
-
-### 14.1 “Permutation Test ไม่มี assumption”
-
-ไม่จริง วิธีนี้ลดการพึ่งพา parametric distribution บางชนิด แต่ต้องอาศัย exchangeability และ permutation scheme ที่ถูกต้อง
-
-### 14.2 “ข้อมูลน้อยจึงใช้ Permutation Test ได้เสมอ”
-
-ข้อมูลน้อยทำให้แจกแจง permutations ครบได้ง่าย แต่ information ใน sample ยังน้อย และจำนวน distinct permutations อาจทำให้ p-value หยาบมาก วิธีนี้ไม่สร้างข้อมูลใหม่เพิ่มขึ้น
-
-### 14.3 “สลับลำดับข้อมูลอย่างไรก็ได้”
-
-ไม่จริง การสลับต้องตรงกับ $H_0$ และ design เช่น two-group test สลับ labels, paired test สลับภายในคู่ และ correlation test สลับตัวแปรหนึ่งเทียบกับอีกตัวแปรหนึ่ง
-
-### 14.4 “p-value ต่ำแปลว่า effect ใหญ่”
-
-ไม่จริง p-value ขึ้นกับ effect, variability, sample size และ statistic ต้องรายงาน effect estimate และพิจารณาความสำคัญเชิงปฏิบัติแยกกัน
-
-### 14.5 “สุ่ม 50,000 รอบจึงเป็น Exact Test”
-
-ไม่จริง การสุ่มบางส่วนเป็น Monte Carlo approximation Exact Test ต้องแจกแจง arrangement ที่เป็นไปได้ครบ หรือใช้วิธีคำนวณ exact distribution ที่เทียบเท่ากัน
-
-## 15. แนวเขียนตอบข้อสอบ
-
-### 15.1 โครงคำตอบ 6 ขั้น
-
-เมื่อต้องอธิบาย Permutation Test ให้ตอบสั้นแต่ครบดังนี้
-
-1. ระบุ $H_0$, $H_1$ และทิศทางของ test
-2. ระบุ observed statistic
-3. อธิบายสิ่งที่ exchangeable และหน่วยที่สลับ
-4. สร้าง permutation distribution ภายใต้ $H_0$
-5. คำนวณ p-value จากสัดส่วนค่าที่สุดโต่งอย่างน้อยเท่า observed statistic
-6. เปรียบเทียบกับ $\alpha$ และสรุปในบริบท โดยไม่กล่าวว่า “ยอมรับ $H_0$”
-
-### 15.2 ตัวอย่างคำตอบแบบเขียนสอบ
-
-> Permutation Test สร้าง null distribution โดยสลับ label หรือ pairing ที่ exchangeable ภายใต้ $H_0$ แล้วคำนวณ test statistic ซ้ำ สำหรับ two-group mean test จะคำนวณ observed mean difference จากข้อมูลจริง จากนั้นรวมข้อมูลและสลับ group labels โดยคงขนาดกลุ่มเดิม p-value คือสัดส่วนของ permuted statistics ที่สุดโต่งอย่างน้อยเท่าค่าจริง หาก p-value ต่ำกว่า $\alpha$ ให้ปฏิเสธ $H_0$ ทั้งนี้ความถูกต้องขึ้นกับ exchangeability และ permutation scheme ที่สอดคล้องกับ design
-
-## 16. Likely Exam Focus
-
-จากการเน้นซ้ำในเอกสาร ประเด็นที่ควรเตรียมเป็นพิเศษ ได้แก่
-
-- อธิบายความต่างระหว่าง classical test กับ permutation test
-- ให้นิยามและอธิบายความสำคัญของ Exchangeability
-- เขียนขั้นตอนสร้าง permutation distribution และ p-value
-- ระบุสิ่งที่ต้องสลับสำหรับ two groups, matched pairs และ correlation
-- แยก Exact Permutation Test ออกจาก Monte Carlo approximation
-- อธิบายเหตุผลที่การสลับข้อมูลแล้วคำนวณ mean ของข้อมูลรวมให้ statistic เท่าเดิม
-- ตีความ one-sided p-value จากกราฟ permutation distribution
-- วิเคราะห์ข้อจำกัดเมื่อ $n!$ หรือจำนวน combinations มีขนาดใหญ่มาก
-
-## 17. โจทย์ฝึกและเฉลย
-
-### ข้อ 1: อธิบาย Exchangeability
-
-นักวิจัยมีข้อมูลคะแนนจากโรงพยาบาล 10 แห่ง แต่สุ่ม Treatment ภายในแต่ละโรงพยาบาล ถ้าต้องการ Permutation Test ควรสลับ label อย่างไร
-
-**เฉลย:** ควรสลับ Treatment/Control ภายในโรงพยาบาลเดียวกัน เพราะ randomization เกิดภายใน block โรงพยาบาล การสลับข้ามโรงพยาบาลทำให้โรงพยาบาลที่มีพื้นฐานต่างกันแลก observation กันและไม่สะท้อน assignment mechanism เดิม Null distribution ที่ได้อาจผสม treatment effect กับ hospital effect
-
-### ข้อ 2: คำนวณ Monte Carlo p-value
-
-สุ่ม 9,999 permutations และพบ 37 ค่าที่มากกว่าหรือเท่ากับ observed statistic จงคำนวณ p-value ด้วย plus-one correction
-
-**เฉลย:**
+กำหนด
 
 $$
-\hat{p}=\frac{37+1}{9{,}999+1}=\frac{38}{10{,}000}=0.0038
+H_0:\text{response distributions ของ High และ Low dose เหมือนกัน}
 $$
 
-ดังนั้นที่ระดับ 0.05 ปฏิเสธ $H_0$ แต่ต้องสรุปในบริบทของสมมติฐานและ design
+$$
+H_1:\mu_{high}>\mu_{low}
+$$
 
-### ข้อ 3: วินิจฉัยโค้ดที่ผิด
+ใช้ statistic เป็น High mean minus Low mean และใช้ exact permutation เพราะมีเพียง 10 assignments
 
-โค้ดต่อไปนี้ใช้ทดสอบ correlation แต่ทำไมค่า correlation ไม่เปลี่ยน
+### 13.2 R code เพื่อหาคำตอบ
 
 ```r
-index <- sample(seq_along(P))
-cor(P[index], Q[index])
+%%R
+high_dose_131 <- c(12, 13)
+low_dose_131 <- c(6, 6, 7)
+
+combined_131 <- c(high_dose_131, low_dose_131)
+observed_diff_131 <- mean(high_dose_131) - mean(low_dose_131)
+
+high_index_131 <- combn(
+  seq_along(combined_131),
+  length(high_dose_131)
+)
+
+permuted_diff_131 <- apply(
+  high_index_131,
+  2,
+  function(index_131) {
+    mean(combined_131[index_131]) -
+      mean(combined_131[-index_131])
+  }
+)
+
+print(round(permuted_diff_131, 4))
+
+print(c(
+  observed_difference = observed_diff_131,
+  total_assignments = length(permuted_diff_131),
+  extreme_assignments = sum(permuted_diff_131 >= observed_diff_131),
+  exact_p_value = mean(permuted_diff_131 >= observed_diff_131)
+))
 ```
 
-**เฉลย:** โค้ดสลับ $P$ และ $Q$ ด้วย index เดียวกัน จึงรักษาคู่เดิมไว้ครบ correlation ไม่เปลี่ยน ต้องตรึงตัวแปรหนึ่งและสลับอีกตัวแปรหนึ่ง เช่น `cor(P[index], Q)` เพื่อทำลาย pairing ภายใต้ $H_0$
+### 13.3 อ่านผล
 
-### ข้อ 4: เลือกวิธีสำหรับ Paired Data
+- High mean = 12.50 วัน
+- Low mean = 6.33 วัน
+- Observed difference = 6.17 วัน
+- Total assignments = 10
+- Extreme assignments = 1
+- Exact one-sided p-value = 0.10
 
-วัดความดันก่อนและหลังให้ยาในผู้ป่วยคนเดิม 12 คน จะสลับอย่างไร
+### 13.4 เฉลยละเอียด
 
-**เฉลย:** หน่วยที่ exchangeable คือสถานะ Before/After ภายในผู้ป่วยแต่ละคนภายใต้ sharp null ว่า treatment ไม่มีผล สามารถสลับค่าภายในคู่ หรือคำนวณ paired difference แล้วสุ่มคูณแต่ละ difference ด้วย $+1$ หรือ $-1$ ห้ามกระจายค่าจากผู้ป่วยหนึ่งไปจับคู่กับอีกคน เพราะจะทำลาย matched structure
+การเลือกผู้ป่วย 2 จาก 5 คนให้เป็น High dose ทำได้ 10 วิธี ภายใต้ $H_0$ แต่ละวิธีมีโอกาสเท่ากัน Assignment จริงให้ผลต่าง 6.17 วัน และไม่มี assignment อื่นให้ผลต่างมากกว่านี้ จึงมี 1 จาก 10 assignments ที่ extreme เท่าหรือมากกว่าผลจริง
 
-### ข้อ 5: วิจารณ์ข้อสรุป
+ที่ $\alpha=0.05$ ค่า p-value 0.10 มากกว่า 0.05 จึงไม่ปฏิเสธ $H_0$ แม้ sample mean ของ High dose สูงกว่าอย่างเห็นได้ชัด แต่จำนวน assignments น้อยเกินไปที่จะได้ p-value ต่ำกว่า 0.05
 
-นักวิเคราะห์ได้ permutation p-value เท่ากับ 0.002 จาก observational data แล้วสรุปว่า “ราคาเป็นสาเหตุให้อุปทานเพิ่ม” ข้อสรุปนี้ถูกต้องหรือไม่
+### 13.5 ตัวอย่างเขียนตอบข้อสอบ
 
-**เฉลย:** ยังสรุปเชิงสาเหตุไม่ได้ p-value แสดงว่าความสัมพันธ์ที่สังเกตสุดโต่งเมื่อเทียบกับ null distribution ที่สร้างขึ้น แต่ observational data อาจมี confounding, reverse causality หรือ time dependence Permutation Test ไม่เปลี่ยน observational design ให้เป็น randomized experiment ควรสรุปว่าพบหลักฐานของ association และระบุข้อจำกัด
+> กำหนด $H_0$ ว่า response distributions ของ High-dose และ Low-dose groups เหมือนกัน และ $H_1:\mu_{high}>\mu_{low}$ ใช้ difference in sample means เป็น test statistic ได้ $S_{obs}=12.50-6.33=6.17$ วัน การแบ่งผู้ป่วย 5 คนเป็น High dose 2 คนกับ Low dose 3 คนมีทั้งหมด 10 assignments และมีเพียง 1 assignment ที่ให้ผลต่างอย่างน้อย 6.17 วัน จึงได้ exact permutation p-value เท่ากับ $1/10=0.10$ เนื่องจาก 0.10 มากกว่า 0.05 จึงไม่ปฏิเสธ $H_0$ ข้อมูลยังไม่มีหลักฐานเพียงพอว่า High dose ให้ population mean symptom-free days มากกว่า Low dose
 
-## 18. สรุปแก่นของบท
+---
 
-Permutation Test สร้างการแจกแจงอ้างอิงจากข้อมูลที่สังเกต โดยสลับ label, pairing หรือ assignment ที่ exchangeable ภายใต้ $H_0$ แล้วเปรียบเทียบ observed statistic กับค่าจาก permutations วิธีนี้ลดการพึ่งพา parametric distribution และรองรับ statistic ที่ยืดหยุ่น แต่ไม่ได้ปราศจาก assumption
+## 14. Exercise 2: Waiting at Parking Space
 
-ความถูกต้องของผลขึ้นกับสามเรื่องมากกว่าจำนวนรอบเพียงอย่างเดียว ได้แก่ การกำหนด $H_0$ ที่ถูกต้อง การเลือก statistic ที่สอดคล้องกับ $H_1$ และการสลับหน่วยที่รักษา design เดิม หากสามเรื่องนี้ถูกต้อง จึงพิจารณาต่อว่าจะใช้ exact enumeration หรือ Monte Carlo approximation และเลือกจำนวน permutations ให้ p-value มีความแม่นเพียงพอต่อการตัดสินใจ
+### 14.1 วิเคราะห์โจทย์
 
-## References
+โจทย์เปรียบเทียบเวลาที่ผู้ขับรถใช้ก่อนออกจากช่องจอดระหว่าง
 
-- เอกสารประกอบการสอน `lecture05_permutation_test.pptx`, 10 สไลด์
-- Wilber, J. *Permutation Tests*. https://www.jwilber.me/permutationtest/
-- R-bloggers. *What Is a Permutation Test?* https://www.r-bloggers.com/what-is-a-permutation-test/
-- Good, P. *Permutation, Parametric, and Bootstrap Tests of Hypotheses*. อ้างถึงในรายการเอกสารประกอบของสไลด์
+- No one waiting: 20 คน
+- Someone waiting: 20 คน
+
+ข้อมูลเบ้ขวาเพราะเวลาออกจากช่องจอดมีขอบล่าง แต่บางคนใช้เวลานานมาก จึงไม่สบายใจกับ Normality assumption ของ two-sample t test โจทย์ต้องการทดสอบว่าการมีคนรอทำให้ใช้เวลานานขึ้นหรือไม่
+
+กำหนด statistic เป็น Someone waiting minus No one waiting และใช้ one-sided permutation test
+
+### 14.2 R code เพื่อหาคำตอบ
+
+```r
+%%R
+no_waiting_142 <- c(
+  36.30, 42.07, 39.97, 39.33, 33.76,
+  33.91, 39.65, 84.92, 40.70, 39.65,
+  39.48, 35.38, 75.07, 36.46, 38.73,
+  33.88, 34.39, 60.52, 53.63, 50.62
+)
+
+someone_waiting_142 <- c(
+  49.48, 43.30, 85.97, 46.92, 49.18,
+  79.30, 47.35, 46.52, 59.68, 42.89,
+  49.29, 68.69, 41.61, 46.81, 43.75,
+  46.55, 42.33, 71.48, 78.95, 42.06
+)
+
+# ตรวจรูปทรงของข้อมูล
+boxplot(
+  no_waiting_142,
+  someone_waiting_142,
+  names = c('No one waiting', 'Someone waiting'),
+  ylab = 'Time to leave parking space (seconds)'
+)
+
+print(shapiro.test(no_waiting_142))
+print(shapiro.test(someone_waiting_142))
+
+# Observed statistic: Someone waiting minus No one waiting
+observed_diff_142 <-
+  mean(someone_waiting_142) - mean(no_waiting_142)
+
+combined_142 <- c(someone_waiting_142, no_waiting_142)
+n_waiting_142 <- length(someone_waiting_142)
+B_142 <- 5000
+
+set.seed(1086)
+permuted_diff_142 <- replicate(B_142, {
+  shuffled_142 <- sample(combined_142, replace = FALSE)
+
+  mean(shuffled_142[1:n_waiting_142]) -
+    mean(shuffled_142[(n_waiting_142 + 1):length(shuffled_142)])
+})
+
+extreme_142 <- sum(permuted_diff_142 >= observed_diff_142)
+p_value_142 <- (extreme_142 + 1) / (B_142 + 1)
+
+print(c(
+  mean_no_waiting = mean(no_waiting_142),
+  mean_someone_waiting = mean(someone_waiting_142),
+  observed_difference = observed_diff_142,
+  extreme_permutations = extreme_142,
+  approximate_p_value = p_value_142
+))
+
+hist(permuted_diff_142,
+     main = 'Permutation distribution under H0',
+     xlab = 'Mean difference: waiting minus no waiting')
+abline(v = observed_diff_142, col = 'red', lwd = 2)
+```
+
+### 14.3 อ่านผล
+
+- Mean ของ No one waiting = 44.4210 วินาที
+- Mean ของ Someone waiting = 54.1055 วินาที
+- Observed difference = 9.6845 วินาที
+- Shapiro p-values ของทั้งสองกลุ่มต่ำกว่า 0.05 และกราฟแสดง right skewness
+- Approximate one-sided permutation p-value ควรอยู่ประมาณ 0.02
+
+จำนวน extreme permutations และหลักทศนิยมท้ายของ p-value อาจต่างกันตาม random seed เพราะโจทย์ใช้ random permutations 5,000 ครั้ง
+
+### 14.4 เฉลยละเอียด
+
+ถ้า $H_0$ เป็นจริงและการมีคนรอไม่เกี่ยวกับ response distribution labels Someone waiting และ No one waiting สามารถสลับกันได้ เราจึงรวมเวลา 40 ค่า สุ่ม labels ใหม่โดยรักษากลุ่มละ 20 คน แล้วคำนวณ mean difference ซ้ำ 5,000 ครั้ง
+
+ผลต่างจริง 9.6845 วินาทีอยู่ด้านขวาของ permutation distribution และมี random permutations ประมาณ 2% ที่ให้ผลต่างอย่างน้อยเท่านี้ p-value จึงต่ำกว่า 0.05
+
+### 14.5 ตัวอย่างเขียนตอบข้อสอบ
+
+> กำหนด $H_0$ ว่า response distributions ของเวลาออกจากช่องจอดเหมือนกันไม่ว่าจะมีคนรอหรือไม่ และ $H_1$ ว่าผู้ขับรถใช้เวลาเฉลี่ยนานขึ้นเมื่อมีคนรอ ข้อมูลทั้งสองกลุ่มเบ้ขวา จึงใช้ two-sample permutation test โดยกำหนด statistic เป็น mean ของ Someone waiting minus No one waiting ได้ $S_{obs}=54.1055-44.4210=9.6845$ วินาที จาก 5,000 random permutations ได้ approximate p-value ประมาณ 0.02 ซึ่งน้อยกว่า 0.05 จึงปฏิเสธ $H_0$ ข้อมูลมีหลักฐานว่าผู้ขับรถใช้เวลาออกจากช่องจอดเฉลี่ยนานขึ้นเมื่อมีรถคันอื่นรอ
+
+---
+
+## 15. Exercise 3: Dogs Prefer Petting or Vocal Praise
+
+### 15.1 วิเคราะห์โจทย์
+
+สุนัข 14 ตัวถูกสุ่มเป็นสองกลุ่ม กลุ่มแรกเจ้าของลูบสุนัข ส่วนกลุ่มที่สองเจ้าของชมด้วยเสียง Outcome คือจำนวนวินาทีที่สุนัขใช้ปฏิสัมพันธ์กับเจ้าของ
+
+- Petting: 114, 203, 217, 254, 256, 284, 296
+- Vocal praise: 4, 7, 24, 25, 48, 71, 294
+
+ข้อมูลแต่ละกลุ่มมีเพียง 7 ค่าและมีลักษณะเบ้ จึงใช้ exact permutation test ทั้งหมด $\binom{14}{7}=3432$ assignments
+
+### 15.2 R code เพื่อหาคำตอบ
+
+```r
+%%R
+petting_152 <- c(114, 203, 217, 254, 256, 284, 296)
+vocal_praise_152 <- c(4, 7, 24, 25, 48, 71, 294)
+
+combined_152 <- c(petting_152, vocal_praise_152)
+n_petting_152 <- length(petting_152)
+
+observed_diff_152 <- mean(petting_152) - mean(vocal_praise_152)
+
+petting_assignments_152 <- combn(
+  seq_along(combined_152),
+  n_petting_152
+)
+
+permuted_diff_152 <- apply(
+  petting_assignments_152,
+  2,
+  function(petting_index_152) {
+    mean(combined_152[petting_index_152]) -
+      mean(combined_152[-petting_index_152])
+  }
+)
+
+exact_p_value_152 <-
+  mean(permuted_diff_152 >= observed_diff_152)
+
+print(c(
+  mean_petting = mean(petting_152),
+  mean_vocal_praise = mean(vocal_praise_152),
+  observed_difference = observed_diff_152,
+  total_assignments = length(permuted_diff_152),
+  extreme_assignments = sum(permuted_diff_152 >= observed_diff_152),
+  exact_p_value = exact_p_value_152
+))
+```
+
+### 15.3 อ่านผล
+
+- Mean ของ Petting = 232.0000 วินาที
+- Mean ของ Vocal praise = 67.5714 วินาที
+- Observed difference = 164.4286 วินาที
+- Total assignments = 3,432
+- Extreme assignments = 13
+- Exact one-sided p-value = $13/3432=0.0038$
+
+### 15.4 เฉลยละเอียด
+
+ภายใต้ $H_0$ ถ้าวิธีปฏิสัมพันธ์ไม่เปลี่ยน response distribution ค่าเวลาทั้ง 14 ค่าสามารถแบ่งเป็นกลุ่มละ 7 ได้ทุกแบบอย่างเท่าเทียมกัน มีเพียง 13 จาก 3,432 assignments ที่ให้ mean difference อย่างน้อย 164.4286 วินาที ผลจริงจึงอยู่ไกลในหางขวาของ null distribution
+
+### 15.5 ตัวอย่างเขียนตอบข้อสอบ
+
+> กำหนด $H_0$ ว่า distribution ของเวลาที่สุนัขอยู่กับเจ้าของเหมือนกันระหว่าง Petting และ Vocal-praise conditions และ $H_1:\mu_{petting}>\mu_{vocal}$ ใช้ difference in sample means เป็น statistic ได้ $S_{obs}=232.0000-67.5714=164.4286$ วินาที จาก assignments ทั้งหมด 3,432 แบบ มี 13 แบบที่ให้ผลต่างอย่างน้อยเท่าผลจริง จึงได้ exact permutation p-value เท่ากับ $13/3432=0.0038$ ซึ่งน้อยกว่า 0.05 จึงปฏิเสธ $H_0$ มีหลักฐานว่าการลูบทำให้ population mean interaction time ของสุนัขกับเจ้าของสูงกว่าการชมด้วยเสียง
+
+---
+
+## 16. ตัวอย่างจาก Lecture: Alpaca Shampoo
+
+Lecture เปรียบเทียบ wool quality ระหว่าง Treatment ซึ่งใช้ shampoo ใหม่กับ Control โดยใช้ difference in means เป็น statistic
+
+- Treatment mean = 6.300
+- Control mean = 4.525
+- Observed difference = 1.775
+
+หลักการคือรวม response values แล้วสลับ labels Treatment และ Control หาก observed difference อยู่ในหางขวาของ permutation distribution และ p-value ต่ำกว่า $\alpha$ ให้ปฏิเสธ $H_0$
+
+Lecture ใช้ตัวอย่าง random permutations เพื่อแสดงภาพ null distribution จึงควรอ่านค่าจำนวน permutations และ p-value จาก output ของการรันจริง ไม่ควรถือว่าผล Monte Carlo ต้องได้ทศนิยมเหมือนเดิมทุกครั้งถ้าไม่ได้กำหนด seed
+
+ตัวอย่างเขียนตอบ:
+
+> ใช้ Treatment mean minus Control mean เป็น statistic ได้ $S_{obs}=1.775$ หาก permutation p-value `[ค่าจาก output]` น้อยกว่า `[\alpha=0.10]` จึงปฏิเสธ $H_0$ และสรุปว่าข้อมูลมีหลักฐานว่า shampoo ใหม่เพิ่ม population mean wool quality
+
+---
+
+## 17. วิธีเขียนตอบ Permutation Test ในห้องสอบ
+
+ใช้โครงนี้ทุกครั้ง:
+
+1. ระบุ $H_0$ และ $H_1$ พร้อมทิศทาง
+2. บอกว่าสลับอะไรและรักษาโครงสร้างใดไว้
+3. ระบุ test statistic และทิศทางผลต่าง
+4. รายงาน observed statistic
+5. บอก exact หรือจำนวน random permutations
+6. รายงานจำนวน extreme permutations และ p-value
+7. เปรียบเทียบกับ $\alpha$ แล้วสรุปในบริบทของ population
+
+ประโยคต้นแบบ:
+
+> ภายใต้ $H_0$ `[group labels]` สามารถสลับกันได้โดยรักษา `[ขนาดกลุ่ม]` คงเดิม ใช้ `[group 1 mean minus group 2 mean]` เป็น test statistic ได้ $S_{obs}=$ `[ค่าจริงพร้อมหน่วย]` จาก `[จำนวน]` permutations มี `[จำนวน]` permutations ที่ให้ statistic extreme เท่าหรือมากกว่าผลจริง จึงได้ p-value เท่ากับ `[ค่า]` เนื่องจาก p-value `[น้อยกว่า/มากกว่า]` $\alpha=$ `[ค่า]` จึง `[ปฏิเสธ/ไม่ปฏิเสธ]` $H_0$ ข้อมูล `[มี/ยังไม่มี]` หลักฐานว่า `[ข้อความตาม H_1 ในบริบท population]`
+
+---
+
+## 18. จุดที่มักทำผิด
+
+### 18.1 สลับค่าผิดโครงสร้าง
+
+Independent groups สลับ labels ระหว่างหน่วยทดลองได้ แต่ paired data ต้องรักษาคู่ไว้แล้วสลับ signs ของ differences การรวมค่าก่อนและหลังทั้งหมดแล้วแบ่งใหม่จะทำลาย pairing
+
+### 18.2 เครื่องหมายของ statistic ไม่ตรงกับ alternative
+
+ถ้า code คำนวณ Waiting minus No waiting แต่คำตอบตีความเป็น No waiting minus Waiting เครื่องหมายและหางของ p-value จะกลับด้าน ต้องเขียนนิยามผลต่างก่อนรัน R
+
+### 18.3 ใช้ `replace = TRUE`
+
+นี่เป็น Bootstrap ไม่ใช่ Permutation Test การ permutation ใช้ observations เดิมครบทุกค่าในแต่ละรอบ จึงใช้ `replace = FALSE`
+
+### 18.4 ลืมนับ observed assignment
+
+Exact p-value ต้องรวม assignment จริงเมื่อมันเข้าเกณฑ์ extreme จึงทำให้ p-value ไม่เป็นศูนย์
+
+### 18.5 เขียนว่า Permutation Test ไม่มี assumptions
+
+วิธีนี้ไม่ต้องสมมติ Normality แต่ยังต้องอาศัย exchangeability, independence ตามการออกแบบ และ permutation scheme ที่ถูกต้อง
+
+### 18.6 สรุปว่าไม่แตกต่างเมื่อไม่ปฏิเสธ H0
+
+การไม่ปฏิเสธหมายถึงหลักฐานยังไม่เพียงพอ ไม่ได้พิสูจน์ว่าสอง population distributions เหมือนกัน
+
+### 18.7 รายงาน Monte Carlo p-value เหมือนเป็นค่าคงที่
+
+Random permutations ทำให้ p-value เปลี่ยนเล็กน้อยตาม seed และ $B$ ต้องระบุจำนวน permutations และใช้ `set.seed()` หากต้องการทำซ้ำ
+
+---
+
+## 19. สรุปก่อนทำโจทย์
+
+เมื่อเห็นโจทย์ Permutation Test ให้คิดตามลำดับนี้
+
+1. Outcome คืออะไร และ groups เป็น independent หรือ paired
+2. $H_1$ ถามมากกว่า น้อยกว่า หรือแตกต่าง
+3. Statistic ใดตอบคำถาม และนิยามผลต่างทิศทางใด
+4. ภายใต้ $H_0$ สามารถสลับอะไรได้
+5. จำนวน assignments ทั้งหมดพอทำ exact test หรือควรใช้ Monte Carlo
+6. Permutation statistic แบบใดถือว่า extreme
+7. p-value เทียบกับ $\alpha$ แล้วสรุปถึง population อย่างไร
+
+ประโยคที่ควรจำคือ:
+
+> Permutation Test วัดว่าผลจริงสุดโต่งเพียงใดเมื่อเทียบกับผลที่เกิดจากการสลับข้อมูลในรูปแบบที่ $H_0$ อนุญาต
+
+---
+
+## Sources
+
+- Lecture 05: Permutation Test
+- Exercise: Waiting at Parking Space
+- Exercise: Comparing Dosages and Dogs Prefer Petting to Vocal Praise
+- R solution: manual permutation loop and `permTS()` examples
 
